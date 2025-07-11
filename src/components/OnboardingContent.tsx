@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import OrdersPage from './OrdersPage';
 import ShipmentPage from './ShipmentPage';
 import CODRemittance from './CODRemittance';
@@ -7,12 +8,27 @@ import EarlyCODPlans from './EarlyCODPlans';
 import InvoiceManagement from './InvoiceManagement';
 import SupportDashboard from './SupportDashboard';
 import CreateTicket from './CreateTicket';
+import TicketList from './TicketList';
+import TicketDetails from './TicketDetails';
+import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
   activeMenuItem: string;
 }
 
 const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem }) => {
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [showTicketDetails, setShowTicketDetails] = useState(false);
+
+  const handleTicketSelect = (ticket: SupportTicket) => {
+    setSelectedTicket(ticket);
+    setShowTicketDetails(true);
+  };
+
+  const handleBackToList = () => {
+    setSelectedTicket(null);
+    setShowTicketDetails(false);
+  };
 
   const renderOnboardingStep = () => {
     return (
@@ -72,6 +88,14 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     );
   };
 
+  // Handle support section routing
+  if (activeMenuItem === 'my-tickets' || activeMenuItem === 'ticket-history') {
+    if (showTicketDetails && selectedTicket) {
+      return <TicketDetails ticket={selectedTicket} onBack={handleBackToList} />;
+    }
+    return <TicketList onTicketSelect={handleTicketSelect} />;
+  }
+
   switch (activeMenuItem) {
     // Onboarding
     case 'onboarding':
@@ -110,10 +134,6 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       return <SupportDashboard />;
     case 'create-ticket':
       return <CreateTicket />;
-    case 'my-tickets':
-      return <SupportDashboard />; // For now, same as dashboard
-    case 'ticket-history':
-      return <SupportDashboard />; // For now, same as dashboard
     
     default:
       return renderOnboardingStep();

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const OrdersPage = () => {
@@ -14,6 +14,8 @@ const OrdersPage = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [hoveredOrder, setHoveredOrder] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
 
   const orderData = [
     {
@@ -213,12 +215,16 @@ const OrdersPage = () => {
     }
   ];
 
-  // Filter data based on search term
-  const filteredData = orderData.filter(order =>
-    Object.values(order).some(value =>
+  // Filter data based on search term and filters
+  const filteredData = orderData.filter(order => {
+    const matchesSearch = Object.values(order).some(value =>
       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+    );
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesPayment = paymentFilter === 'all' || order.paymentMode === paymentFilter;
+    
+    return matchesSearch && matchesStatus && matchesPayment;
+  });
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -272,37 +278,8 @@ const OrdersPage = () => {
     }
   };
 
-  const counters = [
-    { label: 'Total Orders', value: '1,234', icon: Package, color: 'text-blue-600' },
-    { label: 'Processing', value: '45', icon: Clock, color: 'text-yellow-600' },
-    { label: 'Shipped', value: '89', icon: Truck, color: 'text-purple-600' },
-    { label: 'Delivered', value: '1,100', icon: CheckCircle, color: 'text-green-600' }
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Counter Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {counters.map((counter, index) => {
-          const IconComponent = counter.icon;
-          return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/50 dark:hover:from-purple-900/20 dark:hover:to-blue-900/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{counter.label}</p>
-                    <p className="text-2xl font-bold text-foreground">{counter.value}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <IconComponent className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
       {/* Main Table Card */}
       <Card>
         <CardHeader>
@@ -322,10 +299,31 @@ const OrdersPage = () => {
                 />
               </div>
               
-              <Button variant="outline" className="w-full sm:w-auto">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Processing">Processing</SelectItem>
+                  <SelectItem value="Shipped">Shipped</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Payment Filter */}
+              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payment</SelectItem>
+                  <SelectItem value="COD">COD</SelectItem>
+                  <SelectItem value="Prepaid">Prepaid</SelectItem>
+                </SelectContent>
+              </Select>
               
               <Button variant="outline" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
@@ -358,8 +356,6 @@ const OrdersPage = () => {
                   <option value={30}>30</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
-                  <option value={250}>250</option>
-                  <option value={500}>500</option>
                 </select>
                 <span className="text-sm text-muted-foreground">entries</span>
               </div>
@@ -367,11 +363,11 @@ const OrdersPage = () => {
               {/* Bulk Actions */}
               {showBulkActions && (
                 <div className="flex items-center space-x-2">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white">
                     <Truck className="w-4 h-4 mr-1" />
                     Bulk Ship ({selectedOrders.length})
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white">
                     <XCircle className="w-4 h-4 mr-1" />
                     Bulk Cancel ({selectedOrders.length})
                   </Button>

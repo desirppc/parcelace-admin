@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, Filter, Download, Eye, Truck, Package, CheckCircle, Clock, AlertCircle, XCircle, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,166 +92,6 @@ const ShipmentPage = () => {
       weight: '2.1 kg',
       amount: '₹2,890',
       warehouse: 'Mumbai Warehouse'
-    },
-    {
-      id: 'SHP-2024-006',
-      awb: 'AWB123456794',
-      orderId: 'ORD-2024-006',
-      customer: 'Lisa Davis',
-      phone: '+91 9876543215',
-      status: 'Out for Delivery',
-      courier: 'Delhivery',
-      origin: 'Hyderabad, TS',
-      destination: 'Warangal, TS',
-      shipDate: '2024-01-10',
-      expectedDelivery: '2024-01-12',
-      weight: '4.1 kg',
-      amount: '₹4,200',
-      warehouse: 'Hyderabad Warehouse'
-    },
-    {
-      id: 'SHP-2024-007',
-      awb: 'AWB123456795',
-      orderId: 'ORD-2024-007',
-      customer: 'Chris Anderson',
-      phone: '+91 9876543216',
-      status: 'In Transit',
-      courier: 'Ecom Express',
-      origin: 'Kolkata, WB',
-      destination: 'Durgapur, WB',
-      shipDate: '2024-01-09',
-      expectedDelivery: '2024-01-11',
-      weight: '1.5 kg',
-      amount: '₹1,750',
-      warehouse: 'Kolkata Warehouse'
-    },
-    {
-      id: 'SHP-2024-008',
-      awb: 'AWB123456796',
-      orderId: 'ORD-2024-008',
-      customer: 'Emma Taylor',
-      phone: '+91 9876543217',
-      status: 'Delivered',
-      courier: 'Xpressbees',
-      origin: 'Ahmedabad, GJ',
-      destination: 'Vadodara, GJ',
-      shipDate: '2024-01-08',
-      expectedDelivery: '2024-01-10',
-      weight: '3.0 kg',
-      amount: '₹3,450',
-      warehouse: 'Ahmedabad Warehouse'
-    },
-    {
-      id: 'SHP-2024-009',
-      awb: 'AWB123456797',
-      orderId: 'ORD-2024-009',
-      customer: 'Robert Miller',
-      phone: '+91 9876543218',
-      status: 'Picked Up',
-      courier: 'BlueDart',
-      origin: 'Jaipur, RJ',
-      destination: 'Udaipur, RJ',
-      shipDate: '2024-01-07',
-      expectedDelivery: '2024-01-09',
-      weight: '1.9 kg',
-      amount: '₹2,100',
-      warehouse: 'Jaipur Warehouse'
-    },
-    {
-      id: 'SHP-2024-010',
-      awb: 'AWB123456798',
-      orderId: 'ORD-2024-010',
-      customer: 'Olivia Garcia',
-      phone: '+91 9876543219',
-      status: 'In Transit',
-      courier: 'Delhivery',
-      origin: 'Surat, GJ',
-      destination: 'Rajkot, GJ',
-      shipDate: '2024-01-06',
-      expectedDelivery: '2024-01-08',
-      weight: '2.7 kg',
-      amount: '₹2,850',
-      warehouse: 'Surat Warehouse'
-    },
-    {
-      id: 'SHP-2024-011',
-      awb: 'AWB123456799',
-      orderId: 'ORD-2024-011',
-      customer: 'William Rodriguez',
-      phone: '+91 9876543220',
-      status: 'Out for Delivery',
-      courier: 'Ecom Express',
-      origin: 'Lucknow, UP',
-      destination: 'Kanpur, UP',
-      shipDate: '2024-01-05',
-      expectedDelivery: '2024-01-07',
-      weight: '1.6 kg',
-      amount: '₹1,950',
-      warehouse: 'Lucknow Warehouse'
-    },
-    {
-      id: 'SHP-2024-012',
-      awb: 'AWB123456800',
-      orderId: 'ORD-2024-012',
-      customer: 'Sophia Martinez',
-      phone: '+91 9876543221',
-      status: 'Delivered',
-      courier: 'Xpressbees',
-      origin: 'Kanpur, UP',
-      destination: 'Allahabad, UP',
-      shipDate: '2024-01-04',
-      expectedDelivery: '2024-01-06',
-      weight: '3.4 kg',
-      amount: '₹3,650',
-      warehouse: 'Kanpur Warehouse'
-    },
-    {
-      id: 'SHP-2024-013',
-      awb: 'AWB123456801',
-      orderId: 'ORD-2024-013',
-      customer: 'James Wilson',
-      phone: '+91 9876543222',
-      status: 'Picked Up',
-      courier: 'BlueDart',
-      origin: 'Nagpur, MH',
-      destination: 'Aurangabad, MH',
-      shipDate: '2024-01-03',
-      expectedDelivery: '2024-01-05',
-      weight: '2.2 kg',
-      amount: '₹2,300',
-      warehouse: 'Nagpur Warehouse'
-    },
-    {
-      id: 'SHP-2024-014',
-      awb: 'AWB123456802',
-      orderId: 'ORD-2024-014',
-      customer: 'Isabella Lopez',
-      phone: '+91 9876543223',
-      status: 'In Transit',
-      courier: 'Delhivery',
-      origin: 'Indore, MP',
-      destination: 'Bhopal, MP',
-      shipDate: '2024-01-02',
-      expectedDelivery: '2024-01-04',
-      weight: '1.4 kg',
-      amount: '₹1,800',
-      warehouse: 'Indore Warehouse'
-    },
-    {
-      id: 'SHP-2024-015',
-      awb: 'AWB123456803',
-      orderId: 'ORD-2024-015',
-      customer: 'Benjamin Lee',
-      phone: '+91 9876543224',
-      status: 'Delivered',
-      courier: 'Ecom Express',
-      origin: 'Thane, MH',
-      destination: 'Kalyan, MH',
-      shipDate: '2024-01-01',
-      expectedDelivery: '2024-01-03',
-      weight: '4.0 kg',
-      amount: '₹4,100',
-      warehouse: 'Mumbai Warehouse'
     }
   ];
 
@@ -296,37 +135,8 @@ const ShipmentPage = () => {
     );
   };
 
-  const counters = [
-    { label: 'Total Shipments', value: '1,234', icon: Package, color: 'text-blue-600' },
-    { label: 'In Transit', value: '156', icon: Truck, color: 'text-purple-600' },
-    { label: 'Out for Delivery', value: '23', icon: Clock, color: 'text-yellow-600' },
-    { label: 'Delivered', value: '1,055', icon: CheckCircle, color: 'text-green-600' }
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Counter Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {counters.map((counter, index) => {
-          const IconComponent = counter.icon;
-          return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/50 dark:hover:from-purple-900/20 dark:hover:to-blue-900/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{counter.label}</p>
-                    <p className="text-2xl font-bold text-foreground">{counter.value}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <IconComponent className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
       {/* Main Table Card */}
       <Card>
         <CardHeader>
@@ -376,8 +186,6 @@ const ShipmentPage = () => {
                 <option value={30}>30</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
-                <option value={250}>250</option>
-                <option value={500}>500</option>
               </select>
               <span className="text-sm text-muted-foreground">entries</span>
             </div>

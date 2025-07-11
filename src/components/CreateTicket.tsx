@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, X } from 'lucide-react';
 import CategorySelector from './CategorySelector';
 import PrioritySelector from './PrioritySelector';
 import FileUploader from './FileUploader';
-import { Badge } from '@/components/ui/badge';
 
 const CreateTicket: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -19,52 +20,65 @@ const CreateTicket: React.FC = () => {
     priority: 'medium' as 'high' | 'medium' | 'low',
     subject: '',
     description: '',
-    awbNumbers: [''],
-    additionalEmails: [''],
+    awbNumbers: [] as string[],
+    additionalEmails: [] as string[],
     files: [] as File[]
   });
 
+  const [awbInput, setAwbInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [showAdditionalEmails, setShowAdditionalEmails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const addAWBField = () => {
+  const handleAwbInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addAwbNumber();
+    }
+  };
+
+  const addAwbNumber = () => {
+    const trimmedAwb = awbInput.trim();
+    if (trimmedAwb && !formData.awbNumbers.includes(trimmedAwb)) {
+      setFormData(prev => ({
+        ...prev,
+        awbNumbers: [...prev.awbNumbers, trimmedAwb]
+      }));
+      setAwbInput('');
+    }
+  };
+
+  const removeAwbNumber = (awbToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      awbNumbers: [...prev.awbNumbers, '']
+      awbNumbers: prev.awbNumbers.filter(awb => awb !== awbToRemove)
     }));
   };
 
-  const removeAWBField = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      awbNumbers: prev.awbNumbers.filter((_, i) => i !== index)
-    }));
+  const handleEmailInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addEmail();
+    }
   };
 
-  const updateAWBNumber = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      awbNumbers: prev.awbNumbers.map((awb, i) => i === index ? value : awb)
-    }));
+  const addEmail = () => {
+    const trimmedEmail = emailInput.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (trimmedEmail && emailRegex.test(trimmedEmail) && !formData.additionalEmails.includes(trimmedEmail)) {
+      setFormData(prev => ({
+        ...prev,
+        additionalEmails: [...prev.additionalEmails, trimmedEmail]
+      }));
+      setEmailInput('');
+    }
   };
 
-  const addEmailField = () => {
+  const removeEmail = (emailToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      additionalEmails: [...prev.additionalEmails, '']
-    }));
-  };
-
-  const removeEmailField = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      additionalEmails: prev.additionalEmails.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateEmail = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      additionalEmails: prev.additionalEmails.map((email, i) => i === index ? value : email)
+      additionalEmails: prev.additionalEmails.filter(email => email !== emailToRemove)
     }));
   };
 
@@ -78,10 +92,6 @@ const CreateTicket: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
-
-    // Filter out empty AWB numbers
-    const validAWBs = formData.awbNumbers.filter(awb => awb.trim() !== '');
-    const validEmails = formData.additionalEmails.filter(email => email.trim() !== '');
 
     try {
       // Simulate API call
@@ -98,10 +108,13 @@ const CreateTicket: React.FC = () => {
         priority: 'medium',
         subject: '',
         description: '',
-        awbNumbers: [''],
-        additionalEmails: [''],
+        awbNumbers: [],
+        additionalEmails: [],
         files: []
       });
+      setAwbInput('');
+      setEmailInput('');
+      setShowAdditionalEmails(false);
     } catch (error) {
       alert('Failed to create ticket. Please try again.');
     } finally {
@@ -179,41 +192,37 @@ const CreateTicket: React.FC = () => {
               <Label className="text-sm font-medium text-foreground">
                 AWB Numbers (optional)
               </Label>
-              <div className="mt-1 space-y-2">
-                {formData.awbNumbers.map((awb, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Enter AWB number"
-                      value={awb}
-                      onChange={(e) => updateAWBNumber(index, e.target.value)}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                      disabled={isSubmitting}
-                    />
-                    {formData.awbNumbers.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeAWBField(index)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        disabled={isSubmitting}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addAWBField}
-                  className="border-purple-200/50 dark:border-purple-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+              <p className="text-xs text-muted-foreground mb-2">
+                Enter AWB numbers separated by commas or press Enter to add
+              </p>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Enter AWB numbers (comma separated or press Enter)"
+                  value={awbInput}
+                  onChange={(e) => setAwbInput(e.target.value)}
+                  onKeyDown={handleAwbInputKeyDown}
+                  onBlur={addAwbNumber}
+                  className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
                   disabled={isSubmitting}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add AWB Number
-                </Button>
+                />
+                
+                {formData.awbNumbers.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.awbNumbers.map((awb, index) => (
+                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                        {awb}
+                        <button
+                          type="button"
+                          onClick={() => removeAwbNumber(awb)}
+                          className="text-red-500 hover:text-red-700"
+                          disabled={isSubmitting}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -233,49 +242,53 @@ const CreateTicket: React.FC = () => {
 
             {/* Additional Email Addresses */}
             <div>
-              <Label className="text-sm font-medium text-foreground">
-                Additional Email Recipients (optional)
-              </Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Add email addresses to receive updates about this ticket
-              </p>
-              <div className="space-y-2">
-                {formData.additionalEmails.map((email, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      type="email"
-                      placeholder="Enter email address"
-                      value={email}
-                      onChange={(e) => updateEmail(index, e.target.value)}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                      disabled={isSubmitting}
-                    />
-                    {formData.additionalEmails.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeEmailField(index)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        disabled={isSubmitting}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addEmailField}
-                  className="border-purple-200/50 dark:border-purple-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+              <div className="flex items-center space-x-3 mb-2">
+                <Switch
+                  id="additional-emails"
+                  checked={showAdditionalEmails}
+                  onCheckedChange={setShowAdditionalEmails}
                   disabled={isSubmitting}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Email Address
-                </Button>
+                />
+                <Label htmlFor="additional-emails" className="text-sm font-medium text-foreground">
+                  Additional Email Recipients
+                </Label>
               </div>
+              
+              {showAdditionalEmails && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Add email addresses to receive updates about this ticket (comma separated or press Enter)
+                  </p>
+                  <Input
+                    type="email"
+                    placeholder="Enter email addresses (comma separated or press Enter)"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={handleEmailInputKeyDown}
+                    onBlur={addEmail}
+                    className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                    disabled={isSubmitting}
+                  />
+                  
+                  {formData.additionalEmails.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.additionalEmails.map((email, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {email}
+                          <button
+                            type="button"
+                            onClick={() => removeEmail(email)}
+                            className="text-red-500 hover:text-red-700"
+                            disabled={isSubmitting}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <Separator />
