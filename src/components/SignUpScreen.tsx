@@ -23,6 +23,10 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleTermsChange = (checked: boolean | "indeterminate") => {
+    setAgreeToTerms(checked === true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -141,7 +145,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
               <Checkbox
                 id="terms"
                 checked={agreeToTerms}
-                onCheckedChange={setAgreeToTerms}
+                onCheckedChange={handleTermsChange}
                 className="mt-1"
               />
               <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
