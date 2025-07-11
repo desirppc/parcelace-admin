@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -26,7 +27,8 @@ import {
   Link,
   MessageSquare,
   AlertTriangle,
-  Phone
+  Phone,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,6 +82,17 @@ const OnboardingLayout = () => {
         { id: 'prepaid-shipments', title: 'Prepaid Shipments', icon: Truck },
         { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck },
         { id: 'tracking', title: 'Tracking', icon: Truck }
+      ]
+    },
+    {
+      id: 'finance',
+      title: 'Finance',
+      icon: DollarSign,
+      subItems: [
+        { id: 'cod-remittance', title: 'COD Remittance', icon: Receipt },
+        { id: 'wallet-transaction', title: 'Wallet Transaction', icon: Wallet },
+        { id: 'early-cod', title: 'Early COD', icon: Zap },
+        { id: 'invoice', title: 'Invoice', icon: FileText }
       ]
     }
   ];
@@ -263,22 +276,17 @@ const OnboardingLayout = () => {
               {/* Notifications */}
               <NotificationPanel />
 
-              {/* Settings Dropdown */}
+              {/* Settings Dropdown - Fixed flickering issue */}
               <div className="relative">
                 <Button 
                   variant="outline" 
                   className="h-10 w-10 p-0 border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300"
-                  onMouseEnter={() => setShowSettingsDropdown(true)}
-                  onMouseLeave={() => setShowSettingsDropdown(false)}
+                  onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
                 >
                   <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </Button>
                 {showSettingsDropdown && (
-                  <div 
-                    className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-50 animate-fade-in"
-                    onMouseEnter={() => setShowSettingsDropdown(true)}
-                    onMouseLeave={() => setShowSettingsDropdown(false)}
-                  >
+                  <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-50 animate-fade-in">
                     <div className="p-4">
                       <div className="grid grid-cols-2 gap-3">
                         {settingsOptions.map((option, index) => (

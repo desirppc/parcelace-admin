@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   CheckCircle, 
@@ -17,6 +18,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import OrdersPage from './OrdersPage';
 import ShipmentPage from './ShipmentPage';
+import CODRemittance from './CODRemittance';
+import WalletTransaction from './WalletTransaction';
+import EarlyCODPlans from './EarlyCODPlans';
+import InvoiceManagement from './InvoiceManagement';
 
 interface OnboardingStep {
   id: string;
@@ -180,6 +185,42 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
   // Show ShipmentPage for shipment-related menu items
   if (activeMenuItem === 'shipments' || activeMenuItem === 'prepaid-shipments' || activeMenuItem === 'reverse-shipments' || activeMenuItem === 'tracking') {
     return <ShipmentPage />;
+  }
+
+  // Show Finance components for finance-related menu items
+  if (activeMenuItem === 'finance') {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
+              Finance Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Manage your finances, view transactions, and track COD settlements. Select a specific section from the sidebar to get started.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (activeMenuItem === 'cod-remittance') {
+    return <CODRemittance />;
+  }
+
+  if (activeMenuItem === 'wallet-transaction') {
+    return <WalletTransaction />;
+  }
+
+  if (activeMenuItem === 'early-cod') {
+    return <EarlyCODPlans />;
+  }
+
+  if (activeMenuItem === 'invoice') {
+    return <InvoiceManagement />;
   }
 
   if (activeMenuItem === 'onboarding' || activeMenuItem === 'account-setup') {
