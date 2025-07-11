@@ -1,13 +1,13 @@
-
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: { 
+const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onSignUp }: { 
   onNavigateToLogin: () => void;
   onNavigateBack: () => void;
+  onSignUp: () => void;
 }) => {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -25,6 +25,11 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
 
   const handleTermsChange = (checked: boolean | "indeterminate") => {
     setAgreeToTerms(checked === true);
+  };
+
+  const handleSignUp = () => {
+    // Add basic validation here if needed
+    onSignUp();
   };
 
   return (
@@ -162,6 +167,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
 
             {/* Sign Up Button */}
             <Button 
+              onClick={handleSignUp}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               disabled={!agreeToTerms}
             >
