@@ -95,7 +95,7 @@ const NotificationPanel = () => {
 
       {showPanel && (
         <>
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+         <div className="absolute right-0 top-full mt-2 w-80 bg-white bg-opacity-100 dark:bg-gray-900 dark:bg-opacity-100 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
