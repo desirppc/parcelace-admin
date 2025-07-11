@@ -16,7 +16,17 @@ import {
   LogOut,
   FileText,
   CheckCircle,
-  Circle
+  Circle,
+  Fingerprint,
+  Tag,
+  Receipt,
+  MapPin,
+  CreditCard as BankIcon,
+  Bolt,
+  Link,
+  MessageSquare,
+  AlertTriangle,
+  Phone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +99,19 @@ const OnboardingLayout = () => {
       toggleMenu(menuId);
     }
   };
+
+  const settingsOptions = [
+    { icon: Fingerprint, label: 'Verify KYC' },
+    { icon: Tag, label: 'Shipping Labels' },
+    { icon: Receipt, label: 'Billing & Invoices' },
+    { icon: MapPin, label: 'Warehouse Location' },
+    { icon: BankIcon, label: 'Bank Accounts' },
+    { icon: Bolt, label: 'Courier Priority' },
+    { icon: Link, label: 'Tracking Links' },
+    { icon: MessageSquare, label: 'WhatsApp Notifications' },
+    { icon: AlertTriangle, label: 'Admin Alerts' },
+    { icon: Phone, label: 'Contact Person' }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
@@ -252,20 +275,24 @@ const OnboardingLayout = () => {
                 </Button>
                 {showSettingsDropdown && (
                   <div 
-                    className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-10 animate-fade-in"
+                    className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-50 animate-fade-in"
                     onMouseEnter={() => setShowSettingsDropdown(true)}
                     onMouseLeave={() => setShowSettingsDropdown(false)}
                   >
-                    <div className="py-2">
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-sm transition-all duration-300">
-                        Account Settings
-                      </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-sm transition-all duration-300">
-                        Preferences
-                      </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-sm transition-all duration-300">
-                        API Settings
-                      </button>
+                    <div className="p-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        {settingsOptions.map((option, index) => (
+                          <button
+                            key={index}
+                            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-left transition-all duration-300 group"
+                          >
+                            <option.icon className="w-5 h-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300" />
+                            <span className="text-sm font-medium text-foreground group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">
+                              {option.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
