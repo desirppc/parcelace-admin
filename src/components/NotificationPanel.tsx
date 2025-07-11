@@ -95,31 +95,40 @@ const NotificationPanel = () => {
 
       {showPanel && (
         <>
-         <div className="absolute right-0 top-full mt-2 w-80 bg-white bg-opacity-100 dark:bg-gray-900 dark:bg-opacity-100 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAll}
-                    className="text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                  >
-                    Clear All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPanel(false)}
-                    className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
+     <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+  <div className="flex items-center justify-between">
+    <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+    <div className="flex items-center space-x-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={clearAll}
+        className="text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+      >
+        Clear All
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setShowPanel(false)}
+        className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+      >
+        <X className="w-3 h-3" />
+      </Button>
+    </div>
+  </div>
+</div>
+
+{successMessage && (
+  <div className="m-3 p-3 text-sm text-green-700 bg-green-100 border border-green-300 rounded">
+    {successMessage}
+  </div>
+)}
+
+         
+
+
+           
             <div className="max-h-96 overflow-y-auto">
              {notifications.map((notification) => (
   <div
