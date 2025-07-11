@@ -16,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import OrdersPage from './OrdersPage';
-import ShipmentPage from './ShipmentPage';
 
 interface OnboardingStep {
   id: string;
@@ -175,11 +174,6 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
   // Show OrdersPage for order-related menu items
   if (activeMenuItem === 'orders' || activeMenuItem === 'prepaid-orders' || activeMenuItem === 'reverse-orders') {
     return <OrdersPage />;
-  }
-
-  // Show ShipmentPage for shipment-related menu items
-  if (activeMenuItem === 'shipments') {
-    return <ShipmentPage />;
   }
 
   if (activeMenuItem === 'onboarding' || activeMenuItem === 'account-setup') {

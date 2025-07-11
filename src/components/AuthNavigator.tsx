@@ -6,7 +6,6 @@ import ForgotPasswordScreen from './ForgotPasswordScreen';
 import OTPVerificationScreen from './OTPVerificationScreen';
 import ResetPasswordScreen from './ResetPasswordScreen';
 import OnboardingLayout from './OnboardingLayout';
-import OnboardingContent from './OnboardingContent';
 
 type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'reset-password' | 'onboarding';
 
@@ -73,11 +72,7 @@ const AuthNavigator = () => {
       );
     
     case 'onboarding':
-      return (
-        <OnboardingLayout>
-          <OnboardingContent activeMenuItem="onboarding" />
-        </OnboardingLayout>
-      );
+      return <OnboardingLayout />;
     
     default:
       return (
