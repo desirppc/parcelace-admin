@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -28,7 +27,10 @@ import {
   MessageSquare,
   AlertTriangle,
   Phone,
-  DollarSign
+  DollarSign,
+  MessageCircle,
+  Headphones,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +95,17 @@ const OnboardingLayout = () => {
         { id: 'wallet-transaction', title: 'Wallet Transaction', icon: Wallet },
         { id: 'early-cod', title: 'Early COD', icon: Zap },
         { id: 'invoice', title: 'Invoice', icon: FileText }
+      ]
+    },
+    {
+      id: 'support',
+      title: 'Support',
+      icon: MessageSquare,
+      subItems: [
+        { id: 'support-dashboard', title: 'Support Dashboard', icon: MessageCircle },
+        { id: 'create-ticket', title: 'Create Ticket', icon: MessageSquare },
+        { id: 'my-tickets', title: 'My Tickets', icon: FileText },
+        { id: 'ticket-history', title: 'Ticket History', icon: History }
       ]
     }
   ];
