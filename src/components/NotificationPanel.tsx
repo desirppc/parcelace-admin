@@ -121,39 +121,40 @@ const NotificationPanel = () => {
             </div>
             
             <div className="max-h-96 overflow-y-auto">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
-                    !notification.read ? 'bg-purple-50 dark:bg-purple-900' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className={`text-sm font-medium ${getTypeColor(notification.type)}`}>
-                          {notification.title}
-                        </h4>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-blue-600 rounded-full"></div>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{notification.message}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500">{notification.time}</p>
-                    </div>
-                    {!notification.read && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => markAsRead(notification.id)}
-                        className="h-6 w-6 p-0 ml-2 hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                      >
-                        <Check className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+             {notifications.map((notification) => (
+  <div
+    key={notification.id}
+    className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
+      !notification.read ? 'bg-purple-200 dark:bg-purple-800' : ''
+    }`}
+  >
+    <div className="flex items-start justify-between">
+      <div className="flex-1">
+        <div className="flex items-center space-x-2 mb-1">
+          <h4 className={`text-sm font-medium ${getTypeColor(notification.type)}`}>
+            {notification.title}
+          </h4>
+          {!notification.read && (
+            <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-blue-600 rounded-full"></div>
+          )}
+        </div>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{notification.message}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500">{notification.time}</p>
+      </div>
+      {!notification.read && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => markAsRead(notification.id)}
+          className="h-6 w-6 p-0 ml-2 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+        >
+          <Check className="w-3 h-3" />
+        </Button>
+      )}
+    </div>
+  </div>
+))}
+
             </div>
           </div>
           
