@@ -1,12 +1,12 @@
+
 import React, { useState } from 'react';
 import LoginScreen from './LoginScreen';
 import SignUpScreen from './SignUpScreen';
 import ForgotPasswordScreen from './ForgotPasswordScreen';
 import OTPVerificationScreen from './OTPVerificationScreen';
 import ResetPasswordScreen from './ResetPasswordScreen';
-import Dashboard from './Dashboard';
 
-type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'reset-password' | 'dashboard';
+type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'reset-password';
 
 const AuthNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>('login');
@@ -34,26 +34,12 @@ const AuthNavigator = () => {
     setCurrentScreen('login');
   };
 
-  const handleLogin = () => {
-    // Simulate successful login
-    setCurrentScreen('dashboard');
-  };
-
-  const handleSignUp = () => {
-    // Simulate successful signup
-    setCurrentScreen('dashboard');
-  };
-
   switch (currentScreen) {
-    case 'dashboard':
-      return <Dashboard />;
-    
     case 'signup':
       return (
         <SignUpScreen 
           onNavigateToLogin={handleNavigateToLogin}
           onNavigateBack={handleNavigateBack}
-          onSignUp={handleSignUp}
         />
       );
     
@@ -88,7 +74,6 @@ const AuthNavigator = () => {
           onNavigateToSignUp={handleNavigateToSignUp}
           onNavigateToForgotPassword={handleNavigateToForgotPassword}
           onNavigateBack={handleNavigateBack}
-          onLogin={handleLogin}
         />
       );
   }

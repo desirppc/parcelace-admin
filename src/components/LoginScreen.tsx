@@ -1,22 +1,17 @@
+
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack, onLogin }: { 
+const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack }: { 
   onNavigateToSignUp: () => void;
   onNavigateToForgotPassword: () => void;
   onNavigateBack: () => void;
-  onLogin: () => void;
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  const handleLogin = () => {
-    // Add basic validation here if needed
-    onLogin();
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -102,7 +97,6 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
 
             {/* Sign In Button */}
             <Button 
-              onClick={handleLogin}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
               Access Dashboard
