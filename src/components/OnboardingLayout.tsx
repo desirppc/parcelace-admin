@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -23,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from './ThemeToggle';
 import OnboardingContent from './OnboardingContent';
+import NotificationPanel from './NotificationPanel';
 
 interface MenuItem {
   id: string;
@@ -238,10 +238,7 @@ const OnboardingLayout = () => {
               </Button>
 
               {/* Notifications */}
-              <Button variant="outline" className="h-10 w-10 p-0 relative border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300">
-                <Bell className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-pink-500 to-red-500 rounded-full shadow-lg"></div>
-              </Button>
+              <NotificationPanel />
 
               {/* Settings Dropdown */}
               <div className="relative">
