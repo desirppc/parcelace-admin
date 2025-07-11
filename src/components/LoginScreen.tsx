@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -13,7 +13,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button 
@@ -28,8 +28,8 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
         <div className="bg-white rounded-3xl shadow-xl p-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center">
+              <Truck className="w-8 h-8 text-white" />
             </div>
           </div>
 
@@ -38,7 +38,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
             Welcome Back
           </h1>
           <p className="text-gray-600 text-center mb-8">
-            Sign in to your account to continue
+            Access your shipping dashboard
           </p>
 
           {/* Form */}
@@ -54,8 +54,8 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="Enter your email"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Enter your business email"
                 />
               </div>
             </div>
@@ -71,7 +71,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Enter your password"
                 />
                 <button
@@ -86,16 +86,16 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
 
             {/* Forgot Password */}
             <div className="text-right">
-              <button className="text-purple-600 text-sm font-medium hover:text-purple-700 transition-colors">
+              <button className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
                 Forgot Password?
               </button>
             </div>
 
             {/* Sign In Button */}
             <Button 
-              className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
             >
-              Sign In
+              Access Dashboard
             </Button>
           </div>
 
@@ -108,12 +108,12 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
 
           {/* Sign Up Link */}
           <div className="text-center">
-            <span className="text-gray-600">Don't have an account? </span>
+            <span className="text-gray-600">New to our platform? </span>
             <button
               onClick={onNavigateToSignUp}
-              className="text-purple-600 font-medium hover:text-purple-700 transition-colors"
+              className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
             >
-              Sign Up
+              Start Shipping
             </button>
           </div>
         </div>
@@ -122,7 +122,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
         <div className="flex items-center justify-center mt-6 px-4">
           <div className="flex items-center text-xs text-gray-500">
             <Lock className="w-3 h-3 mr-1" />
-            Your information is secure and encrypted
+            Trusted by 10,000+ D2C brands
           </div>
         </div>
       </div>

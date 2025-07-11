@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,7 +28,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button 
@@ -43,17 +43,17 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
         <div className="bg-white rounded-3xl shadow-xl p-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center">
+              <Package className="w-8 h-8 text-white" />
             </div>
           </div>
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            Create Account
+            Start Shipping Today
           </h1>
           <p className="text-gray-600 text-center mb-8">
-            Join us and start your journey today
+            Join thousands of D2C brands using our platform
           </p>
 
           {/* Form */}
@@ -61,7 +61,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
             {/* Full Name Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
+                Business Name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -69,8 +69,8 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="Enter your full name"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Enter your business name"
                 />
               </div>
             </div>
@@ -78,7 +78,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Business Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -86,8 +86,8 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="Enter your email"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Enter your business email"
                 />
               </div>
             </div>
@@ -103,8 +103,8 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="Create a password"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Create a secure password"
                 />
                 <button
                   type="button"
@@ -127,7 +127,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Confirm your password"
                 />
                 <button
@@ -150,23 +150,33 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
               />
               <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                 I agree to the{' '}
-                <button className="text-purple-600 hover:text-purple-700 font-medium">
+                <button className="text-blue-600 hover:text-blue-700 font-medium">
                   Terms of Service
                 </button>{' '}
                 and{' '}
-                <button className="text-purple-600 hover:text-purple-700 font-medium">
-                  Privacy Policy
+                <button className="text-blue-600 hover:text-blue-700 font-medium">
+                  Shipping Agreement
                 </button>
               </label>
             </div>
 
             {/* Sign Up Button */}
             <Button 
-              className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
               disabled={!agreeToTerms}
             >
-              Create Account
+              Start Shipping
             </Button>
+          </div>
+
+          {/* Benefits */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-xl">
+            <div className="text-xs text-blue-800 font-medium mb-2">What you get:</div>
+            <div className="text-xs text-blue-700 space-y-1">
+              <div>• Shopify integration in 2 minutes</div>
+              <div>• 40% cheaper than competitors</div>
+              <div>• Real-time tracking for customers</div>
+            </div>
           </div>
 
           {/* Divider */}
@@ -178,21 +188,21 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
 
           {/* Sign In Link */}
           <div className="text-center">
-            <span className="text-gray-600">Already have an account? </span>
+            <span className="text-gray-600">Already shipping with us? </span>
             <button
               onClick={onNavigateToLogin}
-              className="text-purple-600 font-medium hover:text-purple-700 transition-colors"
+              className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
             >
               Sign In
             </button>
           </div>
         </div>
 
-        {/* Security Note */}
+        {/* Trust Indicators */}
         <div className="flex items-center justify-center mt-6 px-4">
           <div className="flex items-center text-xs text-gray-500">
             <Lock className="w-3 h-3 mr-1" />
-            Your information is secure and encrypted
+            SOC 2 compliant • 99.9% uptime
           </div>
         </div>
       </div>
