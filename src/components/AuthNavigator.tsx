@@ -5,8 +5,9 @@ import SignUpScreen from './SignUpScreen';
 import ForgotPasswordScreen from './ForgotPasswordScreen';
 import OTPVerificationScreen from './OTPVerificationScreen';
 import ResetPasswordScreen from './ResetPasswordScreen';
+import OnboardingLayout from './OnboardingLayout';
 
-type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'reset-password';
+type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'reset-password' | 'onboarding';
 
 const AuthNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen>('login');
@@ -17,6 +18,7 @@ const AuthNavigator = () => {
   const handleNavigateToForgotPassword = () => setCurrentScreen('forgot-password');
   const handleNavigateToOTP = () => setCurrentScreen('otp-verification');
   const handleNavigateToResetPassword = () => setCurrentScreen('reset-password');
+  const handleNavigateToOnboarding = () => setCurrentScreen('onboarding');
   
   const handleNavigateBack = () => {
     // Navigate to previous screen or default to login
@@ -40,6 +42,7 @@ const AuthNavigator = () => {
         <SignUpScreen 
           onNavigateToLogin={handleNavigateToLogin}
           onNavigateBack={handleNavigateBack}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
         />
       );
     
@@ -68,12 +71,16 @@ const AuthNavigator = () => {
         />
       );
     
+    case 'onboarding':
+      return <OnboardingLayout />;
+    
     default:
       return (
         <LoginScreen 
           onNavigateToSignUp={handleNavigateToSignUp}
           onNavigateToForgotPassword={handleNavigateToForgotPassword}
           onNavigateBack={handleNavigateBack}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
         />
       );
   }
