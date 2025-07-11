@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -7,10 +8,12 @@ import {
   Settings, 
   Menu,
   Package,
-  FileText
+  FileText,
+  CreditCard,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ThemeToggle } from './ThemeToggle';
 import NotificationPanel from './NotificationPanel';
 
 const OnboardingLayout = ({ children }: { children: React.ReactNode }) => {
