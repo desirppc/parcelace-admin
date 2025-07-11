@@ -243,7 +243,7 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
               </Button>
               <Button 
                 onClick={nextStep}
-                disabled={currentStep === onboardingSteps.length - 1}
+                disabled={currentStep === (onboardingSteps.length - 1)}
                 className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
               >
                 Next Step
