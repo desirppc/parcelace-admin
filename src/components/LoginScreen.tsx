@@ -13,7 +13,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button 
@@ -25,10 +25,10 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
         </button>
 
         {/* Main Card */}
-        <div className="bg-white rounded-3xl shadow-xl p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 via-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Truck className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -54,7 +54,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business email"
                 />
               </div>
@@ -71,7 +71,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your password"
                 />
                 <button
@@ -86,14 +86,14 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
 
             {/* Forgot Password */}
             <div className="text-right">
-              <button className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+              <button className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-sm font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200">
                 Forgot Password?
               </button>
             </div>
 
             {/* Sign In Button */}
             <Button 
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
               Access Dashboard
             </Button>
@@ -101,9 +101,9 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
 
           {/* Divider */}
           <div className="flex items-center my-6">
-            <div className="flex-1 border-t border-gray-200"></div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
             <span className="px-4 text-sm text-gray-500">or</span>
-            <div className="flex-1 border-t border-gray-200"></div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
           </div>
 
           {/* Sign Up Link */}
@@ -111,7 +111,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
             <span className="text-gray-600">New to our platform? </span>
             <button
               onClick={onNavigateToSignUp}
-              className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
+              className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
             >
               Start Shipping
             </button>

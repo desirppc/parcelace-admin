@@ -28,7 +28,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button 
@@ -40,10 +40,10 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
         </button>
 
         {/* Main Card */}
-        <div className="bg-white rounded-3xl shadow-xl p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 via-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Package className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -69,7 +69,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business name"
                 />
               </div>
@@ -86,7 +86,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business email"
                 />
               </div>
@@ -103,7 +103,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Create a secure password"
                 />
                 <button
@@ -127,7 +127,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Confirm your password"
                 />
                 <button
@@ -150,11 +150,11 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
               />
               <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                 I agree to the{' '}
-                <button className="text-blue-600 hover:text-blue-700 font-medium">
+                <button className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text hover:from-pink-600 hover:to-blue-700 font-medium transition-all duration-200">
                   Terms of Service
                 </button>{' '}
                 and{' '}
-                <button className="text-blue-600 hover:text-blue-700 font-medium">
+                <button className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text hover:from-pink-600 hover:to-blue-700 font-medium transition-all duration-200">
                   Shipping Agreement
                 </button>
               </label>
@@ -162,7 +162,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
 
             {/* Sign Up Button */}
             <Button 
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-medium rounded-xl shadow-lg transition-all duration-200"
+              className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               disabled={!agreeToTerms}
             >
               Start Shipping
@@ -170,9 +170,9 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
           </div>
 
           {/* Benefits */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-            <div className="text-xs text-blue-800 font-medium mb-2">What you get:</div>
-            <div className="text-xs text-blue-700 space-y-1">
+          <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-blue-50 rounded-xl border border-pink-100">
+            <div className="text-xs font-medium mb-2 text-transparent bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text">What you get:</div>
+            <div className="text-xs text-gray-700 space-y-1">
               <div>• Shopify integration in 2 minutes</div>
               <div>• 40% cheaper than competitors</div>
               <div>• Real-time tracking for customers</div>
@@ -181,9 +181,9 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
 
           {/* Divider */}
           <div className="flex items-center my-6">
-            <div className="flex-1 border-t border-gray-200"></div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
             <span className="px-4 text-sm text-gray-500">or</span>
-            <div className="flex-1 border-t border-gray-200"></div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
           </div>
 
           {/* Sign In Link */}
@@ -191,7 +191,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack }: {
             <span className="text-gray-600">Already shipping with us? </span>
             <button
               onClick={onNavigateToLogin}
-              className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
+              className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
             >
               Sign In
             </button>
