@@ -125,7 +125,7 @@ const NotificationPanel = () => {
                 <div
                   key={notification.id}
                   className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
-                    !notification.read ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                    !notification.read ? 'bg-purple-50 dark:bg-purple-900' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between">
