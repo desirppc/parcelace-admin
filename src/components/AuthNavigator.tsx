@@ -75,7 +75,7 @@ const AuthNavigator = () => {
     case 'onboarding':
       return (
         <OnboardingLayout>
-          <OnboardingContent />
+          <OnboardingContent activeMenuItem="onboarding" />
         </OnboardingLayout>
       );
     
