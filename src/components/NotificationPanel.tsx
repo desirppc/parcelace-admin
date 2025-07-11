@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Bell, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface Notification {
@@ -47,14 +46,6 @@ const NotificationPanel = () => {
       time: '2 hours ago',
       type: 'info',
       read: false
-    },
-    {
-      id: '5',
-      title: 'Delivery Completed',
-      message: 'Order #ORD-001 delivered successfully',
-      time: '3 hours ago',
-      type: 'success',
-      read: true
     }
   ]);
 
@@ -103,74 +94,74 @@ const NotificationPanel = () => {
       </Button>
 
       {showPanel && (
-        <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-50">
-          <div className="p-4 border-b border-purple-200/30 dark:border-purple-800/30">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Notifications</h3>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAll}
-                  className="text-xs text-purple-600 dark:text-purple-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30"
-                >
-                  Clear All
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPanel(false)}
-                  className="h-6 w-6 p-0 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
+        <>
+          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAll}
+                    className="text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPanel(false)}
+                    className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
+            </div>
+            
+            <div className="max-h-96 overflow-y-auto">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${
+                    !notification.read ? 'bg-purple-50/50 dark:bg-purple-900/20' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h4 className={`text-sm font-medium ${getTypeColor(notification.type)}`}>
+                          {notification.title}
+                        </h4>
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-blue-600 rounded-full"></div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{notification.message}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">{notification.time}</p>
+                    </div>
+                    {!notification.read && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => markAsRead(notification.id)}
+                        className="h-6 w-6 p-0 ml-2 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-3 border-b border-purple-200/20 dark:border-purple-800/20 last:border-b-0 ${
-                  !notification.read ? 'bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/20 dark:to-blue-900/20' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className={`text-sm font-medium ${getTypeColor(notification.type)}`}>
-                        {notification.title}
-                      </h4>
-                      {!notification.read && (
-                        <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-blue-600 rounded-full"></div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground">{notification.time}</p>
-                  </div>
-                  {!notification.read && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => markAsRead(notification.id)}
-                      className="h-6 w-6 p-0 ml-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30"
-                    >
-                      <Check className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showPanel && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setShowPanel(false)}
-        />
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={() => setShowPanel(false)}
+          />
+        </>
       )}
     </div>
   );

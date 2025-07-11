@@ -81,6 +81,7 @@ const OrdersPage = () => {
   });
   const [warehouseSearch, setWarehouseSearch] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const [hoveredOrder, setHoveredOrder] = useState<string | null>(null);
   const { toast } = useToast();
 
   const warehouses = [
@@ -273,25 +274,6 @@ const OrdersPage = () => {
           Orders Management
         </h1>
         <div className="flex items-center space-x-3">
-          {hasSelectedOrders && (
-            <>
-              <Button 
-                onClick={handleBulkShip}
-                className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
-              >
-                <Ship className="w-4 h-4 mr-2" />
-                Bulk Ship ({selectedOrders.length})
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleBulkCancel}
-              >
-                <X className="w-4 h-4 mr-2" />
-                Bulk Cancel ({selectedOrders.length})
-              </Button>
-            </>
-          )}
-          
           <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700">
@@ -480,13 +462,12 @@ const OrdersPage = () => {
         </Card>
       )}
 
-      {/* Orders Tabs - Conditional Display */}
+      {/* Conditional Tabs/Buttons */}
       {hasSelectedOrders ? (
-        // Bulk Action Tabs
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-3">
           <Button 
             onClick={handleBulkShip}
-            className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 px-6 py-2 text-base font-medium"
+            className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
           >
             <Ship className="w-4 h-4 mr-2" />
             Bulk Ship ({selectedOrders.length})
@@ -494,252 +475,146 @@ const OrdersPage = () => {
           <Button 
             variant="destructive"
             onClick={handleBulkCancel}
-            className="px-6 py-2 text-base font-medium"
           >
             <X className="w-4 h-4 mr-2" />
             Bulk Cancel ({selectedOrders.length})
           </Button>
         </div>
       ) : (
-        // Normal Tabs
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="all">All Orders</TabsTrigger>
             <TabsTrigger value="shipped">Shipped</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="all" className="space-y-4">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox 
-                        checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <Checkbox 
-                          checked={selectedOrders.includes(order.id)}
-                          onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>
-                        <Badge variant={order.invoice === 'Prepaid' ? 'default' : 'secondary'}>
-                          {order.invoice}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{order.type}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleShip(order)}
-                          >
-                            <Ship className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleCancelOrder(order)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="shipped">
-            <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-muted-foreground">Shipped orders will be displayed here</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="pending">
-            <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-muted-foreground">Pending orders will be displayed here</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       )}
 
-      {/* Show table only when no orders are selected or in normal tab view */}
-      {!hasSelectedOrders && (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox 
-                    checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    <Checkbox 
-                      checked={selectedOrders.includes(order.id)}
-                      onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.date}</TableCell>
-                  <TableCell>{order.product}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>
-                    <Badge variant={order.invoice === 'Prepaid' ? 'default' : 'secondary'}>
-                      {order.invoice}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{order.type}</TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleShip(order)}
-                      >
-                        <Ship className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleCancelOrder(order)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
-
-      {/* Show table with selected orders when orders are selected */}
-      {hasSelectedOrders && (
-        <Card>
+      {/* Single Orders Table */}
+      <Card>
+        {hasSelectedOrders && (
           <CardHeader>
             <CardTitle>Selected Orders ({selectedOrders.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox 
-                      checked={selectedOrders.length === filteredOrders.filter(order => selectedOrders.includes(order.id)).length && filteredOrders.filter(order => selectedOrders.includes(order.id)).length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.filter(order => selectedOrders.includes(order.id)).map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      <Checkbox 
-                        checked={selectedOrders.includes(order.id)}
-                        onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>{order.product}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>
-                      <Badge variant={order.invoice === 'Prepaid' ? 'default' : 'secondary'}>
-                        {order.invoice}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{order.type}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleShip(order)}
-                        >
-                          <Ship className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleCancelOrder(order)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+        )}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox 
+                  checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedOrders(filteredOrders.map(order => order.id));
+                    } else {
+                      setSelectedOrders([]);
+                    }
+                  }}
+                />
+              </TableHead>
+              <TableHead>Order ID</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Product</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Invoice</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(hasSelectedOrders ? filteredOrders.filter(order => selectedOrders.includes(order.id)) : filteredOrders).map((order) => (
+              <TableRow 
+                key={order.id}
+                className="relative"
+                onMouseEnter={() => setHoveredOrder(order.id)}
+                onMouseLeave={() => setHoveredOrder(null)}
+              >
+                <TableCell>
+                  <Checkbox 
+                    checked={selectedOrders.includes(order.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedOrders(prev => [...prev, order.id]);
+                      } else {
+                        setSelectedOrders(prev => prev.filter(id => id !== order.id));
+                      }
+                    }}
+                  />
+                </TableCell>
+                <TableCell className="font-medium">{order.id}</TableCell>
+                <TableCell>{order.date}</TableCell>
+                <TableCell>{order.product}</TableCell>
+                <TableCell>{order.customer}</TableCell>
+                <TableCell>
+                  <Badge variant={order.invoice === 'Prepaid' ? 'default' : 'secondary'}>
+                    {order.invoice}
+                  </Badge>
+                </TableCell>
+                <TableCell>{order.type}</TableCell>
+                <TableCell>{getStatusBadge(order.status)}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleShip(order)}
+                    >
+                      <Ship className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleCancelOrder(order)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+
+                {/* Order Hover Popup */}
+                {hoveredOrder === order.id && (
+                  <div className="absolute left-full top-0 ml-2 z-50 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 p-4 animate-fade-in">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-purple-600 dark:text-purple-400">{order.id}</div>
+                        <Badge variant={order.invoice === 'Prepaid' ? 'default' : 'secondary'}>
+                          {order.invoice}
+                        </Badge>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Product:</span>
+                          <span className="ml-2 font-medium">{order.product}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Customer:</span>
+                          <span className="ml-2 font-medium">{order.customer}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Date:</span>
+                          <span className="ml-2">{order.date}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Type:</span>
+                          <span className="ml-2">{order.type}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Status:</span>
+                          <span className="ml-2">{getStatusBadge(order.status)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
 
       {/* Ship Modal */}
       <Dialog open={showShipModal} onOpenChange={setShowShipModal}>

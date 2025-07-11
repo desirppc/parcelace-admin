@@ -21,11 +21,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock shipment data
-const mockShipments = Array.from({ length: 40 }, (_, index) => {
+// Mock shipment data - reduced to 15 records
+const mockShipments = Array.from({ length: 15 }, (_, index) => {
   const statuses = ['In Transit', 'OFD', 'Delivered', 'RTO'];
   const couriers = ['BlueDart', 'Delhivery', 'DTDC', 'FedEx', 'Aramex'];
   const products = ['Wireless Headphones', 'Smartphone Case', 'Laptop Stand', 'USB Cable', 'Power Bank'];
@@ -55,6 +56,8 @@ const mockShipments = Array.from({ length: 40 }, (_, index) => {
   };
 });
 
+const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 50, 100, 250, 500];
+
 const ShipmentPage = () => {
   const [shipments] = useState(mockShipments);
   const [filteredShipments, setFilteredShipments] = useState(mockShipments);
@@ -62,7 +65,8 @@ const ShipmentPage = () => {
   const [selectedShipments, setSelectedShipments] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [hoveredOrder, setHoveredOrder] = useState<string | null>(null);
   const { toast } = useToast();
 
   const getStatusBadge = (status, deliveryDate) => {
@@ -190,8 +194,8 @@ const ShipmentPage = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center space-x-4">
+      {/* Search and Items per page */}
+      <div className="flex items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -200,6 +204,24 @@ const ShipmentPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-muted-foreground">Show:</span>
+          <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+            setItemsPerPage(parseInt(value));
+            setCurrentPage(1);
+          }}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ITEMS_PER_PAGE_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option.toString()}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -235,7 +257,12 @@ const ShipmentPage = () => {
               </TableHeader>
               <TableBody>
                 {paginatedShipments.map((shipment) => (
-                  <TableRow key={shipment.id}>
+                  <TableRow 
+                    key={shipment.id}
+                    className="relative"
+                    onMouseEnter={() => setHoveredOrder(shipment.id)}
+                    onMouseLeave={() => setHoveredOrder(null)}
+                  >
                     <TableCell>
                       <Checkbox 
                         checked={selectedShipments.includes(shipment.id)}
@@ -318,6 +345,50 @@ const ShipmentPage = () => {
                         </Button>
                       </div>
                     </TableCell>
+
+                    {/* Order Hover Popup for Shipments */}
+                    {hoveredOrder === shipment.id && (
+                      <div className="absolute left-full top-0 ml-2 z-50 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 p-4 animate-fade-in">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-purple-600 dark:text-purple-400">{shipment.orderNumber}</div>
+                            <Badge variant={shipment.paymentType === 'Prepaid' ? 'default' : 'secondary'}>
+                              {shipment.paymentType}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Tracking:</span>
+                              <span className="ml-2 font-medium">{shipment.trackingNumber}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Courier:</span>
+                              <span className="ml-2 font-medium">{shipment.courierPartner}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Product:</span>
+                              <span className="ml-2">{shipment.productName}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Dimensions:</span>
+                              <span className="ml-2">{shipment.dimensions}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Weight:</span>
+                              <span className="ml-2">{shipment.weight}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Amount:</span>
+                              <span className="ml-2 font-medium">₹{shipment.orderAmount}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Status:</span>
+                              <span className="ml-2">{getStatusBadge(shipment.status, shipment.deliveryDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -339,17 +410,20 @@ const ShipmentPage = () => {
                 Previous
               </Button>
               <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="w-8 h-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                ))}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  const page = i + Math.max(1, currentPage - 2);
+                  return page <= totalPages ? (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ) : null;
+                })}
               </div>
               <Button
                 variant="outline"
