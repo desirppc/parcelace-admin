@@ -172,6 +172,8 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
   };
 
   if (activeMenuItem === 'onboarding' || activeMenuItem === 'account-setup') {
+    const CurrentStepIcon = onboardingSteps[currentStep].icon;
+    
     return (
       <div className="max-w-4xl mx-auto">
         {/* Progress Bar */}
@@ -195,7 +197,7 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
           <CardHeader>
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <onboardingSteps[currentStep].icon className="w-6 h-6 text-white" />
+                <CurrentStepIcon className="w-6 h-6 text-white" />
               </div>
               <div>
                 <CardTitle className="text-xl">{onboardingSteps[currentStep].title}</CardTitle>
@@ -255,44 +257,47 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
 
         {/* All Steps Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {onboardingSteps.map((step, index) => (
-            <Card 
-              key={step.id}
-              className={`cursor-pointer transition-all duration-200 ${
-                index === currentStep ? 'ring-2 ring-blue-500' : ''
-              }`}
-              onClick={() => setCurrentStep(index)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    isStepCompleted(step.id) ? 'bg-green-500' : 'bg-gray-200'
-                  }`}>
-                    {isStepCompleted(step.id) ? (
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    ) : (
-                      <step.icon className="w-5 h-5 text-gray-600" />
-                    )}
+          {onboardingSteps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <Card 
+                key={step.id}
+                className={`cursor-pointer transition-all duration-200 ${
+                  index === currentStep ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => setCurrentStep(index)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      isStepCompleted(step.id) ? 'bg-green-500' : 'bg-gray-200'
+                    }`}>
+                      {isStepCompleted(step.id) ? (
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      ) : (
+                        <StepIcon className="w-5 h-5 text-gray-600" />
+                      )}
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">{step.title}</div>
                   </div>
-                  <div className="text-sm font-medium text-gray-900">{step.title}</div>
-                </div>
-                <div className="text-xs text-gray-600 mb-2">{step.description}</div>
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
-                    {step.subSteps.filter(sub => isStepCompleted(step.id, sub.id)).length}/{step.subSteps.length} completed
+                  <div className="text-xs text-gray-600 mb-2">{step.description}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">
+                      {step.subSteps.filter(sub => isStepCompleted(step.id, sub.id)).length}/{step.subSteps.length} completed
+                    </div>
+                    <div className="w-16 h-1 bg-gray-200 rounded-full">
+                      <div 
+                        className="h-1 bg-green-500 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${(step.subSteps.filter(sub => isStepCompleted(step.id, sub.id)).length / step.subSteps.length) * 100}%` 
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-16 h-1 bg-gray-200 rounded-full">
-                    <div 
-                      className="h-1 bg-green-500 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${(step.subSteps.filter(sub => isStepCompleted(step.id, sub.id)).length / step.subSteps.length) * 100}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
