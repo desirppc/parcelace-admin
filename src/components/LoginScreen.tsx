@@ -4,8 +4,9 @@ import { Eye, EyeOff, Mail, Lock, ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: { 
+const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack }: { 
   onNavigateToSignUp: () => void;
+  onNavigateToForgotPassword: () => void;
   onNavigateBack: () => void;
 }) => {
   const [email, setEmail] = useState('');
@@ -86,7 +87,10 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateBack }: {
 
             {/* Forgot Password */}
             <div className="text-right">
-              <button className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-sm font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200">
+              <button 
+                onClick={onNavigateToForgotPassword}
+                className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-sm font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
+              >
                 Forgot Password?
               </button>
             </div>
