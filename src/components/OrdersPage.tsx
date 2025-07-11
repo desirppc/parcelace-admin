@@ -69,7 +69,7 @@ const OrdersPage = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showBulkCancelConfirm, setShowBulkCancelConfirm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [selectedOrders, setSelectedOrders<string[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState<Date>();
