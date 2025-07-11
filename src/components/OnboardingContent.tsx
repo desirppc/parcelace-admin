@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   CheckCircle, 
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import OrdersPage from './OrdersPage';
 
 interface OnboardingStep {
   id: string;
@@ -171,6 +171,11 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
     }
   };
 
+  // Show OrdersPage for order-related menu items
+  if (activeMenuItem === 'orders' || activeMenuItem === 'prepaid-orders' || activeMenuItem === 'reverse-orders') {
+    return <OrdersPage />;
+  }
+
   if (activeMenuItem === 'onboarding' || activeMenuItem === 'account-setup') {
     const CurrentStepIcon = onboardingSteps[currentStep].icon;
     
@@ -179,12 +184,12 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome to ShipFast!</h1>
-            <div className="text-sm text-gray-600">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">Welcome to ShipFast!</h1>
+            <div className="text-sm text-muted-foreground">
               Step {currentStep + 1} of {onboardingSteps.length}
             </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-secondary rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-pink-500 to-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentStep + 1) / onboardingSteps.length) * 100}%` }}
@@ -201,14 +206,14 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
               </div>
               <div>
                 <CardTitle className="text-xl">{onboardingSteps[currentStep].title}</CardTitle>
-                <p className="text-gray-600">{onboardingSteps[currentStep].description}</p>
+                <p className="text-muted-foreground">{onboardingSteps[currentStep].description}</p>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {onboardingSteps[currentStep].subSteps.map((subStep, index) => (
-                <div key={subStep.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div key={subStep.id} className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
                   <button
                     onClick={() => markStepCompleted(onboardingSteps[currentStep].id, subStep.id)}
                     className="flex-shrink-0"
@@ -216,12 +221,12 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
                     {isStepCompleted(onboardingSteps[currentStep].id, subStep.id) ? (
                       <CheckCircle className="w-6 h-6 text-green-500" />
                     ) : (
-                      <Circle className="w-6 h-6 text-gray-400" />
+                      <Circle className="w-6 h-6 text-muted-foreground" />
                     )}
                   </button>
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{subStep.title}</h3>
-                    <p className="text-sm text-gray-600">{subStep.description}</p>
+                    <h3 className="font-medium text-foreground">{subStep.title}</h3>
+                    <p className="text-sm text-muted-foreground">{subStep.description}</p>
                   </div>
                   <Button 
                     variant="outline" 
@@ -263,29 +268,29 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
               <Card 
                 key={step.id}
                 className={`cursor-pointer transition-all duration-200 ${
-                  index === currentStep ? 'ring-2 ring-blue-500' : ''
+                  index === currentStep ? 'ring-2 ring-primary' : ''
                 }`}
                 onClick={() => setCurrentStep(index)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      isStepCompleted(step.id) ? 'bg-green-500' : 'bg-gray-200'
+                      isStepCompleted(step.id) ? 'bg-green-500' : 'bg-secondary'
                     }`}>
                       {isStepCompleted(step.id) ? (
                         <CheckCircle className="w-5 h-5 text-white" />
                       ) : (
-                        <StepIcon className="w-5 h-5 text-gray-600" />
+                        <StepIcon className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="text-sm font-medium text-gray-900">{step.title}</div>
+                    <div className="text-sm font-medium text-foreground">{step.title}</div>
                   </div>
-                  <div className="text-xs text-gray-600 mb-2">{step.description}</div>
+                  <div className="text-xs text-muted-foreground mb-2">{step.description}</div>
                   <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       {step.subSteps.filter(sub => isStepCompleted(step.id, sub.id)).length}/{step.subSteps.length} completed
                     </div>
-                    <div className="w-16 h-1 bg-gray-200 rounded-full">
+                    <div className="w-16 h-1 bg-secondary rounded-full">
                       <div 
                         className="h-1 bg-green-500 rounded-full transition-all duration-300"
                         style={{ 
@@ -308,12 +313,12 @@ const OnboardingContent = ({ activeMenuItem }: { activeMenuItem: string }) => {
     <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
             {activeMenuItem.charAt(0).toUpperCase() + activeMenuItem.slice(1).replace('-', ' ')}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Content for {activeMenuItem} will be displayed here.
           </p>
         </CardContent>

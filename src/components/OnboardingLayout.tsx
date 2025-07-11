@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from './ThemeToggle';
 import OnboardingContent from './OnboardingContent';
 
 interface MenuItem {
@@ -90,10 +91,10 @@ const OnboardingLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
       {/* Sidebar */}
       <div 
-        className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-50 ${
+        className={`fixed left-0 top-0 h-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg transition-all duration-300 z-50 border-r ${
           sidebarOpen ? 'w-64' : 'w-16'
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
@@ -106,7 +107,7 @@ const OnboardingLayout = () => {
               <Truck className="w-5 h-5 text-white" />
             </div>
             {sidebarOpen && (
-              <span className="font-bold text-gray-900">ShipFast</span>
+              <span className="font-bold text-foreground">ShipFast</span>
             )}
           </div>
         </div>
@@ -117,16 +118,16 @@ const OnboardingLayout = () => {
             <div key={item.id}>
               <button
                 onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center px-4 py-3 text-left hover:bg-gray-100 transition-colors ${
-                  activeMenuItem === item.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                className={`w-full flex items-center px-4 py-3 text-left hover:bg-accent transition-colors ${
+                  activeMenuItem === item.id ? 'bg-accent border-r-2 border-primary' : ''
                 }`}
               >
-                <item.icon className="w-5 h-5 text-gray-600" />
+                <item.icon className="w-5 h-5 text-muted-foreground" />
                 {sidebarOpen && (
                   <>
-                    <span className="ml-3 flex-1 text-gray-700">{item.title}</span>
+                    <span className="ml-3 flex-1 text-foreground">{item.title}</span>
                     {item.progress !== undefined && (
-                      <div className="w-8 h-2 bg-gray-200 rounded-full mr-2">
+                      <div className="w-8 h-2 bg-secondary rounded-full mr-2">
                         <div 
                           className="h-full bg-green-500 rounded-full transition-all duration-300"
                           style={{ width: `${item.progress}%` }}
@@ -135,8 +136,8 @@ const OnboardingLayout = () => {
                     )}
                     {item.subItems && (
                       expandedMenus.includes(item.id) ? 
-                        <ChevronDown className="w-4 h-4 text-gray-400" /> :
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" /> :
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     )}
                   </>
                 )}
@@ -149,14 +150,14 @@ const OnboardingLayout = () => {
                     <button
                       key={subItem.id}
                       onClick={() => setActiveMenuItem(subItem.id)}
-                      className={`w-full flex items-center px-4 py-2 text-left hover:bg-gray-100 transition-colors ${
-                        activeMenuItem === subItem.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+                      className={`w-full flex items-center px-4 py-2 text-left hover:bg-accent transition-colors ${
+                        activeMenuItem === subItem.id ? 'bg-accent text-primary' : 'text-muted-foreground'
                       }`}
                     >
                       <subItem.icon className="w-4 h-4" />
                       <span className="ml-3 text-sm">{subItem.title}</span>
                       {subItem.progress !== undefined && (
-                        <div className="ml-auto w-6 h-1.5 bg-gray-200 rounded-full">
+                        <div className="ml-auto w-6 h-1.5 bg-secondary rounded-full">
                           <div 
                             className="h-full bg-green-500 rounded-full transition-all duration-300"
                             style={{ width: `${subItem.progress}%` }}
@@ -175,15 +176,15 @@ const OnboardingLayout = () => {
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         {/* Top Bar */}
-        <div className="bg-white shadow-sm border-b px-6 py-4">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Search */}
             <div className="flex-1 max-w-md">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search order ID, tracking ID..."
-                  className="pl-10 h-10 bg-gray-50 border-gray-200 focus:bg-white"
+                  className="pl-10 h-10 bg-muted/50 border-border focus:bg-background"
                 />
               </div>
             </div>
@@ -191,9 +192,9 @@ const OnboardingLayout = () => {
             {/* Right Side */}
             <div className="flex items-center space-x-4">
               {/* Wallet Balance */}
-              <div className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-lg">
-                <Wallet className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">₹2,450</span>
+              <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg">
+                <Wallet className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">₹2,450</span>
               </div>
 
               {/* Recharge Button */}
@@ -204,6 +205,9 @@ const OnboardingLayout = () => {
                 <CreditCard className="w-4 h-4 mr-2" />
                 Recharge Now
               </Button>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Quick Actions */}
               <Button variant="outline" className="h-10 w-10 p-0">
@@ -228,18 +232,18 @@ const OnboardingLayout = () => {
                 </Button>
                 {showSettingsDropdown && (
                   <div 
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10"
+                    className="absolute right-0 mt-2 w-48 bg-background rounded-lg shadow-lg border z-10"
                     onMouseEnter={() => setShowSettingsDropdown(true)}
                     onMouseLeave={() => setShowSettingsDropdown(false)}
                   >
                     <div className="py-2">
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm">
                         Account Settings
                       </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm">
                         Preferences
                       </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm">
                         API Settings
                       </button>
                     </div>
@@ -259,18 +263,18 @@ const OnboardingLayout = () => {
                   <ChevronDown className="w-3 h-3 ml-2" />
                 </Button>
                 {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-background rounded-lg shadow-lg border z-10">
                     <div className="py-2">
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm flex items-center">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm flex items-center">
                         <User className="w-4 h-4 mr-2" />
                         Profile
                       </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm flex items-center">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm flex items-center">
                         <FileText className="w-4 h-4 mr-2" />
                         Terms & Conditions
                       </button>
                       <hr className="my-1" />
-                      <button className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm flex items-center text-red-600">
+                      <button className="w-full px-4 py-2 text-left hover:bg-accent text-sm flex items-center text-red-600">
                         <LogOut className="w-4 h-4 mr-2" />
                         Logout
                       </button>
@@ -290,12 +294,12 @@ const OnboardingLayout = () => {
 
       {/* Recharge Modal */}
       {showRechargeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Recharge Wallet</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Amount
                 </label>
                 <Input placeholder="Enter amount" className="w-full" />
