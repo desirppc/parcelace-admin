@@ -12,6 +12,11 @@ import TicketList from './TicketList';
 import TicketDetails from './TicketDetails';
 import KYCVerification from './KYCVerification';
 import CourierPartnerSelection from './CourierPartnerSelection';
+import AadharVerification from './AadharVerification';
+import PANVerification from './PANVerification';
+import BankVerification from './BankVerification';
+import GSTVerification from './GSTVerification';
+import Billing from './Billing';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -106,9 +111,17 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'first-shipment':
       return renderOnboardingStep();
     
-    // KYC - Single route for all KYC functionality
+    // KYC - Main KYC page or individual verification pages
     case 'kyc':
       return <KYCVerification />;
+    case 'aadhar-verification':
+      return <AadharVerification />;
+    case 'pan-verification':
+      return <PANVerification />;
+    case 'bank-verification':
+      return <BankVerification />;
+    case 'gst-verification':
+      return <GSTVerification />;
     
     // Orders
     case 'orders':
@@ -122,8 +135,6 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'reverse-shipments':
     case 'tracking': 
       return <ShipmentPage />;
-    
-    // Courier Selection
     case 'courier-selection':
       return <CourierPartnerSelection />;
     
@@ -137,6 +148,11 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       return <EarlyCODPlans />;
     case 'invoice':
       return <InvoiceManagement />;
+    
+    // Settings
+    case 'settings':
+    case 'billing':
+      return <Billing />;
     
     // Support
     case 'support':

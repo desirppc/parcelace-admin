@@ -30,7 +30,8 @@ import {
   DollarSign,
   MessageCircle,
   Headphones,
-  History
+  History,
+  Route
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +72,13 @@ const OnboardingLayout = () => {
       id: 'kyc',
       title: 'KYC Verification',
       icon: Fingerprint,
-      progress: 0
+      progress: 0,
+      subItems: [
+        { id: 'aadhar-verification', title: 'Aadhar Verification', icon: Circle, progress: 0 },
+        { id: 'pan-verification', title: 'PAN Verification', icon: Circle, progress: 0 },
+        { id: 'bank-verification', title: 'Bank Verification', icon: Circle, progress: 0 },
+        { id: 'gst-verification', title: 'GST Verification', icon: Circle, progress: 0 }
+      ]
     },
     {
       id: 'orders',
@@ -89,7 +96,8 @@ const OnboardingLayout = () => {
       subItems: [
         { id: 'prepaid-shipments', title: 'Prepaid Shipments', icon: Truck },
         { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck },
-        { id: 'tracking', title: 'Tracking', icon: Truck }
+        { id: 'tracking', title: 'Tracking', icon: Truck },
+        { id: 'courier-selection', title: 'Courier Selection', icon: Route }
       ]
     },
     {
@@ -101,6 +109,14 @@ const OnboardingLayout = () => {
         { id: 'wallet-transaction', title: 'Wallet Transaction', icon: Wallet },
         { id: 'early-cod', title: 'Early COD', icon: Zap },
         { id: 'invoice', title: 'Invoice', icon: FileText }
+      ]
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      icon: Settings,
+      subItems: [
+        { id: 'billing', title: 'Billing', icon: CreditCard }
       ]
     },
     {
