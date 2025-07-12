@@ -11,6 +11,7 @@ import CreateTicket from './CreateTicket';
 import TicketList from './TicketList';
 import TicketDetails from './TicketDetails';
 import KYCVerification from './KYCVerification';
+import CourierPartnerSelection from './CourierPartnerSelection';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -121,6 +122,10 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'reverse-shipments':
     case 'tracking':
       return <ShipmentPage />;
+    
+    // Courier Selection
+    case 'courier-selection':
+      return <CourierPartnerSelection />;
     
     // Finance
     case 'finance':
