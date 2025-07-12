@@ -37,6 +37,16 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     setShowTicketDetails(false);
   };
 
+  const handleVerificationComplete = (success: boolean, data?: any) => {
+    console.log('Verification completed:', success, data);
+    // Handle verification completion - could navigate back or show success message
+  };
+
+  const handleVerificationClose = () => {
+    console.log('Verification closed');
+    // Handle verification close - could navigate back to KYC page
+  };
+
   const renderOnboardingStep = () => {
     return (
       <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg p-6 shadow-lg border border-purple-200/30 dark:border-purple-800/30">
@@ -115,13 +125,13 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'kyc':
       return <KYCVerification />;
     case 'aadhar-verification':
-      return <AadharVerification />;
+      return <AadharVerification onComplete={handleVerificationComplete} onClose={handleVerificationClose} />;
     case 'pan-verification':
-      return <PANVerification />;
+      return <PANVerification onComplete={handleVerificationComplete} onClose={handleVerificationClose} />;
     case 'bank-verification':
-      return <BankVerification />;
+      return <BankVerification onComplete={handleVerificationComplete} onClose={handleVerificationClose} />;
     case 'gst-verification':
-      return <GSTVerification />;
+      return <GSTVerification onComplete={handleVerificationComplete} onClose={handleVerificationClose} />;
     
     // Orders
     case 'orders':
