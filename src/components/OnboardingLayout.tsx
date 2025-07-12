@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -30,7 +31,9 @@ import {
   DollarSign,
   MessageCircle,
   Headphones,
-  History
+  History,
+  Building,
+  Landmark
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +68,19 @@ const OnboardingLayout = () => {
         { id: 'account-setup', title: 'Account Setup', icon: CheckCircle, progress: 60 },
         { id: 'integration', title: 'Shopify Integration', icon: Circle, progress: 0 },
         { id: 'first-shipment', title: 'First Shipment', icon: Circle, progress: 0 }
+      ]
+    },
+    {
+      id: 'kyc',
+      title: 'KYC Verification',
+      icon: Fingerprint,
+      progress: 0,
+      subItems: [
+        { id: 'kyc-verification', title: 'Entity Type Selection', icon: Building, progress: 0 },
+        { id: 'aadhar-verification', title: 'Aadhar Verification', icon: FileText, progress: 0 },
+        { id: 'pan-verification', title: 'PAN Verification', icon: CreditCard, progress: 0 },
+        { id: 'gst-verification', title: 'GST Verification', icon: Building, progress: 0 },
+        { id: 'bank-verification', title: 'Bank Verification', icon: Landmark, progress: 0 }
       ]
     },
     {
@@ -127,7 +143,6 @@ const OnboardingLayout = () => {
   };
 
   const settingsOptions = [
-    { icon: Fingerprint, label: 'Verify KYC' },
     { icon: Tag, label: 'Shipping Labels' },
     { icon: Receipt, label: 'Billing & Invoices' },
     { icon: MapPin, label: 'Warehouse Location' },
@@ -289,7 +304,7 @@ const OnboardingLayout = () => {
               {/* Notifications */}
               <NotificationPanel />
 
-              {/* Settings Dropdown - Fixed flickering issue */}
+              {/* Settings Dropdown */}
               <div className="relative">
                 <Button 
                   variant="outline" 
