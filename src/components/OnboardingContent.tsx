@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import OrdersPage from './OrdersPage';
 import ShipmentPage from './ShipmentPage';
@@ -17,6 +16,7 @@ import PANVerification from './PANVerification';
 import BankVerification from './BankVerification';
 import GSTVerification from './GSTVerification';
 import Billing from './Billing';
+import ShippingLabelSettings from './ShippingLabelSettings';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -163,6 +163,8 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'settings':
     case 'billing':
       return <Billing />;
+    case 'invoice-settings':
+      return <ShippingLabelSettings />;
     
     // Support
     case 'support':
