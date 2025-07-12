@@ -40,17 +40,14 @@ const PANVerification: React.FC<PANVerificationProps> = ({ onComplete, onClose }
     // Simulate API call
     setTimeout(() => {
       setLoading(false);
-      if (panNumber === 'ABCDE1234F') { // Mock successful PAN
-        const mockDetails: PANVerificationData = {
-          panNumber,
-          name: 'John Doe',
-          address: '123 Main Street, New Delhi, 110001'
-        };
-        setPanDetails(mockDetails);
-        setStep('details');
-      } else {
-        setError('No details found. Please re-check your PAN number.');
-      }
+      // Mock success for valid PAN format - you can customize this
+      const mockDetails: PANVerificationData = {
+        panNumber,
+        name: 'John Doe',
+        address: '123 Main Street, New Delhi, 110001'
+      };
+      setPanDetails(mockDetails);
+      setStep('details');
     }, 1500);
   };
 
@@ -64,6 +61,7 @@ const PANVerification: React.FC<PANVerificationProps> = ({ onComplete, onClose }
       setStep('pan');
       setPanNumber('');
       setError('');
+      setPanDetails(null);
     }
   };
 
@@ -115,6 +113,9 @@ const PANVerification: React.FC<PANVerificationProps> = ({ onComplete, onClose }
           <div className="space-y-6 p-6">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-center">Verify Details</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Please confirm if the following details are correct
+              </p>
               
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
                 <div>
@@ -129,6 +130,10 @@ const PANVerification: React.FC<PANVerificationProps> = ({ onComplete, onClose }
                   <Label className="text-sm font-medium text-muted-foreground">Address</Label>
                   <p className="font-medium">{panDetails.address}</p>
                 </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Aadhar Number</Label>
+                  <p className="font-medium">xxxx xxxx 1234</p>
+                </div>
               </div>
             </div>
 
@@ -137,7 +142,7 @@ const PANVerification: React.FC<PANVerificationProps> = ({ onComplete, onClose }
                 onClick={() => handleDetailsConfirm(true)}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
-                Yes, Details are Correct
+                Correct Details
               </Button>
               <Button 
                 onClick={() => handleDetailsConfirm(false)}

@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertCircle, FileText, CreditCard, Building, Landmark } from 'lucide-react';
+import { CheckCircle, AlertCircle, FileText, CreditCard, Building, Landmark, Edit2 } from 'lucide-react';
 import { EntityType, KYCType, KYCRequirement, KYCState } from '@/types/kyc';
 import AadharVerification from './AadharVerification';
 import PANVerification from './PANVerification';
@@ -17,6 +18,23 @@ const KYCVerification = () => {
     currentVerification: null,
     verificationData: {}
   });
+  const [entityTypeSelected, setEntityTypeSelected] = useState(false);
+
+  // Load saved entity type on component mount
+  useEffect(() => {
+    const savedEntityType = localStorage.getItem('kycEntityType');
+    if (savedEntityType) {
+      const entityType = savedEntityType as EntityType;
+      const requirements = getKYCRequirements(entityType);
+      setKycState({
+        entityType,
+        requirements,
+        currentVerification: null,
+        verificationData: JSON.parse(localStorage.getItem('kycVerificationData') || '{}')
+      });
+      setEntityTypeSelected(true);
+    }
+  }, []);
 
   const getKYCRequirements = (entityType: EntityType): KYCRequirement[] => {
     const baseRequirements: KYCRequirement[] = [
@@ -60,6 +78,22 @@ const KYCVerification = () => {
       entityType,
       requirements
     });
+    setEntityTypeSelected(true);
+    // Save to localStorage
+    localStorage.setItem('kycEntityType', entityType);
+  };
+
+  const handleChangeEntityType = () => {
+    // Clear saved data and reset
+    localStorage.removeItem('kycEntityType');
+    localStorage.removeItem('kycVerificationData');
+    setEntityTypeSelected(false);
+    setKycState({
+      entityType: null,
+      requirements: [],
+      currentVerification: null,
+      verificationData: {}
+    });
   };
 
   const handleStartVerification = (kycType: KYCType) => {
@@ -76,16 +110,36 @@ const KYCVerification = () => {
         : req
     );
 
+    const updatedVerificationData = {
+      ...kycState.verificationData,
+      [kycType]: data
+    };
+
     setKycState({
       ...kycState,
       requirements: updatedRequirements,
       currentVerification: null,
-      verificationData: {
-        ...kycState.verificationData,
-        [kycType]: data
-      }
+      verificationData: updatedVerificationData
     });
+
+    // Save verification data to localStorage
+    localStorage.setItem('kycVerificationData', JSON.stringify(updatedVerificationData));
   };
+
+  // Update requirements status based on saved verification data
+  useEffect(() => {
+    if (kycState.verificationData && kycState.requirements.length > 0) {
+      const updatedRequirements = kycState.requirements.map(req => ({
+        ...req,
+        status: kycState.verificationData[req.type] ? 'verified' as const : req.status
+      }));
+      
+      setKycState(prev => ({
+        ...prev,
+        requirements: updatedRequirements
+      }));
+    }
+  }, [kycState.verificationData]);
 
   const getKYCIcon = (type: KYCType) => {
     switch (type) {
@@ -105,7 +159,7 @@ const KYCVerification = () => {
   const getStatusBadge = (requirement: KYCRequirement) => {
     switch (requirement.status) {
       case 'verified':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Verified</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">✓ Verified</Badge>;
       case 'failed':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>;
       case 'in-progress':
@@ -122,6 +176,16 @@ const KYCVerification = () => {
     return requiredVerifications.every(req => req.status === 'verified');
   };
 
+  const getCardClassName = (requirement: KYCRequirement) => {
+    const baseClasses = "bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30 hover:shadow-lg transition-all duration-300";
+    
+    if (requirement.status === 'verified') {
+      return `${baseClasses} border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/20`;
+    }
+    
+    return baseClasses;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-blue-50/50 dark:from-purple-950/20 dark:via-pink-950/10 dark:to-blue-950/20 p-6">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -135,46 +199,75 @@ const KYCVerification = () => {
           </p>
         </div>
 
-        {/* Entity Type Selection */}
-        <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-foreground">
-              Step 1: Select Entity Type
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select onValueChange={handleEntityTypeChange} value={kycState.entityType || ''}>
-              <SelectTrigger className="w-full max-w-md">
-                <SelectValue placeholder="Select your legal entity type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="partnership">Partnership</SelectItem>
-                <SelectItem value="private-limited">Private Limited</SelectItem>
-                <SelectItem value="public">Public Limited</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        {/* Entity Type Selection - Only show if not selected */}
+        {!entityTypeSelected && (
+          <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Step 1: Select Entity Type
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select onValueChange={handleEntityTypeChange}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Select your legal entity type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="partnership">Partnership</SelectItem>
+                  <SelectItem value="private-limited">Private Limited</SelectItem>
+                  <SelectItem value="public">Public Limited</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* KYC Requirements */}
-        {kycState.entityType && (
+        {/* KYC Requirements - Only show after entity type is selected */}
+        {entityTypeSelected && kycState.entityType && (
           <div className="space-y-6">
+            {/* Entity Type Display with Change Option */}
+            <div className="flex items-center justify-between bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-purple-200/30 dark:border-purple-800/30 rounded-lg p-4">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Entity Type: {kycState.entityType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </h3>
+                <p className="text-sm text-muted-foreground">Complete the required verifications below</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleChangeEntityType}
+                className="flex items-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Change
+              </Button>
+            </div>
+
             <h2 className="text-2xl font-semibold text-foreground text-center">
-              Step 2: Complete Required Verifications
+              Complete Required Verifications
             </h2>
             
             <div className="grid md:grid-cols-2 gap-6">
               {kycState.requirements.map((requirement) => (
                 <Card 
                   key={requirement.type}
-                  className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/30 dark:border-purple-800/30 hover:shadow-lg transition-all duration-300"
+                  className={getCardClassName(requirement)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-lg">
-                          {getKYCIcon(requirement.type)}
+                        <div className={`p-2 rounded-lg ${
+                          requirement.status === 'verified' 
+                            ? 'bg-green-100 dark:bg-green-900/30' 
+                            : 'bg-gradient-to-br from-pink-500/10 to-purple-500/10'
+                        }`}>
+                          {requirement.status === 'verified' ? (
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          ) : (
+                            getKYCIcon(requirement.type)
+                          )}
                         </div>
                         <div>
                           <CardTitle className="text-lg font-semibold text-foreground">

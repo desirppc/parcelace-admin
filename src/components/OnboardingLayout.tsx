@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Search, 
@@ -31,9 +30,7 @@ import {
   DollarSign,
   MessageCircle,
   Headphones,
-  History,
-  Building,
-  Landmark
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,14 +71,7 @@ const OnboardingLayout = () => {
       id: 'kyc',
       title: 'KYC Verification',
       icon: Fingerprint,
-      progress: 0,
-      subItems: [
-        { id: 'kyc-verification', title: 'Entity Type Selection', icon: Building, progress: 0 },
-        { id: 'aadhar-verification', title: 'Aadhar Verification', icon: FileText, progress: 0 },
-        { id: 'pan-verification', title: 'PAN Verification', icon: CreditCard, progress: 0 },
-        { id: 'gst-verification', title: 'GST Verification', icon: Building, progress: 0 },
-        { id: 'bank-verification', title: 'Bank Verification', icon: Landmark, progress: 0 }
-      ]
+      progress: 0
     },
     {
       id: 'orders',
