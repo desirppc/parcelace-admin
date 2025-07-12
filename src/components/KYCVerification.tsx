@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,7 +72,7 @@ const KYCVerification = () => {
   const handleVerificationComplete = (kycType: KYCType, success: boolean, data?: any) => {
     const updatedRequirements = kycState.requirements.map(req => 
       req.type === kycType 
-        ? { ...req, status: success ? 'verified' : 'failed' }
+        ? { ...req, status: success ? 'verified' as const : 'failed' as const }
         : req
     );
 
