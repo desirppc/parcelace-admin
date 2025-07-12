@@ -31,7 +31,8 @@ import {
   MessageCircle,
   Headphones,
   History,
-  Route
+  Route,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,6 +110,14 @@ const OnboardingLayout = () => {
         { id: 'wallet-transaction', title: 'Wallet Transaction', icon: Wallet },
         { id: 'early-cod', title: 'Early COD', icon: Zap },
         { id: 'invoice', title: 'Invoice', icon: FileText }
+      ]
+    },
+    {
+      id: 'postship',
+      title: 'Postship',
+      icon: RefreshCw,
+      subItems: [
+        { id: 'return-pro', title: 'Return Pro', icon: Package }
       ]
     },
     {

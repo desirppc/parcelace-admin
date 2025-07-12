@@ -18,6 +18,7 @@ import GSTVerification from './GSTVerification';
 import Billing from './Billing';
 import ShippingLabelSettings from './ShippingLabelSettings';
 import TrackingPage from './TrackingPage';
+import ReturnPro from './ReturnPro';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -159,6 +160,11 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       return <EarlyCODPlans />;
     case 'invoice':
       return <InvoiceManagement />;
+    
+    // Postship
+    case 'postship':
+    case 'return-pro':
+      return <ReturnPro />;
     
     // Settings
     case 'settings':
