@@ -17,6 +17,7 @@ import BankVerification from './BankVerification';
 import GSTVerification from './GSTVerification';
 import Billing from './Billing';
 import ShippingLabelSettings from './ShippingLabelSettings';
+import TrackingPage from './TrackingPage';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -165,6 +166,8 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       return <Billing />;
     case 'invoice-settings':
       return <ShippingLabelSettings />;
+    case 'tracking-page':
+      return <TrackingPage />;
     
     // Support
     case 'support':

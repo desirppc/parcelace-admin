@@ -117,7 +117,8 @@ const OnboardingLayout = () => {
       icon: Settings,
       subItems: [
         { id: 'billing', title: 'Billing', icon: CreditCard },
-        { id: 'invoice-settings', title: 'Invoice Settings', icon: FileText }
+        { id: 'invoice-settings', title: 'Invoice Settings', icon: FileText },
+        { id: 'tracking-page', title: 'Tracking Page', icon: Tag }
       ]
     },
     {
