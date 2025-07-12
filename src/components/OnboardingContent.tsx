@@ -121,6 +121,7 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'prepaid-shipments':
     case 'reverse-shipments':
     case 'tracking':
+    case 'courier-selection':  
       return <ShipmentPage />;
     
     // Courier Selection
