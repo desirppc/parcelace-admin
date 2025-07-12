@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Home, ShoppingCart, Truck, Wallet, Headset, ShieldCheck, Package } from 'lucide-react';
 import OnboardingContent from './OnboardingContent';
@@ -50,8 +51,11 @@ const OnboardingLayout = () => {
       label: 'KYC Verification',
       icon: ShieldCheck,
       description: 'Complete your KYC verification',
-      hasSubmenu: false,
-      submenu: []
+      hasSubmenu: true,
+      submenu: [
+        { id: 'kyc-verification', label: 'Identity Verification', description: 'Complete KYC process' },
+        { id: 'kyc-status', label: 'Verification Status', description: 'Check verification status' },
+      ]
     },
     
     {
@@ -141,20 +145,46 @@ const OnboardingLayout = () => {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-secondary py-4">
-        <div className="px-6 mb-8">
-          <h1 className="text-2xl font-bold text-primary-foreground">ShipFast</h1>
+      <aside className="w-64 border-r bg-card">
+        {/* Header Section */}
+        <div className="px-6 py-4 border-b">
+          <h1 className="text-2xl font-bold text-foreground">ShipFast</h1>
           <p className="text-sm text-muted-foreground">Dashboard</p>
         </div>
-        <Separator />
-        <Accordion type="single" collapsible className="w-full">
-          {renderMenuItems()}
-        </Accordion>
+        
+        {/* Navigation */}
+        <div className="py-4">
+          <Accordion type="single" collapsible className="w-full px-2">
+            {renderMenuItems()}
+          </Accordion>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8">
-        <OnboardingContent activeMenuItem={activeMenuItem} />
+      <main className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">
+              {menuItems.find(item => 
+                item.submenu.some(sub => sub.id === activeMenuItem)
+              )?.submenu.find(sub => sub.id === activeMenuItem)?.label || 'Dashboard'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {menuItems.find(item => 
+                item.submenu.some(sub => sub.id === activeMenuItem)
+              )?.submenu.find(sub => sub.id === activeMenuItem)?.description || 'Welcome to ShipFast'}
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"></div>
+          </div>
+        </header>
+        
+        {/* Content Area */}
+        <div className="flex-1 p-6 overflow-auto">
+          <OnboardingContent activeMenuItem={activeMenuItem} />
+        </div>
       </main>
     </div>
   );
