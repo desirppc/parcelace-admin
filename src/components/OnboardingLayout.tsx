@@ -1,13 +1,23 @@
+
 import React, { useState } from 'react';
-import { Home, ShoppingCart, Truck, Wallet, Headset, ShieldCheck, Package } from 'lucide-react';
+import { 
+  Home, 
+  ShoppingCart, 
+  Truck, 
+  Wallet, 
+  Headset, 
+  ShieldCheck, 
+  Package,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  CreditCard,
+  Building,
+  Landmark
+} from 'lucide-react';
 import OnboardingContent from './OnboardingContent';
-import { Separator } from "@/components/ui/separator"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import Header from './Header';
+import { Button } from "@/components/ui/button";
 
 interface MenuItem {
   id: string;
@@ -26,12 +36,22 @@ interface SubMenuItem {
 
 const OnboardingLayout = () => {
   const [activeMenuItem, setActiveMenuItem] = useState<string>('onboarding');
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['onboarding']);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleMenuItemClick = (id: string) => {
     setActiveMenuItem(id);
   };
 
-  const menuItems = [
+  const toggleMenuExpansion = (menuId: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuId) 
+        ? prev.filter(id => id !== menuId)
+        : [...prev, menuId]
+    );
+  };
+
+  const menuItems: MenuItem[] = [
     {
       id: 'onboarding',
       label: 'Onboarding',
@@ -44,16 +64,20 @@ const OnboardingLayout = () => {
         { id: 'first-shipment', label: 'First Shipment', description: 'Create your first shipment' },
       ]
     },
-    
     {
       id: 'kyc',
       label: 'KYC Verification',
       icon: ShieldCheck,
       description: 'Complete your KYC verification',
-      hasSubmenu: false,
-      submenu: []
+      hasSubmenu: true,
+      submenu: [
+        { id: 'kyc-overview', label: 'KYC Overview', description: 'View verification status' },
+        { id: 'aadhar-verification', label: 'Aadhar Verification', description: 'Verify Aadhar card' },
+        { id: 'pan-verification', label: 'PAN Verification', description: 'Verify PAN card' },
+        { id: 'gst-verification', label: 'GST Verification', description: 'Verify GST registration' },
+        { id: 'bank-verification', label: 'Bank Verification', description: 'Verify bank account' },
+      ]
     },
-    
     {
       id: 'orders',
       label: 'Orders',
@@ -66,7 +90,6 @@ const OnboardingLayout = () => {
         { id: 'reverse-orders', label: 'Reverse Orders', description: 'Return orders' },
       ]
     },
-    
     {
       id: 'shipments',
       label: 'Shipments',
@@ -81,7 +104,6 @@ const OnboardingLayout = () => {
         { id: 'courier-selection', label: 'Select Courier Partner', description: 'Choose courier partner and rates' },
       ]
     },
-    
     {
       id: 'finance',
       label: 'Finance',
@@ -95,7 +117,6 @@ const OnboardingLayout = () => {
         { id: 'invoice', label: 'Invoice Management', description: 'Manage invoices' },
       ]
     },
-    
     {
       id: 'support',
       label: 'Support',
@@ -113,49 +134,82 @@ const OnboardingLayout = () => {
 
   const renderMenuItems = () => {
     return menuItems.map((menuItem) => (
-      <AccordionItem value={menuItem.id} key={menuItem.id}>
-        <AccordionTrigger className="data-[state=open]:text-secondary-foreground">
-          <div className="flex items-center space-x-2">
-            <menuItem.icon className="w-4 h-4" />
-            <span>{menuItem.label}</span>
+      <div key={menuItem.id} className="mb-2">
+        <Button
+          variant="ghost"
+          className={`w-full justify-start px-3 py-2 h-10 text-left hover:bg-accent hover:text-accent-foreground ${
+            expandedMenus.includes(menuItem.id) ? 'bg-accent/50' : ''
+          }`}
+          onClick={() => toggleMenuExpansion(menuItem.id)}
+        >
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <menuItem.icon className="w-5 h-5 text-muted-foreground" />
+              {!sidebarCollapsed && (
+                <span className="font-medium">{menuItem.label}</span>
+              )}
+            </div>
+            {!sidebarCollapsed && menuItem.hasSubmenu && (
+              expandedMenus.includes(menuItem.id) ? (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              )
+            )}
           </div>
-        </AccordionTrigger>
-        <AccordionContent>
-          <ul className="ml-6 mt-2 space-y-1">
+        </Button>
+
+        {/* Submenu */}
+        {menuItem.hasSubmenu && expandedMenus.includes(menuItem.id) && !sidebarCollapsed && (
+          <div className="ml-6 mt-1 space-y-1">
             {menuItem.submenu.map((submenuItem) => (
-              <li key={submenuItem.id}>
-                <button
-                  onClick={() => handleMenuItemClick(submenuItem.id)}
-                  className={`w-full text-left px-4 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground ${activeMenuItem === submenuItem.id ? 'bg-secondary text-secondary-foreground' : ''}`}
-                >
-                  {submenuItem.label}
-                </button>
-              </li>
+              <Button
+                key={submenuItem.id}
+                variant="ghost"
+                className={`w-full justify-start px-3 py-2 h-9 text-sm hover:bg-accent hover:text-accent-foreground ${
+                  activeMenuItem === submenuItem.id ? 'bg-secondary text-secondary-foreground' : ''
+                }`}
+                onClick={() => handleMenuItemClick(submenuItem.id)}
+              >
+                <span>{submenuItem.label}</span>
+              </Button>
             ))}
-          </ul>
-        </AccordionContent>
-      </AccordionItem>
+          </div>
+        )}
+      </div>
     ));
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-secondary py-4">
-        <div className="px-6 mb-8">
-          <h1 className="text-2xl font-bold text-primary-foreground">ShipFast</h1>
-          <p className="text-sm text-muted-foreground">Dashboard</p>
-        </div>
-        <Separator />
-        <Accordion type="single" collapsible className="w-full">
-          {renderMenuItems()}
-        </Accordion>
-      </aside>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <Header />
 
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <OnboardingContent activeMenuItem={activeMenuItem} />
-      </main>
+      {/* Main Layout */}
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-secondary/30 border-r border-border transition-all duration-300 flex flex-col`}>
+          <div className="p-4 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-full justify-center"
+            >
+              {sidebarCollapsed ? '→' : '←'}
+            </Button>
+          </div>
+
+          <div className="flex-1 p-3 overflow-y-auto">
+            {renderMenuItems()}
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          <OnboardingContent activeMenuItem={activeMenuItem} />
+        </main>
+      </div>
     </div>
   );
 };
