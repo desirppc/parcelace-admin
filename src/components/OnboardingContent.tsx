@@ -10,6 +10,7 @@ import SupportDashboard from './SupportDashboard';
 import CreateTicket from './CreateTicket';
 import TicketList from './TicketList';
 import TicketDetails from './TicketDetails';
+import KYCVerification from './KYCVerification';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -103,6 +104,11 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'integration':
     case 'first-shipment':
       return renderOnboardingStep();
+    
+    // KYC
+    case 'kyc':
+    case 'kyc-verification':
+      return <KYCVerification />;
     
     // Orders
     case 'orders':
