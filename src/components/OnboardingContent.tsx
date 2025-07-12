@@ -105,7 +105,7 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
     case 'first-shipment':
       return renderOnboardingStep();
     
-    // KYC
+    // KYC - Updated to handle both 'kyc' and 'kyc-verification' cases
     case 'kyc':
     case 'kyc-verification':
       return <KYCVerification />;
