@@ -23,28 +23,28 @@ const KYCVerification = () => {
       {
         type: 'aadhar',
         required: entityType === 'individual',
-        status: 'not-started',
+        status: 'not-started' as const,
         label: 'Aadhar Verification',
         description: 'Identity verification using Aadhar card'
       },
       {
         type: 'pan',
         required: entityType === 'individual',
-        status: 'not-started',
+        status: 'not-started' as const,
         label: 'PAN Verification',
         description: 'Tax identification verification'
       },
       {
         type: 'gst',
         required: entityType !== 'individual',
-        status: 'not-started',
+        status: 'not-started' as const,
         label: 'GST Verification',
         description: 'Business registration verification'
       },
       {
         type: 'bank',
         required: false,
-        status: 'not-started',
+        status: 'not-started' as const,
         label: 'Bank Verification',
         description: 'Bank account verification (Optional)'
       }
