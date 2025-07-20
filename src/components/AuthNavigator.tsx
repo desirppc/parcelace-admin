@@ -14,8 +14,12 @@ import { useNavigate } from 'react-router-dom';
 
 type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'mobile-otp-verification' | 'reset-password' | 'onboarding';
 
-const AuthNavigator = () => {
-  const [currentScreen, setCurrentScreen] = useState<AuthScreen>('login');
+interface AuthNavigatorProps {
+  initialScreen?: AuthScreen;
+}
+
+const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
+  const [currentScreen, setCurrentScreen] = useState<AuthScreen>(initialScreen);
   const [userEmail, setUserEmail] = useState('');
   const [otpEmail, setOtpEmail] = useState('');
   const [otpToken, setOtpToken] = useState('');
