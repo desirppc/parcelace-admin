@@ -171,8 +171,8 @@ const Login = () => {
   };
 
   const handleSignUp = () => {
-    // Navigate to the main page with signup screen parameter
-    navigate('/?screen=signup');
+    // Navigate to the signup route
+    navigate('/signup');
   };
 
   return (

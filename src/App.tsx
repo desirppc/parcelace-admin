@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import MobileOTPVerification from "./pages/MobileOTPVerification";
 import TestLogin from "./pages/TestLogin";
 import AddOrder from "./components/AddOrder";
 import ShipmentPage from "./components/ShipmentPage";
@@ -64,6 +66,8 @@ const App = () => (
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/mobile-otp-verification" element={<MobileOTPVerification />} />
             <Route path="/test-login" element={<TestLogin />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/otp-verification" element={<OTPVerification />} />
