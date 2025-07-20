@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/contexts/UserContext';
 
 const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack, onNavigateToOnboarding }: { 
   onNavigateToSignUp: () => void;
@@ -13,11 +15,59 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
+  const { setUser } = useUser();
 
-  const handleLogin = () => {
-    // Simulate login process
-    console.log('Login attempt:', { email, password });
-    onNavigateToOnboarding();
+  const handleLogin = async () => {
+    if (!email || !password) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok && data.status && data.data) {
+        // Store tokens and user info
+        localStorage.setItem('auth_token', data.data.auth_token);
+        localStorage.setItem('access_token', data.data.access_token);
+        localStorage.setItem('user_data', JSON.stringify(data.data));
+        sessionStorage.setItem('auth_token', data.data.auth_token);
+        sessionStorage.setItem('access_token', data.data.access_token);
+        sessionStorage.setItem('user_data', JSON.stringify(data.data));
+        sessionStorage.setItem('user', JSON.stringify(data.data));
+        
+        // Set user in context
+        setUser(data.data);
+        
+        // Check mobile verification and onboarding status
+        if (!data.data.mobile_verified_at) {
+          // User needs mobile OTP verification
+          onNavigateToOnboarding(); // This will be handled by RouteGuard
+        } else if (!data.data.is_onboarding_filled) {
+          // User needs to complete onboarding wizard
+          window.location.href = '/onboarding/wizard';
+        } else {
+          // User is fully verified and onboarded
+          window.location.href = '/orders';
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: data?.error?.message || data?.message || 'Login failed.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Network Error',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSocialLogin = (provider: string) => {

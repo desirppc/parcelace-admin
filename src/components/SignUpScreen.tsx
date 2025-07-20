@@ -1,24 +1,32 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Package } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Package, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/contexts/UserContext';
+import API_CONFIG from '@/config/api';
 
 const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboarding }: { 
   onNavigateToLogin: () => void;
   onNavigateBack: () => void;
-  onNavigateToOnboarding: () => void;
+  onNavigateToOnboarding: (phone?: string, token?: string) => void;
 }) => {
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
+    phone: '',
     password: '',
-    confirmPassword: ''
+    password_confirmation: '',
+    language: 'EN'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const { setUser } = useUser();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -28,9 +36,142 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
     setAgreeToTerms(checked === true);
   };
 
-  const handleSignUp = () => {
+  const validateForm = () => {
+    if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.password_confirmation) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (formData.password !== formData.password_confirmation) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "Please make sure both passwords are identical",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (formData.password.length < 8) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!agreeToTerms) {
+      toast({
+        title: "Terms Not Accepted",
+        description: "Please accept the terms and conditions",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignUp = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+
+    try {
     console.log('Sign up attempt:', formData);
-    onNavigateToOnboarding();
+      
+      const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REGISTER}`;
+      console.log('API URL:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(formData),
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      const data = await response.json();
+      console.log('Sign up response:', data);
+
+      if (response.ok && data.status) {
+        // Store auth token
+        localStorage.setItem('auth_token', data.data.auth_token);
+        sessionStorage.setItem('auth_token', data.data.auth_token);
+        
+        // Store user data
+        localStorage.setItem('user_data', JSON.stringify(data.data));
+        sessionStorage.setItem('user_data', JSON.stringify(data.data));
+        sessionStorage.setItem('user', JSON.stringify(data.data));
+        
+        // Set user in context
+        setUser(data.data);
+
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created successfully!",
+        });
+
+        // Send OTP for mobile verification
+        await sendOTP(data.data.auth_token);
+        
+        // Navigate to OTP verification with phone and token
+        onNavigateToOnboarding(formData.phone, data.data.auth_token);
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: data?.message || "Failed to create account. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast({
+        title: "Network Error",
+        description: "Please check your internet connection and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendOTP = async (authToken: string) => {
+    try {
+      const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SEND_OTP}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      const data = await response.json();
+      console.log('Send OTP response:', data);
+
+      if (response.ok && data.status) {
+        toast({
+          title: "OTP Sent",
+          description: "Verification code has been sent to your mobile number",
+        });
+      } else {
+        console.error('Failed to send OTP:', data);
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -111,8 +252,8 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type="text"
-                  value={formData.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                   className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business name"
                 />
@@ -132,6 +273,23 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business email"
+                />
+              </div>
+            </div>
+
+            {/* Phone Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
+                  placeholder="Enter your phone number"
                 />
               </div>
             </div>
@@ -169,8 +327,8 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  value={formData.password_confirmation}
+                  onChange={(e) => handleInputChange('password_confirmation', e.target.value)}
                   className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Confirm your password"
                 />
@@ -207,10 +365,17 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
             {/* Sign Up Button */}
             <Button 
               onClick={handleSignUp}
-              className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              disabled={!agreeToTerms}
+              disabled={!agreeToTerms || isLoading}
+              className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Start Shipping
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating Account...
+                </div>
+              ) : (
+                'Start Shipping'
+              )}
             </Button>
           </div>
 

@@ -32,13 +32,21 @@ import {
   Headphones,
   History,
   Route,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from './ThemeToggle';
 import OnboardingContent from './OnboardingContent';
 import NotificationPanel from './NotificationPanel';
+
+import { useNavigate, Outlet } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
+import { useEffect } from 'react';
+import API_CONFIG from '@/config/api';
+import AppHeader from './AppHeader';
+
 
 interface MenuItem {
   id: string;
@@ -47,38 +55,60 @@ interface MenuItem {
   subItems?: MenuItem[];
   isCompleted?: boolean;
   progress?: number;
+  route?: string; // Added for navigation
 }
 
 const OnboardingLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['onboarding']);
-  const [activeMenuItem, setActiveMenuItem] = useState('onboarding');
-  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const navigate = useNavigate();
+  const { walletBalance, updateWalletBalance, user } = useUser();
+
+  // Update wallet balance on mount and when wallet is updated
+  useEffect(() => {
+    updateWalletBalance();
+    
+    const handleWalletUpdate = () => {
+      updateWalletBalance();
+    };
+    
+    window.addEventListener('walletBalanceUpdated', handleWalletUpdate);
+    
+    return () => {
+      window.removeEventListener('walletBalanceUpdated', handleWalletUpdate);
+    };
+  }, [updateWalletBalance]);
 
   const menuItems: MenuItem[] = [
+    {
+      id: 'profile',
+      title: 'Profile',
+      icon: User,
+      route: '/onboarding/profile'
+    },
+    {
+      id: 'ai',
+      title: 'ParcelAce AI',
+      icon: Sparkles,
+      route: '/ai'
+    },
+    {
+      id: 'view-order',
+      title: 'Shipment View Details',
+      icon: Package,
+      route: '/view-order'
+    },
     {
       id: 'onboarding',
       title: 'Onboarding',
       icon: Home,
       progress: 30,
       subItems: [
-        { id: 'account-setup', title: 'Account Setup', icon: CheckCircle, progress: 60 },
-        { id: 'integration', title: 'Shopify Integration', icon: Circle, progress: 0 },
-        { id: 'first-shipment', title: 'First Shipment', icon: Circle, progress: 0 }
-      ]
-    },
-    {
-      id: 'kyc',
-      title: 'KYC Verification',
-      icon: Fingerprint,
-      progress: 0,
-      subItems: [
-        { id: 'aadhar-verification', title: 'Aadhar Verification', icon: Circle, progress: 0 },
-        { id: 'pan-verification', title: 'PAN Verification', icon: Circle, progress: 0 },
-        { id: 'bank-verification', title: 'Bank Verification', icon: Circle, progress: 0 },
-        { id: 'gst-verification', title: 'GST Verification', icon: Circle, progress: 0 }
+        { id: 'checklist', title: 'Onboarding Checklist', icon: CheckCircle, progress: 60 },
+        { id: 'kyc', title: 'KYC Verification', icon: Fingerprint, progress: 0, route: '/onboarding/kyc' },
+        { id: 'integration', title: 'Shopify Integration', icon: Circle, progress: 0 }
       ]
     },
     {
@@ -98,6 +128,7 @@ const OnboardingLayout = () => {
         { id: 'prepaid-shipments', title: 'Prepaid Shipments', icon: Truck },
         { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck },
         { id: 'tracking', title: 'Tracking', icon: Truck },
+        { id: 'tracking-page', title: 'Tracking Page', icon: MapPin },
         { id: 'courier-selection', title: 'Courier Selection', icon: Route }
       ]
     },
@@ -127,7 +158,8 @@ const OnboardingLayout = () => {
       subItems: [
         { id: 'billing', title: 'Billing', icon: CreditCard },
         { id: 'invoice-settings', title: 'Invoice Settings', icon: FileText },
-        { id: 'tracking-page', title: 'Tracking Page', icon: Tag }
+        { id: 'tracking-page', title: 'Tracking Page', icon: Tag },
+        { id: 'warehouse', title: 'Warehouse', icon: MapPin }
       ]
     },
     {
@@ -143,6 +175,37 @@ const OnboardingLayout = () => {
     }
   ];
 
+  const routeMapping: { [key: string]: string } = {
+    'profile': '/onboarding/profile',
+    'ai': '/ai',
+    'checklist': '/onboarding/checklist',
+    'integration': '/onboarding/shopify-integration',
+    'aadhar-verification': '/onboarding/kyc',
+    'pan-verification': '/onboarding/kyc',
+    'bank-verification': '/onboarding/kyc',
+    'gst-verification': '/onboarding/kyc',
+    'prepaid-orders': '/onboarding/orders/prepaid-orders',
+    'reverse-orders': '/onboarding/orders/reverse-orders',
+    'prepaid-shipments': '/onboarding/shipments/prepaid-shipments',
+    'reverse-shipments': '/onboarding/shipments/reverse-shipments',
+    'tracking': '/onboarding/shipments/tracking',
+    'tracking-page': '/tracking-page',
+    'courier-selection': '/onboarding/shipments/courier-selection',
+    'cod-remittance': '/onboarding/finance/cod-remittance',
+    'wallet-transaction': '/onboarding/finance/wallet-transaction',
+    'early-cod': '/onboarding/finance/early-cod',
+    'invoice': '/onboarding/finance/invoice',
+    'return-pro': '/onboarding/postship/return-pro',
+    'billing': '/onboarding/settings/billing',
+    'invoice-settings': '/onboarding/settings/invoice-settings',
+    'warehouse': '/warehouse',
+    'warehouse-location': '/onboarding/warehouse-location',
+    'support-dashboard': '/onboarding/support/support-dashboard',
+    'create-ticket': '/onboarding/support/create-ticket',
+    'my-tickets': '/onboarding/support/my-tickets',
+    'ticket-history': '/onboarding/support/ticket-history'
+  };
+
   const toggleMenu = (menuId: string) => {
     setExpandedMenus(prev => 
       prev.includes(menuId) 
@@ -152,9 +215,10 @@ const OnboardingLayout = () => {
   };
 
   const handleMenuClick = (menuId: string) => {
-    setActiveMenuItem(menuId);
-    const menuItem = menuItems.find(item => item.id === menuId);
-    if (menuItem?.subItems && menuItem.subItems.length > 0) {
+    if (menuItems.find(item => item.id === menuId)?.route) {
+      navigate(menuItems.find(item => item.id === menuId)?.route || '/');
+    }
+    if (menuItems.find(item => item.id === menuId)?.subItems && menuItems.find(item => item.id === menuId)?.subItems.length > 0) {
       toggleMenu(menuId);
     }
   };
@@ -170,6 +234,38 @@ const OnboardingLayout = () => {
     { icon: AlertTriangle, label: 'Admin Alerts' },
     { icon: Phone, label: 'Contact Person' }
   ];
+
+  const handleLogout = async () => {
+    try {
+      const authToken = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      
+      if (authToken) {
+        const response = await fetch(`${API_CONFIG.BASE_URL}api/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          console.log('Logout successful');
+        } else {
+          console.error('Logout API failed:', response.status);
+        }
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear all session data
+      sessionStorage.clear();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      
+      // Redirect to login
+      navigate('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
@@ -198,9 +294,12 @@ const OnboardingLayout = () => {
           {menuItems.map((item) => (
             <div key={item.id}>
               <button
-                onClick={() => handleMenuClick(item.id)}
+                onClick={() => {
+                  if (item.route) navigate(item.route);
+                  if (item.subItems && item.subItems.length > 0) toggleMenu(item.id);
+                }}
                 className={`w-full flex items-center px-4 py-3 text-left transition-all duration-300 group relative overflow-hidden ${
-                  activeMenuItem === item.id 
+                  item.route && window.location.pathname === item.route
                     ? 'bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-blue-500/20 border-r-3 border-gradient-to-b from-pink-500 via-purple-500 to-blue-500 shadow-lg backdrop-blur-sm' 
                     : 'hover:bg-gradient-to-r hover:from-pink-500/10 hover:via-purple-500/10 hover:to-blue-500/10 hover:shadow-md hover:backdrop-blur-sm'
                 }`}
@@ -209,14 +308,14 @@ const OnboardingLayout = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 <item.icon className={`w-5 h-5 relative z-10 transition-colors duration-300 ${
-                  activeMenuItem === item.id 
+                  item.route && window.location.pathname === item.route
                     ? 'text-purple-600 dark:text-purple-400' 
                     : 'text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400'
                 }`} />
                 {sidebarOpen && (
                   <>
                     <span className={`ml-3 flex-1 relative z-10 transition-colors duration-300 ${
-                      activeMenuItem === item.id 
+                      item.route && window.location.pathname === item.route
                         ? 'text-foreground font-medium' 
                         : 'text-foreground group-hover:text-foreground group-hover:font-medium'
                     }`}>{item.title}</span>
@@ -248,9 +347,12 @@ const OnboardingLayout = () => {
                   {item.subItems.map((subItem) => (
                     <button
                       key={subItem.id}
-                      onClick={() => setActiveMenuItem(subItem.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (routeMapping[subItem.id]) navigate(routeMapping[subItem.id]);
+                      }}
                       className={`w-full flex items-center px-4 py-2 text-left transition-all duration-300 group relative overflow-hidden rounded-lg mx-2 ${
-                        activeMenuItem === subItem.id 
+                        window.location.pathname === routeMapping[subItem.id]
                           ? 'bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-blue-500/15 text-purple-600 dark:text-purple-400 shadow-md backdrop-blur-sm' 
                           : 'text-muted-foreground hover:bg-gradient-to-r hover:from-pink-500/8 hover:via-purple-500/8 hover:to-blue-500/8 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm hover:backdrop-blur-sm'
                       }`}
@@ -279,156 +381,22 @@ const OnboardingLayout = () => {
 
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
-        {/* Top Bar */}
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-900/80 shadow-sm border-b border-purple-200/30 dark:border-purple-800/30 px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Search */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search order ID, tracking ID..."
-                  className="pl-10 h-10 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200/50 dark:border-purple-800/50 focus:bg-white dark:focus:bg-gray-900 focus:border-purple-400 dark:focus:border-purple-600 transition-all duration-300"
-                />
-              </div>
-            </div>
-
-            {/* Right Side */}
-            <div className="flex items-center space-x-4">
-              {/* Wallet Balance */}
-              <div className="flex items-center space-x-2 bg-gradient-to-r from-purple-50/80 to-blue-50/80 dark:from-purple-900/30 dark:to-blue-900/30 px-3 py-2 rounded-lg border border-purple-200/30 dark:border-purple-800/30 backdrop-blur-sm">
-                <Wallet className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-medium text-foreground">₹2,450</span>
-              </div>
-
-              {/* Recharge Button */}
-              <Button 
-                onClick={() => setShowRechargeModal(true)}
-                className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 hover:from-pink-600 hover:via-purple-600 hover:to-blue-700 text-white px-4 py-2 h-10 shadow-lg hover:shadow-xl transition-all duration-300 border-0"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Recharge Now
-              </Button>
-
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
-              {/* Quick Actions */}
-              <Button variant="outline" className="h-10 w-10 p-0 border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300">
-                <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              </Button>
-
-              {/* Notifications */}
-              <NotificationPanel />
-
-              {/* Settings Dropdown */}
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="h-10 w-10 p-0 border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300"
-                  onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                >
-                  <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </Button>
-                {showSettingsDropdown && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-50 animate-fade-in">
-                    <div className="p-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        {settingsOptions.map((option, index) => (
-                          <button
-                            key={index}
-                            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-left transition-all duration-300 group"
-                          >
-                            <option.icon className="w-5 h-5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300" />
-                            <span className="text-sm font-medium text-foreground group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">
-                              {option.label}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Profile Dropdown */}
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="h-10 px-3 border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300"
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                >
-                  <User className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                  <span className="text-sm">John Doe</span>
-                  <ChevronDown className="w-3 h-3 ml-2 text-purple-600 dark:text-purple-400" />
-                </Button>
-                {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 z-10 animate-fade-in">
-                    <div className="py-2">
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-sm flex items-center transition-all duration-300">
-                        <User className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                        Profile
-                      </button>
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 text-sm flex items-center transition-all duration-300">
-                        <FileText className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                        Terms & Conditions
-                      </button>
-                      <hr className="my-1 border-purple-200/30 dark:border-purple-800/30" />
-                      <button className="w-full px-4 py-2 text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 dark:hover:from-red-900/30 dark:hover:to-orange-900/30 text-sm flex items-center text-red-600 dark:text-red-400 transition-all duration-300">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
+        {/* Header */}
+        <AppHeader />
         {/* Main Content Area */}
         <div className="p-6">
-          <OnboardingContent activeMenuItem={activeMenuItem} />
+          <Outlet />
         </div>
       </div>
 
-      {/* Recharge Modal */}
-      {showRechargeModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg p-6 w-full max-w-md shadow-2xl border border-purple-200/30 dark:border-purple-800/30">
-            <h2 className="text-xl font-bold mb-4 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">Recharge Wallet</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Amount
-                </label>
-                <Input placeholder="Enter amount" className="w-full border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600 transition-all duration-300" />
-              </div>
-              <div className="flex space-x-3">
-                <Button 
-                  onClick={() => setShowRechargeModal(false)}
-                  variant="outline" 
-                  className="flex-1 border-purple-200/50 dark:border-purple-800/50 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 transition-all duration-300"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => setShowRechargeModal(false)}
-                  className="flex-1 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 hover:from-pink-600 hover:via-purple-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  Recharge
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Click outside to close dropdowns */}
       {(showProfileDropdown || showSettingsDropdown) && (
         <div 
-          className="fixed inset-0 z-5"
-          onClick={() => {
+          className="fixed inset-0 z-50"
+          onClick={(e) => {
+            e.stopPropagation();
             setShowProfileDropdown(false);
             setShowSettingsDropdown(false);
           }}
