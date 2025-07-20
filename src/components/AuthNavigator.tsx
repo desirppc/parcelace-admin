@@ -104,7 +104,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
       return (
         <ForgotPasswordScreen
           onNavigateBack={handleNavigateBack}
-          onNavigateToOTP={(email?: string) => handleNavigateToOTP(email)}
+          onNavigateToOTP={handleNavigateToOTP}
         />
       );
     

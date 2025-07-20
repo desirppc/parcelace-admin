@@ -53,6 +53,11 @@ const OTPPage: React.FC<{ email: string; onBack: () => void; onSuccess: (token: 
       console.log('OTP verification response:', data);
       
       if (response.ok && data.status && data.data?.auth_token) {
+        // Store email for reset password process
+        sessionStorage.setItem('reset_email', email);
+        localStorage.setItem('auth_token', data.data.auth_token);
+        sessionStorage.setItem('auth_token', data.data.auth_token);
+        
         toast({
           title: "Success!",
           description: "OTP verified successfully.",

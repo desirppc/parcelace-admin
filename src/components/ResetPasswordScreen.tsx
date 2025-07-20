@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Lock, Eye, EyeOff, Check, X, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const ResetPasswordScreen = ({ onNavigateBack, onPasswordReset }: { 
   onNavigateBack: () => void;
@@ -12,6 +13,8 @@ const ResetPasswordScreen = ({ onNavigateBack, onPasswordReset }: {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Password validation
   const validations = {
@@ -24,9 +27,62 @@ const ResetPasswordScreen = ({ onNavigateBack, onPasswordReset }: {
   const allValidationsPassed = Object.values(validations).every(Boolean);
   const passwordsMatch = password === confirmPassword && password !== '';
 
-  const handleResetPassword = () => {
-    if (allValidationsPassed && passwordsMatch) {
-      onPasswordReset();
+  const handleResetPassword = async () => {
+    if (!allValidationsPassed || !passwordsMatch) return;
+    
+    setIsLoading(true);
+    try {
+      // Get email and auth_token from localStorage or sessionStorage
+      const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+      const email = userData.email || sessionStorage.getItem('reset_email');
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!email || !authToken) {
+        toast({
+          title: 'Error',
+          description: 'Missing required information. Please try the forgot password process again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/forgot-password/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          auth_token: authToken,
+          password: password,
+          password_confirmation: confirmPassword
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.status) {
+        toast({
+          title: 'Password Reset Successful',
+          description: 'Your password has been reset successfully. You can now login with your new password.',
+        });
+        onPasswordReset();
+      } else {
+        toast({
+          title: 'Error',
+          description: data?.message || 'Failed to reset password. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Network Error',
+        description: 'Please check your internet connection and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,7 +129,7 @@ const ResetPasswordScreen = ({ onNavigateBack, onPasswordReset }: {
           </p>
 
           {/* Form */}
-          <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-6">
             {/* New Password Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -149,13 +205,20 @@ const ResetPasswordScreen = ({ onNavigateBack, onPasswordReset }: {
 
             {/* Reset Password Button */}
             <Button 
-              onClick={handleResetPassword}
-              disabled={!allValidationsPassed || !passwordsMatch}
+              type="submit"
+              disabled={!allValidationsPassed || !passwordsMatch || isLoading}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Reset Password
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Resetting...
+                </div>
+              ) : (
+                'Reset Password'
+              )}
             </Button>
-          </div>
+          </form>
         </div>
 
         {/* Security Note */}

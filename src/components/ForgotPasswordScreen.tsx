@@ -3,16 +3,53 @@ import React, { useState } from 'react';
 import { ArrowLeft, Mail, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const ForgotPasswordScreen = ({ onNavigateBack, onNavigateToOTP }: { 
   onNavigateBack: () => void;
-  onNavigateToOTP: () => void;
+  onNavigateToOTP: (email: string) => void;
 }) => {
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSendOTP = () => {
-    if (email) {
-      onNavigateToOTP();
+  const handleSendOTP = async () => {
+    if (!email) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.status) {
+        toast({
+          title: 'OTP Sent',
+          description: 'Verification code has been sent to your email',
+        });
+        onNavigateToOTP(email);
+      } else {
+        toast({
+          title: 'Error',
+          description: data?.message || 'Failed to send OTP. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Network Error',
+        description: 'Please check your internet connection and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -46,7 +83,7 @@ const ForgotPasswordScreen = ({ onNavigateBack, onNavigateToOTP }: {
           </p>
 
           {/* Form */}
-          <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendOTP(); }} className="space-y-6">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -66,13 +103,20 @@ const ForgotPasswordScreen = ({ onNavigateBack, onNavigateToOTP }: {
 
             {/* Send OTP Button */}
             <Button 
-              onClick={handleSendOTP}
-              disabled={!email}
+              type="submit"
+              disabled={!email || isLoading}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
-              Send Reset Code
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </div>
+              ) : (
+                'Send Reset Code'
+              )}
             </Button>
-          </div>
+          </form>
 
           {/* Info */}
           <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-blue-50 rounded-xl border border-pink-100">

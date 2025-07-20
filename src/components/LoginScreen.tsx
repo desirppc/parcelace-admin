@@ -104,7 +104,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
           {/* Login Form */}
 
           {/* Form */}
-          <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-6">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -158,12 +158,12 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
 
             {/* Sign In Button */}
             <Button 
-              onClick={handleLogin}
+              type="submit"
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
               Access Dashboard
             </Button>
-          </div>
+          </form>
 
           {/* Divider */}
           <div className="flex items-center my-6">
