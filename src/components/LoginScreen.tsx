@@ -52,7 +52,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
           window.location.href = '/onboarding/wizard';
         } else {
           // User is fully verified and onboarded
-          window.location.href = '/orders';
+          window.location.href = '/dashboard/orders';
         }
       } else {
         toast({

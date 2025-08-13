@@ -98,26 +98,19 @@ const AddOrder = () => {
   // Generate order ID if not provided
   const generateOrderId = () => {
     const timestamp = Math.floor(Date.now() / 1000);
-    let prefix = 'PPD'; // Default for prepaid
-    if (orderDetails.orderType === 'cod') {
-      prefix = 'COD';
-    } else if (orderDetails.orderType === 'reverse') {
-      prefix = 'RVP';
-    }
-    return `${prefix}${timestamp}`;
+    const random = Math.floor(Math.random() * 1000);
+    return `PPD${timestamp}${random}`;
   };
 
-  // Auto-populate city and state from pincode
+  // Handle pincode change and auto-fill city/state
   const handlePincodeChange = (pincode: string) => {
-    setShippingDetails({...shippingDetails, pincode: pincode});
+    setShippingDetails(prev => ({ ...prev, pincode }));
     
-    // Auto-populate city and state if pincode is found in mapping
-    if (pincode && pincode.length === 6) {
+    if (pincode.length === 6) {
       const pincodeData = pincodeMapping[pincode as keyof typeof pincodeMapping];
       if (pincodeData) {
         setShippingDetails(prev => ({
           ...prev,
-          pincode: pincode,
           city: pincodeData.city,
           state: pincodeData.state
         }));
@@ -127,7 +120,7 @@ const AddOrder = () => {
 
   const addProduct = () => {
     const newProduct: ProductItem = {
-      id: Date.now().toString(),
+      id: (products.length + 1).toString(),
       productName: '',
       quantity: 1,
       unitPrice: 0,
@@ -393,23 +386,29 @@ const AddOrder = () => {
           </CardContent>
         </Card>
 
-        {/* Product Details */}
+        {/* Products */}
         <Card className="shadow-lg border-purple-200/30 dark:border-purple-800/30">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl font-semibold text-foreground">3️⃣ Product Details</CardTitle>
-            <Button
-              onClick={addProduct}
-              className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white"
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-foreground">3️⃣ Products</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {products.map((product, index) => (
-              <div key={product.id} className="bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-purple-200/30 dark:border-purple-800/30">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-end">
+              <div key={product.id} className="border border-purple-200/30 dark:border-purple-800/30 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-foreground">Product {index + 1}</h4>
+                  {products.length > 1 && (
+                    <Button
+                      onClick={() => removeProduct(product.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 border-red-200 hover:border-red-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Product Name <span className="text-red-500">*</span></label>
                     <Input
@@ -424,6 +423,7 @@ const AddOrder = () => {
                     <Input
                       type="number"
                       min="1"
+                      placeholder="1"
                       value={product.quantity}
                       onChange={(e) => updateProductTotal(index, 'quantity', parseInt(e.target.value) || 1)}
                       className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
@@ -435,18 +435,10 @@ const AddOrder = () => {
                       type="number"
                       min="0"
                       step="0.01"
+                      placeholder="0.00"
                       value={product.unitPrice}
                       onChange={(e) => updateProductTotal(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                       className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Product Total (₹)</label>
-                    <Input
-                      type="number"
-                      value={product.productTotal}
-                      readOnly
-                      className="bg-gray-100 dark:bg-gray-800 border-purple-200/50 dark:border-purple-800/50"
                     />
                   </div>
                   <div>
@@ -459,41 +451,45 @@ const AddOrder = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Tax Rate % (Optional)</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Tax Rate (%)</label>
                     <Input
                       type="number"
                       min="0"
-                      max="100"
                       step="0.01"
+                      placeholder="0.00"
                       value={product.taxRate}
                       onChange={(e) => updateProductTotal(index, 'taxRate', parseFloat(e.target.value) || 0)}
                       className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">HSN Code (Optional)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="HSN Code"
-                        value={product.hsnCode}
-                        onChange={(e) => updateProductTotal(index, 'hsnCode', e.target.value)}
-                        className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                      />
-                      {products.length > 1 && (
-                        <Button
-                          onClick={() => removeProduct(product.id)}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 border-red-200 hover:border-red-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                    <label className="block text-sm font-medium text-foreground mb-2">HSN Code</label>
+                    <Input
+                      placeholder="Enter HSN code"
+                      value={product.hsnCode}
+                      onChange={(e) => updateProductTotal(index, 'hsnCode', e.target.value)}
+                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Product Total:</span>
+                    <span className="text-lg font-bold text-purple-700 dark:text-purple-300">₹{product.productTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
             ))}
+            
+            <Button
+              onClick={addProduct}
+              className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
           </CardContent>
         </Card>
 
@@ -503,13 +499,14 @@ const AddOrder = () => {
             <CardTitle className="text-xl font-semibold text-foreground">4️⃣ Weight & Dimensions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Weight (grams) <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-2">Weight (gm) <span className="text-red-500">*</span></label>
                 <Input
                   type="number"
                   min="0"
-                  placeholder="Enter weight"
+                  step="0.01"
+                  placeholder="0.00"
                   value={weightDimensions.weight}
                   onChange={(e) => setWeightDimensions({...weightDimensions, weight: parseFloat(e.target.value) || 0})}
                   className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
@@ -520,7 +517,8 @@ const AddOrder = () => {
                 <Input
                   type="number"
                   min="0"
-                  placeholder="Length"
+                  step="0.01"
+                  placeholder="0.00"
                   value={weightDimensions.length}
                   onChange={(e) => setWeightDimensions({...weightDimensions, length: parseFloat(e.target.value) || 0})}
                   className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
@@ -531,7 +529,8 @@ const AddOrder = () => {
                 <Input
                   type="number"
                   min="0"
-                  placeholder="Width"
+                  step="0.01"
+                  placeholder="0.00"
                   value={weightDimensions.width}
                   onChange={(e) => setWeightDimensions({...weightDimensions, width: parseFloat(e.target.value) || 0})}
                   className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
@@ -542,37 +541,38 @@ const AddOrder = () => {
                 <Input
                   type="number"
                   min="0"
-                  placeholder="Height"
+                  step="0.01"
+                  placeholder="0.00"
                   value={weightDimensions.height}
                   onChange={(e) => setWeightDimensions({...weightDimensions, height: parseFloat(e.target.value) || 0})}
-                  className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                  className="border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Payment Section */}
+        {/* Payment Details */}
         <Card className="shadow-lg border-purple-200/30 dark:border-purple-800/30">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-foreground">5️⃣ Payment Section</CardTitle>
+            <CardTitle className="text-xl font-semibold text-foreground">5️⃣ Payment Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {orderDetails.orderType === 'prepaid' ? (
-              // Prepaid Payment Section
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
+            {orderDetails.orderType === 'cod' ? (
+              // COD Payment Section
+              <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Shipping Charges (₹)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={payment.shippingCharges}
-                  onChange={(e) => setPayment({...payment, shippingCharges: parseFloat(e.target.value) || 0})}
-                  className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                />
-              </div>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={payment.shippingCharges}
+                    onChange={(e) => setPayment({...payment, shippingCharges: parseFloat(e.target.value) || 0})}
+                    className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Total Tax (₹)</label>
                   <Input
@@ -585,120 +585,42 @@ const AddOrder = () => {
                     className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
                   />
                 </div>
-              <div>
+                <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Discount (₹)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={payment.discount}
-                  onChange={(e) => setPayment({...payment, discount: parseFloat(e.target.value) || 0})}
-                  className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                />
-              </div>
-              <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Product Total (₹)</label>
-                <Input
-                  type="number"
-                    value={payment.productTotal}
-                    readOnly
-                    className="bg-gray-100 dark:bg-gray-800 border-purple-200/50 dark:border-purple-800/50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Order Total (₹)</label>
-                <Input
-                  type="number"
-                  value={payment.orderTotal}
-                  readOnly
-                  className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 font-semibold text-green-700 dark:text-green-400"
-                />
-              </div>
-            </div>
-            ) : orderDetails.orderType === 'cod' ? (
-              // COD Payment Section
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-2 lg:grid-cols-7 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Shipping Charges (₹)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={payment.shippingCharges}
-                      onChange={(e) => setPayment({...payment, shippingCharges: parseFloat(e.target.value) || 0})}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Total Tax (₹)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={payment.totalTax}
-                      onChange={(e) => setPayment({...payment, totalTax: parseFloat(e.target.value) || 0})}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Discount (₹)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={payment.discount}
-                      onChange={(e) => setPayment({...payment, discount: parseFloat(e.target.value) || 0})}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Product Total (₹)</label>
-                    <Input
-                      type="number"
-                      value={payment.productTotal}
-                      readOnly
-                      className="bg-gray-100 dark:bg-gray-800 border-purple-200/50 dark:border-purple-800/50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Order Total (₹)</label>
-                    <Input
-                      type="number"
-                      value={payment.orderTotal}
-                      readOnly
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 font-semibold text-green-700 dark:text-green-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">COD Charges (₹)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      value={payment.codCharges}
-                      onChange={(e) => setPayment({...payment, codCharges: parseFloat(e.target.value) || 0})}
-                      className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-                    />
-                  </div>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={payment.discount}
+                    onChange={(e) => setPayment({...payment, discount: parseFloat(e.target.value) || 0})}
+                    className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">COD Charges (₹)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    value={payment.codCharges}
+                    onChange={(e) => setPayment({...payment, codCharges: parseFloat(e.target.value) || 0})}
+                    className="border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Collectable Amount (₹)</label>
                   <Input
                     type="number"
                     value={payment.collectableAmount}
-                      onChange={(e) => setPayment({...payment, collectableAmount: parseFloat(e.target.value) || 0})}
-                      className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 font-semibold text-blue-700 dark:text-blue-400"
-                    />
-                  </div>
+                    onChange={(e) => setPayment({...payment, collectableAmount: parseFloat(e.target.value) || 0})}
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 font-semibold text-blue-700 dark:text-blue-400"
+                  />
                 </div>
               </div>
             ) : (
-              // Reverse Payment Section (same as Prepaid for now)
+              // Prepaid/Reverse Payment Section
               <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Shipping Charges (₹)</label>

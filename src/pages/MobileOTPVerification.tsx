@@ -28,7 +28,7 @@ const MobileOTPVerificationPage = () => {
     
     if (userData.is_onboarding_filled) {
       // Onboarding already completed, go to dashboard
-      navigate('/dashboard');
+      navigate('/dashboard/orders/prepaid');
     } else {
       // Navigate to onboarding wizard
       navigate('/onboarding/wizard');

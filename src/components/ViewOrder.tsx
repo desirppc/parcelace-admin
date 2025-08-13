@@ -30,7 +30,8 @@ import {
   Link,
   AlertCircle,
   LifeBuoy,
-  Bell
+  Bell,
+  Edit
 } from 'lucide-react';
 import {
   Dialog,
@@ -41,6 +42,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import OnboardingLayout from './OnboardingLayout';
+import API_CONFIG from '@/config/api';
 
 // Mock order data - in real app this would come from props or API
 const mockOrder = {
@@ -184,6 +186,10 @@ const mockOrder = {
 const ViewOrderContent = () => {
   const { toast } = useToast();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [isRechargeOpen, setIsRechargeOpen] = useState(false);
+  const [amount, setAmount] = useState('500');
+  const [selectedAmount, setSelectedAmount] = useState(500);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCopyTracking = () => {
     navigator.clipboard.writeText(mockOrder.trackingId);
@@ -231,6 +237,188 @@ const ViewOrderContent = () => {
       description: "Tracking link has been copied to clipboard",
     });
     setShareDialogOpen(false);
+  };
+
+  const handleEditOrder = async () => {
+    try {
+      let authToken = sessionStorage.getItem('auth_token');
+      if (!authToken) authToken = localStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login again to edit this order.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Prepare order data for editing - using the exact structure you specified
+      const orderData = {
+        order_type: mockOrder.orderType.toLowerCase(),
+        parcel_type: mockOrder.parcelType.toLowerCase(),
+        store_customer_id: null,
+        store_customer_address_id: null,
+        order_id: null,
+        shipping_charges: 100, // You can make these editable or get from actual data
+        COD_charges: 0,
+        tax_amount: 100,
+        discount: 0,
+        order_total: 300,
+        collectable_amount: 300,
+        weight: mockOrder.dimensions.weight * 1000, // Convert to grams
+        length: mockOrder.dimensions.length,
+        width: mockOrder.dimensions.width,
+        height: mockOrder.dimensions.height,
+        customer_phone: mockOrder.customer.phone,
+        customer_first_name: mockOrder.customer.name,
+        address: mockOrder.customer.address,
+        landmark: mockOrder.customer.landmark,
+        customer_email: mockOrder.customer.email,
+        pin_code: parseInt(mockOrder.customer.pin),
+        city: mockOrder.customer.city,
+        state: mockOrder.customer.state,
+        products: mockOrder.products.map(product => ({
+          name: product.name,
+          total_price: product.totalPrice,
+          quantity: product.quantity,
+          sku: "",
+          price: product.price,
+          tax_rate: product.taxRate,
+          hsn_code: product.hsnCode
+        }))
+      };
+
+      // Call the edit order API
+      const response = await fetch(`${API_CONFIG.BASE_URL}api/order/edit/${mockOrder.orderId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.status) {
+        toast({
+          title: "Success",
+          description: "Order updated successfully!",
+        });
+        // You can refresh the order data here or navigate to a different page
+      } else {
+        toast({
+          title: "Error",
+          description: data?.error?.message || data?.message || 'Failed to update order.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "Network Error",
+        description: "Failed to update order. Please try again.",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDuplicateOrder = async () => {
+    try {
+      let authToken = sessionStorage.getItem('auth_token');
+      if (!authToken) authToken = localStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login again to duplicate this order.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Prepare order data for creating new order - using the exact structure you specified
+      const orderData = {
+        order_type: mockOrder.orderType.toLowerCase(),
+        parcel_type: mockOrder.parcelType.toLowerCase(),
+        store_customer_id: null,
+        store_customer_address_id: null,
+        order_id: mockOrder.orderId, // Can be nullable - using existing order ID
+        shipping_charges: 21,
+        COD_charges: 0,
+        tax_amount: 12,
+        discount: 12,
+        order_total: 300,
+        collectable_amount: 0,
+        weight: mockOrder.dimensions.weight * 1000, // Convert to grams
+        length: mockOrder.dimensions.length,
+        width: mockOrder.dimensions.width,
+        height: mockOrder.dimensions.height,
+        customer_phone: mockOrder.customer.phone,
+        customer_first_name: mockOrder.customer.name,
+        address: mockOrder.customer.address,
+        landmark: mockOrder.customer.landmark,
+        customer_email: mockOrder.customer.email,
+        pin_code: parseInt(mockOrder.customer.pin),
+        city: mockOrder.customer.city,
+        state: mockOrder.customer.state,
+        products: mockOrder.products.map(product => ({
+          name: product.name,
+          total_price: 92.0,
+          quantity: 4,
+          sku: "",
+          price: 23.0,
+          tax_rate: 23.0,
+          hsn_code: 23.0
+        }))
+      };
+
+      // Call the add new order API
+      const response = await fetch(`${API_CONFIG.BASE_URL}api/order`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.status) {
+        toast({
+          title: "Success",
+          description: "Order duplicated successfully!",
+        });
+        
+        // Redirect to the appropriate orders page based on order type
+        const orderType = mockOrder.orderType.toLowerCase();
+        if (orderType === 'cod') {
+          window.location.href = 'http://localhost:8080/dashboard/orders/prepaid';
+        } else if (orderType === 'reverse') {
+          window.location.href = 'http://localhost:8080/dashboard/orders/reverse';
+        } else {
+          // Default to prepaid
+          window.location.href = 'http://localhost:8080/dashboard/orders/prepaid';
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data?.error?.message || data?.message || 'Failed to duplicate order.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error duplicating order:', error);
+      toast({
+        title: "Network Error",
+        description: "Failed to duplicate order. Please try again.",
+        variant: 'destructive',
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -332,6 +520,14 @@ const ViewOrderContent = () => {
               <Button variant="outline" size="sm" onClick={handleDownloadInvoice}>
                 <Download className="h-4 w-4 mr-1" />
                 Invoice
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleEditOrder}>
+                <Edit className="h-4 w-4 mr-1" />
+                Edit Order
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDuplicateOrder}>
+                <Copy className="h-4 w-4 mr-1" />
+                Duplicate
               </Button>
             </div>
           </div>

@@ -31,6 +31,7 @@ const AppHeader: React.FC = () => {
   const [amount, setAmount] = useState('500');
   const [selectedAmount, setSelectedAmount] = useState(500);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isUserDataLoading, setIsUserDataLoading] = useState(true);
 
   // Listen for wallet balance updates
   useEffect(() => {
@@ -52,6 +53,50 @@ const AppHeader: React.FC = () => {
   useEffect(() => {
     updateWalletBalance();
   }, [updateWalletBalance]);
+
+  // Set loading state based on user data availability
+  useEffect(() => {
+    if (user && user.name) {
+      setIsUserDataLoading(false);
+    } else {
+      // If no user data after 2 seconds, set loading to false to show fallback
+      const timer = setTimeout(() => {
+        setIsUserDataLoading(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Get display name with proper fallback logic
+  const getDisplayName = () => {
+    if (isUserDataLoading) {
+      return 'Loading...';
+    }
+    
+    if (user?.name) {
+      return user.name;
+    }
+    
+    // Try to get name from other sources
+    const userData = sessionStorage.getItem('user_data') || localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser.name) {
+          return parsedUser.name;
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    
+    // Final fallback - show email prefix if available
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    
+    return 'Guest';
+  };
 
   const predefinedAmounts = [500, 1000, 2500, 5000, 10000];
 
@@ -325,7 +370,7 @@ const AppHeader: React.FC = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="h-10 px-3 border-purple-200/50 dark:border-purple-800/50 flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors duration-200">
               <User className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm">{user?.name || 'User'}</span>
+              <span className="text-sm">{getDisplayName()}</span>
               <ChevronDown className="w-3 h-3 ml-2 text-purple-600 dark:text-purple-400" />
             </Button>
           </DropdownMenuTrigger>

@@ -276,6 +276,53 @@ class OrderService {
       throw error;
     }
   }
+
+  async cancelOrder(orderId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const url = `${API_CONFIG.BASE_URL}api/order/${orderId}`;
+      console.log('Cancel order API URL:', url);
+      console.log('API_CONFIG.BASE_URL:', API_CONFIG.BASE_URL);
+      console.log('Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
+      console.log('Cancelling order ID:', orderId);
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('Cancel order API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Cancel order API error response:', errorData);
+        throw new Error(errorData.message || `Failed to cancel order (${response.status})`);
+      }
+
+      const result = await response.json();
+      console.log('Cancel order API response:', result);
+      
+      return {
+        success: true,
+        message: result.message || 'Order cancelled successfully',
+        data: result.data
+      };
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to cancel order'
+      };
+    }
+  }
 }
 
 export const orderService = new OrderService(); 

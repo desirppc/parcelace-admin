@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -78,16 +78,19 @@ const App = () => (
               <Route path="/onboarding/wizard" element={
                 <RouteGuard requireAuth={true} requireOnboarding={false}>
                   <OnboardingWizard 
-                    onComplete={() => window.location.href = '/dashboard'} 
+                    onComplete={() => window.location.href = '/dashboard/orders/prepaid'} 
                     onNavigateBack={() => window.history.back()} 
                   />
                 </RouteGuard>
               } />
               
+              {/* Redirect Routes */}
+              <Route path="/orders" element={<Navigate to="/dashboard/orders" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/orders/prepaid" replace />} />
+              
               {/* Protected Routes - Require Authentication */}
               <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
                 {/* Core Dashboard Routes */}
-                <Route path="/dashboard" element={<OrdersPage />} />
                 <Route path="/dashboard/orders" element={<OrdersPage />} />
                 <Route path="/dashboard/shipments" element={<ShipmentPage />} />
                 <Route path="/dashboard/tracking" element={<ShipmentPage />} />
@@ -97,9 +100,9 @@ const App = () => (
                 <Route path="/dashboard/reports/daily" element={<DailyReport />} />
                 
                 {/* Order Management */}
-                <Route path="/dashboard/orders/add" element={<AddOrder />} />
-                <Route path="/dashboard/orders/view" element={<ViewOrder />} />
-                <Route path="/dashboard/orders/:orderId" element={<ViewOrderDetails />} />
+                <Route path="/dashboard/orders/add" element={<OnboardingRoute><AddOrder /></OnboardingRoute>} />
+                <Route path="/dashboard/orders/view" element={<OnboardingRoute><ViewOrder /></OnboardingRoute>} />
+                <Route path="/dashboard/orders/:orderId" element={<OnboardingRoute><ViewOrderDetails /></OnboardingRoute>} />
                 
                 {/* Profile Route */}
                 <Route path="/dashboard/profile" element={<ProfilePage />} />

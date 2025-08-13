@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Mail, Phone, Shield, Store, ShoppingCart, CheckCircle, AlertCircle, Edit2, CreditCard, Building2, HeadphonesIcon } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
 
 interface ProfileData {
   name: string;
@@ -48,21 +49,63 @@ interface SupportDetails {
 }
 
 const ProfilePage = () => {
+  const { user } = useUser();
+  
+  // Get user display name with proper fallback logic
+  const getUserDisplayName = (): string => {
+    if (user?.name) {
+      return user.name;
+    }
+    
+    // Try to get name from other sources
+    const userData = sessionStorage.getItem('user_data') || localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser.name) {
+          return parsedUser.name;
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+    
+    // Try to get name from sessionStorage user
+    const sessionUser = sessionStorage.getItem('user');
+    if (sessionUser) {
+      try {
+        const parsedUser = JSON.parse(sessionUser);
+        if (parsedUser.name) {
+          return parsedUser.name;
+        }
+      } catch (error) {
+        console.error('Error parsing session user:', error);
+      }
+    }
+    
+    // Final fallback - try to get email prefix
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    
+    return 'Guest';
+  };
+
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: 'Prateek',
-    email: 'asd@gmail.com',
-    emailVerified: false,
-    phone: '80812',
-    phoneVerified: true,
-    kycVerified: false,
-    salesPlatform: 'Shopify',
-    monthlyOrders: '10-50',
-    brandName: 'My Brand',
-    brandWebsite: 'https://mybrand.com'
+    name: getUserDisplayName(),
+    email: user?.email || 'Loading...',
+    emailVerified: !!user?.email_verified_at,
+    phone: user?.phone || 'Loading...',
+    phoneVerified: !!user?.mobile_verified_at,
+    kycVerified: !!user?.is_kyc_verified,
+    salesPlatform: 'Loading...',
+    monthlyOrders: 'Loading...',
+    brandName: 'Loading...',
+    brandWebsite: 'Loading...'
   });
 
   const [bankDetails, setBankDetails] = useState<BankDetails>({
-    payeeName: 'Prateek Kumar',
+    payeeName: getUserDisplayName(),
     accountNumber: '1234567890',
     ifsc: 'HDFC0001234',
     verified: true
@@ -70,7 +113,7 @@ const ProfilePage = () => {
 
   const [legalDetails, setLegalDetails] = useState<LegalDetails>({
     legalEntity: 'Individual',
-    legalName: 'Prateek Kumar',
+    legalName: getUserDisplayName(),
     gstin: '',
     address: '123 Main Street, City, State, 123456'
   });
@@ -114,6 +157,32 @@ const ProfilePage = () => {
       }));
     }
   }, []);
+
+  // Update profile data when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileData(prev => ({
+        ...prev,
+        name: getUserDisplayName(),
+        email: user.email || prev.email,
+        emailVerified: !!user.email_verified_at,
+        phone: user.phone || prev.phone,
+        phoneVerified: !!user.mobile_verified_at,
+        kycVerified: !!user.is_kyc_verified,
+      }));
+
+      // Update bank and legal details with user name
+      setBankDetails(prev => ({
+        ...prev,
+        payeeName: getUserDisplayName(),
+      }));
+
+      setLegalDetails(prev => ({
+        ...prev,
+        legalName: getUserDisplayName(),
+      }));
+    }
+  }, [user]);
 
   const handleVerifyEmail = () => {
     console.log('Email verification initiated');

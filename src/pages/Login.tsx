@@ -60,7 +60,7 @@ const Login = () => {
         description: "Welcome to the demo!",
       });
       
-      navigate('/orders');
+      navigate('/dashboard/orders');
       setIsLoading(false);
       return;
     }
@@ -106,9 +106,23 @@ const Login = () => {
         // Set initial wallet balance (you can fetch this from your API)
         sessionStorage.setItem('walletBalance', '0');
         
+        // Get user name with better fallback logic
+        const getUserDisplayName = (userData: any): string => {
+          if (userData?.name) {
+            return userData.name;
+          }
+          
+          // Try to get name from email prefix
+          if (userData?.email) {
+            return userData.email.split('@')[0];
+          }
+          
+          return 'there';
+        };
+        
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${data.data?.name || 'User'}!`,
+          description: `Welcome back, ${getUserDisplayName(data.data)}!`,
         });
         
         // Check mobile verification and onboarding status
@@ -134,7 +148,7 @@ const Login = () => {
         }
         
         // If both mobile verified and onboarding filled, go to orders page
-        navigate('/orders');
+        navigate('/dashboard/orders');
         } else {
           toast({
             title: "Login Failed",

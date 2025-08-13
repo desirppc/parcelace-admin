@@ -6,7 +6,6 @@ import {
   Download, 
   Search,
   Ship,
-  Edit,
   X,
   Calendar,
   Check,
@@ -23,8 +22,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -46,6 +54,7 @@ const OrdersPage = () => {
   const [showBulkCancelConfirm, setShowBulkCancelConfirm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState<Date>();
@@ -76,6 +85,11 @@ const OrdersPage = () => {
   // Filter API states
   const [filterLoading, setFilterLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const pageSizeOptions = [10, 20, 50, 100, 200, 500];
 
   // Determine current page type based on URL
   const getCurrentPageType = () => {
@@ -113,6 +127,7 @@ const OrdersPage = () => {
           setOrders(sortedOrders);
           // Filter based on current page type
           filterOrdersByPageType(sortedOrders, currentPageType);
+          resetPagination(); // Reset pagination when orders are fetched
         } else {
           toast({
             title: 'Error',
@@ -197,12 +212,21 @@ const OrdersPage = () => {
     // For 'all' tab, keep the page type filtering
     
     setFilteredOrders(filtered);
+    resetPagination(); // Reset pagination when tab filtering changes
   };
 
   // Update filtered orders when tab changes or page type changes
   useEffect(() => {
     filterOrdersByTab(orders, activeTab);
+    resetPagination(); // Reset pagination when orders or tabs change
   }, [activeTab, orders, currentPageType]);
+
+  // Clean up unselectable orders when orders change
+  useEffect(() => {
+    if (selectedOrders.length > 0) {
+      cleanupUnselectableOrders();
+    }
+  }, [orders, filteredOrders]);
 
   const dateFilterOptions = [
     { value: 'all', label: 'All Time' },
@@ -217,7 +241,14 @@ const OrdersPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusLower = (status || '').toLowerCase();
-    const displayStatus = status || 'Pending'; // Show "Pending" when status is empty
+    
+    // Capitalize first letter of status
+    const capitalizeFirstLetter = (str: string) => {
+      if (!str) return 'Pending';
+      return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    };
+    
+    const displayStatus = capitalizeFirstLetter(status || 'Pending');
     const variants = {
       'booked': 'default',
       'shipped': 'secondary',
@@ -227,7 +258,7 @@ const OrdersPage = () => {
     };
     
     // Custom styling for better color distinction
-    if (statusLower === 'booked' || displayStatus === 'booked') {
+    if (statusLower === 'booked') {
       return <Badge className="bg-green-500 hover:bg-green-600 text-white border-green-500">{displayStatus}</Badge>;
     } else if (statusLower === 'pending' || !status || status === '') {
       return <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500">{displayStatus}</Badge>;
@@ -361,14 +392,27 @@ const OrdersPage = () => {
   };
 
   const handleBulkShip = () => {
-    if (selectedOrders.length === 0) {
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+    
+    if (currentPageSelectedIds.length === 0) {
       toast({
         title: "No Orders Selected",
-        description: "Please select orders to ship.",
+        description: "Please select orders on the current page to ship.",
         variant: "destructive"
       });
       return;
     }
+
+    // Additional check to ensure all selected orders can be shipped
+    if (!canBulkShipSelectedOrders()) {
+      toast({
+        title: "Cannot Ship Selected Orders",
+        description: "Some selected orders have 'booked' or 'cancelled' status and cannot be shipped.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setShowBulkShipModal(true);
   };
 
@@ -402,12 +446,25 @@ const OrdersPage = () => {
       return;
     }
 
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+
+    // Final validation to ensure all selected orders can be shipped
+    if (!canBulkShipSelectedOrders()) {
+      toast({
+        title: "Cannot Ship Selected Orders",
+        description: "Some selected orders have 'booked' or 'cancelled' status and cannot be shipped.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     toast({
       title: "Bulk Shipment Booked",
-      description: `${selectedOrders.length} orders have been assigned to ${selectedWarehouse.warehouse_name}`,
+      description: `${currentPageSelectedIds.length} orders from current page have been assigned to ${selectedWarehouse.warehouse_name}`,
     });
     setShowBulkShipModal(false);
-    setSelectedOrders([]);
+    // Only clear selections for the current page, keep other page selections
+    setSelectedOrders(prev => prev.filter(id => !currentPageSelectedIds.includes(id)));
     setSelectedWarehouse(null);
   };
 
@@ -417,59 +474,204 @@ const OrdersPage = () => {
   };
 
   const handleViewOrder = (order: any) => {
-    // Open order details in new tab using the database ID
-    window.open(`/order/${order.id}`, '_blank');
+    navigate(`/dashboard/orders/${order.id}`);
   };
 
-  const confirmCancelOrder = () => {
-    toast({
-      title: "Order Cancelled",
-      description: `Order ${selectedOrder?.order_no} has been cancelled successfully.`,
-    });
-    setShowCancelConfirm(false);
-    setSelectedOrder(null);
+
+
+  const confirmCancelOrder = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      setCancellingOrderId(selectedOrder.id);
+      const result = await orderService.cancelOrder(selectedOrder.id);
+      
+      if (result.success) {
+        toast({
+          title: "Order Cancelled",
+          description: result.message || `Order ${selectedOrder?.order_no} has been cancelled successfully.`,
+        });
+        
+        // Update the order status in the local state
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === selectedOrder.id 
+              ? { ...order, status: 'cancelled' }
+              : order
+          )
+        );
+        
+        setFilteredOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === selectedOrder.id 
+              ? { ...order, status: 'cancelled' }
+              : order
+          )
+        );
+        
+        setShowCancelConfirm(false);
+        setSelectedOrder(null);
+      } else {
+        toast({
+          title: "Failed to Cancel Order",
+          description: result.message || "An error occurred while cancelling the order.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while cancelling the order.",
+        variant: "destructive"
+      });
+    } finally {
+      setCancellingOrderId(null);
+    }
   };
 
   const handleBulkCancel = () => {
-    if (selectedOrders.length === 0) {
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+    
+    if (currentPageSelectedIds.length === 0) {
       toast({
         title: "No Orders Selected",
-        description: "Please select orders to cancel.",
+        description: "Please select orders on the current page to cancel.",
         variant: "destructive"
       });
       return;
     }
     setShowBulkCancelConfirm(true);
-  };
+    }
 
-  const confirmBulkCancel = () => {
-    toast({
-      title: "Orders Cancelled",
-      description: `${selectedOrders.length} orders have been cancelled successfully.`,
-    });
-    setShowBulkCancelConfirm(false);
-    setSelectedOrders([]);
+  const confirmBulkCancel = async () => {
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+    
+    if (currentPageSelectedIds.length === 0) {
+      toast({
+        title: "No Orders Selected",
+        description: "Please select orders on the current page to cancel.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setFilterLoading(true);
+      let successCount = 0;
+      let failedCount = 0;
+      
+      console.log('Bulk cancelling orders:', {
+        totalSelected: selectedOrders.length,
+        currentPageSelected: currentPageSelectedIds.length,
+        currentPageSelectedIds
+      });
+      
+      // Cancel only the orders selected on the current page
+      for (const orderId of currentPageSelectedIds) {
+        try {
+          const result = await orderService.cancelOrder(orderId);
+          if (result.success) {
+            successCount++;
+            // Update the order status in the local state
+            setOrders(prevOrders => 
+              prevOrders.map(order => 
+                order.id === orderId 
+                  ? { ...order, status: 'cancelled' }
+                  : order
+              )
+            );
+            
+            setFilteredOrders(prevOrders => 
+              prevOrders.map(order => 
+                order.id === orderId 
+                  ? { ...order, status: 'cancelled' }
+                  : order
+              )
+            );
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(`Error cancelling order ${orderId}:`, error);
+          failedCount++;
+        }
+      }
+      
+      // Show results
+      if (successCount > 0) {
+        toast({
+          title: "Bulk Cancel Complete",
+          description: `Successfully cancelled ${successCount} order${successCount !== 1 ? 's' : ''} from current page${failedCount > 0 ? `, ${failedCount} failed` : ''}.`,
+          variant: failedCount > 0 ? "default" : "default"
+        });
+      } else {
+        toast({
+          title: "Bulk Cancel Failed",
+          description: `Failed to cancel any orders. Please try again.`,
+          variant: "destructive"
+        });
+      }
+      
+      setShowBulkCancelConfirm(false);
+      // Only clear selections for the current page, keep other page selections
+      setSelectedOrders(prev => prev.filter(id => !currentPageSelectedIds.includes(id)));
+    } catch (error) {
+      console.error('Error in bulk cancel:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during bulk cancellation.",
+        variant: "destructive"
+      });
+    } finally {
+      setFilterLoading(false);
+    }
   };
 
   const handleSelectOrder = (orderId: string, isChecked: boolean) => {
+    // Find the order to check if it can be selected
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
     if (isChecked) {
-      setSelectedOrders(prev => [...prev, orderId]);
+      // Only allow selection if order can be selected for bulk operations
+      if (canSelectOrderForBulkOps(order)) {
+        setSelectedOrders(prev => [...prev, orderId]);
+      } else {
+        toast({
+          title: "Cannot Select Order",
+          description: `Order with status '${order.status}' cannot be selected for bulk operations.`,
+          variant: "destructive"
+        });
+      }
     } else {
+      // Always allow deselection
       setSelectedOrders(prev => prev.filter(id => id !== orderId));
     }
   };
 
   const handleSelectAll = (isChecked: boolean) => {
-    if (isChecked) {
-      // When selecting all, show only pending orders
-      setActiveTab('pending');
-      setSelectedOrders(filteredOrders.filter(order => 
-        (order.status || '').toLowerCase() === 'pending' || !order.status || order.status === ''
-      ).map(order => order.id));
+    console.log('handleSelectAll called with:', isChecked);
+    console.log('Current selectedOrders:', selectedOrders);
+    console.log('Current page orders:', getPaginatedOrders());
+    
+    const currentOrders = getPaginatedOrders();
+    const selectableOrders = currentOrders.filter(order => canSelectOrderForBulkOps(order));
+    const allSelectableSelected = selectableOrders.every(order => selectedOrders.includes(order.id));
+    
+    if (allSelectableSelected) {
+      // If all selectable orders on current page are selected, deselect them all
+      console.log('Deselecting all selectable orders on current page');
+      setSelectedOrders(prev => prev.filter(id => !selectableOrders.some(order => order.id === id)));
     } else {
-      // When unselecting all, show all orders
-      setActiveTab('all');
-      setSelectedOrders([]);
+      // Select all selectable orders on current page
+      const selectableOrderIds = selectableOrders.map(order => order.id);
+      console.log('Selecting all selectable orders:', selectableOrderIds);
+      setSelectedOrders(prev => {
+        const combined = [...new Set([...prev, ...selectableOrderIds])];
+        console.log('Combined selected orders:', combined);
+        return combined;
+      });
     }
   };
 
@@ -548,6 +750,7 @@ const OrdersPage = () => {
     
     // Call API with filter payload
     fetchFilteredOrders(filterPayload);
+    resetPagination(); // Reset pagination when filters are applied
     setShowFilter(false);
   };
 
@@ -583,6 +786,7 @@ const OrdersPage = () => {
         console.error('Error resetting filters:', error);
       }
     };
+    resetPagination(); // Reset pagination when filters are reset
     fetchOrders();
   };
 
@@ -595,6 +799,61 @@ const OrdersPage = () => {
     : [];
 
   const hasSelectedOrders = selectedOrders.length > 0;
+  
+  const isAllCurrentPageSelected = () => {
+    const currentPageOrders = getPaginatedOrders();
+    const selectableOrders = currentPageOrders.filter(order => canSelectOrderForBulkOps(order));
+    const result = selectableOrders.length > 0 && selectableOrders.every(order => selectedOrders.includes(order.id));
+    console.log('isAllCurrentPageSelected:', {
+      currentPageOrders: currentPageOrders.map(o => ({ id: o.id, order_no: o.order_no, status: o.status })),
+      selectableOrders: selectableOrders.map(o => ({ id: o.id, order_no: o.order_no, status: o.status })),
+      selectedOrders,
+      result
+    });
+    return result;
+  };
+
+  const isSomeCurrentPageSelected = () => {
+    const currentPageOrders = getPaginatedOrders();
+    return currentPageOrders.length > 0 && currentPageOrders.some(order => selectedOrders.includes(order.id)) && !isAllCurrentPageSelected();
+  };
+
+  const getCurrentPageSelectedCount = () => {
+    const currentPageOrders = getPaginatedOrders();
+    return currentPageOrders.filter(order => selectedOrders.includes(order.id)).length;
+  };
+
+  const getCurrentPageSelectedIds = () => {
+    const currentPageOrders = getPaginatedOrders();
+    return currentPageOrders
+      .filter(order => selectedOrders.includes(order.id))
+      .map(order => order.id);
+  };
+
+  // Check if current page has any orders that can be shipped (not booked or cancelled)
+  const canShowBulkShipOptions = () => {
+    const currentPageOrders = getPaginatedOrders();
+    return currentPageOrders.some(order => {
+      const status = (order.status || '').toLowerCase();
+      return status !== 'booked' && status !== 'cancelled';
+    });
+  };
+
+  // Check if selected orders on current page can be shipped
+  const canBulkShipSelectedOrders = () => {
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+    if (currentPageSelectedIds.length === 0) return false;
+    
+    const currentPageOrders = getPaginatedOrders();
+    const selectedOrdersOnPage = currentPageOrders.filter(order => 
+      currentPageSelectedIds.includes(order.id)
+    );
+    
+    return selectedOrdersOnPage.every(order => {
+      const status = (order.status || '').toLowerCase();
+      return status !== 'booked' && status !== 'cancelled';
+    });
+  };
 
   // Check if order can be cancelled
   const canCancelOrder = (order: any) => {
@@ -622,6 +881,33 @@ const OrdersPage = () => {
   const isOrderCancelled = (order: any) => {
     const status = (order.status || '').toLowerCase();
     return status === 'cancelled';
+  };
+
+  // Check if order can be selected for bulk operations
+  const canSelectOrderForBulkOps = (order: any) => {
+    const status = (order.status || '').toLowerCase();
+    // Only allow selection of orders that can be shipped or cancelled
+    // Booked orders cannot be selected as they are already processed
+    return status !== 'cancelled' && status !== 'delivered' && status !== 'booked';
+  };
+
+  // Clean up selected orders when they become unselectable
+  const cleanupUnselectableOrders = () => {
+    const currentPageOrders = getPaginatedOrders();
+    const unselectableOrders = currentPageOrders.filter(order => 
+      selectedOrders.includes(order.id) && !canSelectOrderForBulkOps(order)
+    );
+    
+    if (unselectableOrders.length > 0) {
+      console.log('Cleaning up unselectable orders:', unselectableOrders.map(o => ({ id: o.id, order_no: o.order_no, status: o.status })));
+      setSelectedOrders(prev => prev.filter(id => !unselectableOrders.some(order => order.id === id)));
+      
+      toast({
+        title: "Selection Updated",
+        description: `${unselectableOrders.length} order${unselectableOrders.length !== 1 ? 's' : ''} with 'cancelled', 'delivered', or 'booked' status were automatically deselected.`,
+        variant: "default"
+      });
+    }
   };
 
   // Import order handlers
@@ -772,6 +1058,30 @@ const OrdersPage = () => {
     };
   };
 
+  // Pagination functions
+  const getPaginatedOrders = () => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredOrders.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    return Math.ceil(filteredOrders.length / pageSize);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  const resetPagination = () => {
+    setCurrentPage(1);
+  };
+
   // API-based filter function
   const fetchFilteredOrders = async (filterPayload: any) => {
     setFilterLoading(true);
@@ -832,19 +1142,15 @@ const OrdersPage = () => {
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
               {currentPageType === 'reverse' ? 'Reverse Orders' : 
-               currentPageType === 'prepaid' ? 'Prepaid & COD Orders' : 
                'Orders Management'}
             </h1>
             {currentPageType === 'reverse' && (
               <p className="text-muted-foreground mt-1">Showing only reverse orders</p>
             )}
-            {currentPageType === 'prepaid' && (
-              <p className="text-muted-foreground mt-1">Showing only prepaid and COD orders</p>
-            )}
           </div>
           <div className="flex items-center space-x-3">
             <Button 
-              onClick={() => navigate('/add-order')}
+              onClick={() => navigate('/dashboard/orders/add')}
               className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -977,11 +1283,62 @@ const OrdersPage = () => {
           </div>
         </div>
 
+        {/* Bulk Action Buttons - Above Tabs */}
+        {hasSelectedOrders && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              {canShowBulkShipOptions() && canBulkShipSelectedOrders() && (
+                <Button 
+                  size="sm"
+                  onClick={handleBulkShip}
+                  className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
+                >
+                  <Ship className="w-4 h-4 mr-2" />
+                  Bulk Ship ({getCurrentPageSelectedCount()})
+                </Button>
+              )}
+              <Button 
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkCancel}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Bulk Cancel ({getCurrentPageSelectedCount()})
+              </Button>
+            </div>
+            {hasSelectedOrders && !canShowBulkShipOptions() && (
+              <div className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
+                ℹ️ Bulk ship options are not available for orders with "booked", "cancelled", or "delivered" status
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-48 grid-cols-2 h-8">
-            <TabsTrigger value="all" className="text-xs px-4 py-2">All Orders</TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs px-4 py-2">Pending</TabsTrigger>
+          <TabsList className="grid w-48 grid-cols-2 h-8 bg-gray-100 p-1 rounded-lg">
+            <TabsTrigger 
+              value="all" 
+              className={`text-xs px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === 'all' 
+                  ? 'bg-gradient-to-r from-pink-500 to-blue-600 text-white shadow-md !text-white' 
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+              }`}
+              style={activeTab === 'all' ? { color: 'white' } : {}}
+            >
+              All Orders
+            </TabsTrigger>
+            <TabsTrigger 
+              value="pending" 
+              className={`text-xs px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === 'pending' 
+                  ? 'bg-gradient-to-r from-pink-500 to-blue-600 text-white shadow-md !text-white' 
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+              }`}
+              style={activeTab === 'pending' ? { color: 'white' } : {}}
+            >
+              Pending
+            </TabsTrigger>
           </TabsList>
 
         {/* Filter Panel */}
@@ -1124,25 +1481,7 @@ const OrdersPage = () => {
           </Card>
         )}
 
-        {/* Conditional Tabs/Buttons */}
-        {hasSelectedOrders ? (
-          <div className="flex items-center space-x-3">
-            <Button 
-              onClick={handleBulkShip}
-              className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
-            >
-              <Ship className="w-4 h-4 mr-2" />
-              Bulk Ship ({selectedOrders.length})
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleBulkCancel}
-            >
-              <X className="w-4 h-4 mr-2" />
-              Bulk Cancel ({selectedOrders.length})
-            </Button>
-          </div>
-        ) : null}
+
 
           {/* Tabs Content */}
           <TabsContent value="all" className="space-y-4">
@@ -1150,7 +1489,14 @@ const OrdersPage = () => {
           <Card>
             {hasSelectedOrders && (
               <CardHeader>
-                <CardTitle>Selected Orders ({selectedOrders.length})</CardTitle>
+                <CardTitle>
+                  Selected Orders ({getCurrentPageSelectedCount()})
+                  {!canShowBulkShipOptions() && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      • Bulk operations not available for this page
+                    </span>
+                  )}
+                </CardTitle>
               </CardHeader>
             )}
             <Table>
@@ -1158,23 +1504,23 @@ const OrdersPage = () => {
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox 
-                      checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                      checked={isAllCurrentPageSelected()}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Pincode</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Weight</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-32">Order ID</TableHead>
+                    <TableHead className="w-28">Date</TableHead>
+                    <TableHead className="w-48">Customer</TableHead>
+                    <TableHead className="w-24">Pincode</TableHead>
+                    <TableHead className="w-24">Type</TableHead>
+                    <TableHead className="w-20">Weight (gm)</TableHead>
+                    <TableHead className="w-28">Invoice</TableHead>
+                    <TableHead className="w-24">Status</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(hasSelectedOrders ? filteredOrders.filter(order => selectedOrders.includes(order.id)) : filteredOrders).map((order) => (
+                  {getPaginatedOrders().map((order) => (
                     <TableRow 
                       key={order.id}
                       className="relative"
@@ -1182,18 +1528,21 @@ const OrdersPage = () => {
                       <TableCell>
                         <Checkbox 
                           checked={selectedOrders.includes(order.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
+                          disabled={!canSelectOrderForBulkOps(order)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
                               setSelectedOrders(prev => [...prev, order.id]);
-                        } else {
+                            } else {
                               setSelectedOrders(prev => prev.filter(id => id !== order.id));
-                        }
-                      }}
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{order.order_no}</TableCell>
                       <TableCell>{order.orderDate}</TableCell>
-                      <TableCell>{`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}</TableCell>
+                      <TableCell className="max-w-48 truncate" title={`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}>
+                        {`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}
+                      </TableCell>
                       <TableCell>{order.pincode}</TableCell>
                       <TableCell>
                         {getOrderTypeBadge(order.order_type)}
@@ -1225,14 +1574,6 @@ const OrdersPage = () => {
                                   <Ship className="w-4 h-4" />
                                 </Button>
                               )}
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="hover:bg-gradient-to-r hover:from-pink-500/10 hover:to-blue-600/10 hover:border-pink-500/30 hover:text-pink-600 transition-all duration-200"
-                                title="Edit Order"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
                               {canCancelOrder(order) && (
                                 <Button 
                                   size="sm" 
@@ -1260,31 +1601,38 @@ const OrdersPage = () => {
             <Card>
               {hasSelectedOrders && (
                 <CardHeader>
-                  <CardTitle>Selected Orders ({selectedOrders.length})</CardTitle>
+                  <CardTitle>
+                    Selected Orders ({getCurrentPageSelectedCount()})
+                    {!canShowBulkShipOptions() && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        • Bulk operations not available for this page
+                    </span>
+                    )}
+                  </CardTitle>
                 </CardHeader>
               )}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox 
-                        checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                        onCheckedChange={handleSelectAll}
+                          <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox 
+                      checked={isAllCurrentPageSelected()}
+                      onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Pincode</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Weight</TableHead>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-32">Order ID</TableHead>
+                  <TableHead className="w-28">Date</TableHead>
+                  <TableHead className="w-48">Customer</TableHead>
+                  <TableHead className="w-24">Pincode</TableHead>
+                  <TableHead className="w-24">Type</TableHead>
+                                      <TableHead className="w-20">Weight (gm)</TableHead>
+                  <TableHead className="w-28">Invoice</TableHead>
+                  <TableHead className="w-24">Status</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(hasSelectedOrders ? filteredOrders.filter(order => selectedOrders.includes(order.id)) : filteredOrders).map((order) => (
+                {getPaginatedOrders().map((order) => (
                   <TableRow 
                     key={order.id}
                     className="relative"
@@ -1292,6 +1640,7 @@ const OrdersPage = () => {
                     <TableCell>
                       <Checkbox 
                         checked={selectedOrders.includes(order.id)}
+                        disabled={!canSelectOrderForBulkOps(order)}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             setSelectedOrders(prev => [...prev, order.id]);
@@ -1303,7 +1652,9 @@ const OrdersPage = () => {
                     </TableCell>
                     <TableCell className="font-medium">{order.order_no}</TableCell>
                     <TableCell>{order.orderDate}</TableCell>
-                    <TableCell>{`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}</TableCell>
+                    <TableCell className="max-w-48 truncate" title={`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}>
+                      {`${order.customer_first_name || ''} ${order.customer_last_name || ''}`.trim()}
+                    </TableCell>
                     <TableCell>{order.pincode}</TableCell>
                     <TableCell>
                         {getOrderTypeBadge(order.order_type)}
@@ -1335,14 +1686,6 @@ const OrdersPage = () => {
                           <Ship className="w-4 h-4" />
                         </Button>
                               )}
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="hover:bg-gradient-to-r hover:from-pink-500/10 hover:to-blue-600/10 hover:border-pink-500/30 hover:text-pink-600 transition-all duration-200"
-                                title="Edit Order"
-                              >
-                          <Edit className="w-4 h-4" />
-                        </Button>
                         {canCancelOrder(order) && (
                           <Button 
                             size="sm" 
@@ -1369,6 +1712,83 @@ const OrdersPage = () => {
 
 
         </Tabs>
+
+        {/* Pagination Controls */}
+        {filteredOrders.length > 0 && (
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(Number(value))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map((size) => (
+                      <SelectItem key={size} value={size.toString()}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">entries</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length} entries
+              </div>
+            </div>
+            
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: getTotalPages() }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current page
+                  if (
+                    page === 1 ||
+                    page === getTotalPages() ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={page === currentPage}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+                  return null;
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === getTotalPages() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
 
           {/* Ship Modal */}
           <Dialog open={showShipModal} onOpenChange={setShowShipModal}>
@@ -1440,7 +1860,12 @@ const OrdersPage = () => {
           <Dialog open={showBulkShipModal} onOpenChange={setShowBulkShipModal}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Select Warehouse for {selectedOrders.length} Orders</DialogTitle>
+                <DialogTitle>Select Warehouse for {getCurrentPageSelectedCount()} Orders</DialogTitle>
+                {!canBulkShipSelectedOrders() && (
+                  <DialogDescription className="text-amber-600">
+                    ⚠️ Some selected orders cannot be shipped (booked or cancelled status)
+                  </DialogDescription>
+                )}
               </DialogHeader>
               <div className="space-y-4">
                 <div className="relative">
@@ -1518,8 +1943,19 @@ const OrdersPage = () => {
                   <Button variant="outline" onClick={() => setShowCancelConfirm(false)}>
                     Keep Order
                   </Button>
-                  <Button variant="destructive" onClick={confirmCancelOrder}>
-                    Yes, Cancel Order
+                  <Button 
+                    variant="destructive" 
+                    onClick={confirmCancelOrder}
+                    disabled={filterLoading}
+                  >
+                    {filterLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      'Yes, Cancel Order'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -1536,14 +1972,25 @@ const OrdersPage = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <p>Are you sure you want to cancel <strong>{selectedOrders.length}</strong> selected orders?</p>
+                <p>Are you sure you want to cancel <strong>{getCurrentPageSelectedCount()}</strong> selected orders?</p>
                 <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
                 <div className="flex justify-end space-x-3">
                   <Button variant="outline" onClick={() => setShowBulkCancelConfirm(false)}>
                     Keep Orders
                   </Button>
-                  <Button variant="destructive" onClick={confirmBulkCancel}>
-                    Yes, Cancel Orders
+                  <Button 
+                    variant="destructive" 
+                    onClick={confirmBulkCancel}
+                    disabled={filterLoading}
+                  >
+                    {filterLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      'Yes, Cancel Orders'
+                    )}
                   </Button>
                 </div>
               </div>

@@ -61,7 +61,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
   };
 
   const handleNavigateToOnboarding = () => {
-    navigate('/orders');
+    navigate('/dashboard/orders');
   };
 
   const handleMobileOTPSuccess = () => {
@@ -69,7 +69,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
     if (userData.is_onboarding_filled) {
       // Onboarding already completed, go to dashboard
-      navigate('/orders');
+      navigate('/dashboard/orders');
     } else {
       // Navigate to onboarding wizard
       setCurrentScreen('onboarding');
@@ -79,7 +79,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
   const handleOnboardingComplete = useCallback(() => {
     console.log('handleOnboardingComplete called');
     // After onboarding completion, navigate to dashboard
-    navigate('/orders');
+    navigate('/dashboard/orders');
   }, [navigate]);
 
   const handleSignUpSuccess = (phone?: string, token?: string) => {

@@ -211,7 +211,54 @@ class RazorpayService {
       await this.loadRazorpayScript();
       console.log('Razorpay script loaded successfully');
       
-      // Get user data from session storage
+      // Get user data from multiple sources with better fallback logic
+      const getUserName = (): string => {
+        // Try sessionStorage first
+        const userData = sessionStorage.getItem('user');
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            if (user.name) return user.name;
+          } catch (error) {
+            console.error('Error parsing user data from session:', error);
+          }
+        }
+        
+        // Try localStorage
+        const localUserData = localStorage.getItem('user_data');
+        if (localUserData) {
+          try {
+            const user = JSON.parse(localUserData);
+            if (user.name) return user.name;
+          } catch (error) {
+            console.error('Error parsing user data from localStorage:', error);
+          }
+        }
+        
+        // Try sessionStorage user_data
+        const sessionUserData = sessionStorage.getItem('user_data');
+        if (sessionUserData) {
+          try {
+            const user = JSON.parse(sessionUserData);
+            if (user.name) return user.name;
+          } catch (error) {
+            console.error('Error parsing user_data from session:', error);
+          }
+        }
+        
+        // Final fallback - try to get email prefix
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            if (user.email) return user.email.split('@')[0];
+          } catch (error) {
+            console.error('Error parsing user email:', error);
+          }
+        }
+        
+        return 'Customer';
+      };
+      
       const userData = sessionStorage.getItem('user');
       const user = userData ? JSON.parse(userData) : null;
       
@@ -243,7 +290,7 @@ class RazorpayService {
           }
         },
         prefill: {
-          name: user?.name || 'User',
+          name: getUserName(),
           email: user?.email || 'user@example.com',
           contact: user?.phone || '+919999999999'
         },

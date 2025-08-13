@@ -206,13 +206,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           } catch (error) {
             console.error('Error calling onComplete:', error);
             // Fallback: navigate to orders page
-            window.location.href = '/orders';
+            window.location.href = '/dashboard/orders';
           }
         } else {
           console.error('onComplete is not a function:', onComplete);
           console.error('onComplete value:', onComplete);
           // Fallback: navigate to orders page
-          window.location.href = '/orders';
+          window.location.href = '/dashboard/orders';
         }
       } else {
         toast({

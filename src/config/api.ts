@@ -26,6 +26,7 @@ const API_CONFIG = {
     ORDER_DETAILS: 'api/order/details',
     CREATE_ORDER: 'api/order/create',
     UPDATE_ORDER: 'api/order/update',
+    EDIT_ORDER: 'api/order/edit',
     DELETE_ORDER: 'api/order/delete',
     ORDER_EXPORT: 'api/order/export',
     

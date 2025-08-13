@@ -148,10 +148,10 @@ const OTPVerification = () => {
             if (!updatedUserData.is_onboarding_filled) {
               navigate('/onboarding/wizard');
             } else {
-              navigate('/dashboard');
+              navigate('/dashboard/orders/prepaid');
             }
           } else {
-            navigate('/dashboard');
+            navigate('/dashboard/orders/prepaid');
           }
         } else {
           // If coming from forgot password, go to reset password
