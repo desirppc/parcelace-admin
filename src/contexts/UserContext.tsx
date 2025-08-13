@@ -31,6 +31,7 @@ interface UserContextType {
   walletBalance: number;
   setWalletBalance: (balance: number) => void;
   updateWalletBalance: () => Promise<void>;
+  clearUserData: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -153,12 +154,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }, [user?.auth_token]);
 
+  const clearUserData = useCallback(() => {
+    console.log('Clearing UserContext data...');
+    setUser(null);
+    setWalletBalance(0);
+    
+    // Clear context-specific storage
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('walletBalance');
+  }, []);
+
   const value = {
     user,
     setUser,
     walletBalance,
     setWalletBalance,
     updateWalletBalance,
+    clearUserData,
   };
 
   return (

@@ -342,33 +342,60 @@ class ShipmentService {
     }
   }
 
-  async exportShipments(filters: ShipmentFilters = {}): Promise<{ success: boolean; download_url?: string; error?: string }> {
+  async exportShipments(exportFilters: {
+    date_range?: string;
+    order_type?: string[];
+    selected_status?: string[];
+  }): Promise<string> {
     try {
       const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
       
-      if (!token) {
-        return { success: false, error: 'Authentication required' };
-      }
+      const url = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/export`;
+      console.log('Shipment Export API URL:', url);
+      console.log('Shipment Export filters:', exportFilters);
+      console.log('Auth token available:', !!token);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SHIPMENT_EXPORT}`, {
+      // Ensure we have valid filters
+      const requestBody = {
+        date_range: exportFilters.date_range || "",
+        order_type: exportFilters.order_type || [],
+        selected_status: exportFilters.selected_status || []
+      };
+      
+      console.log('Shipment Export request body being sent:', requestBody);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
-          ...API_CONFIG.HEADERS,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(filters)
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Shipment Export API response status:', response.status);
+      console.log('Shipment Export API response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Shipment Export API error response:', errorData);
+        throw new Error(errorData.message || `Failed to export shipments (${response.status})`);
+      }
+
+      // Parse the response to get the download URL
       const result = await response.json();
+      console.log('Shipment Export API response:', result);
       
-      if (response.ok && result.data) {
-        return { success: true, download_url: result.data.download_url };
+      if (result.status && result.data?.download_url) {
+        console.log('Shipment Export successful, download URL:', result.data.download_url);
+        return result.data.download_url;
       } else {
-        return { success: false, error: result.message || 'Failed to export shipments' };
+        throw new Error('Invalid response format: missing download URL');
       }
     } catch (error) {
       console.error('Error exporting shipments:', error);
-      return { success: false, error: 'Network error occurred' };
+      throw error;
     }
   }
 }

@@ -46,9 +46,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO } from 'date-fns';
+import { useLocation } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
-import { ExcelExportService, ExportColumn } from '@/utils/excelExport';
 import { DateRange } from 'react-day-picker';
+import { shipmentService } from '@/services/shipmentService';
 
 interface ShipmentItem {
   id: number;
@@ -144,7 +145,22 @@ const ShipmentPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const { toast } = useToast();
+  const location = useLocation();
+
+  // Determine current page type based on URL
+  const getCurrentPageType = () => {
+    const pathname = location.pathname;
+    if (pathname.includes('/dashboard/shipments/reverse')) {
+      return 'reverse';
+    } else if (pathname.includes('/dashboard/shipments/prepaid')) {
+      return 'prepaid';
+    }
+    return 'all';
+  };
+
+  const currentPageType = getCurrentPageType();
 
   // Date filter options (copied from OrdersPage)
   const dateFilterOptions = [
@@ -214,7 +230,8 @@ const ShipmentPage = () => {
         console.log('Shipments with AWB (sorted by latest):', shipmentsWithAWB);
         
         setShipments(shipmentsWithAWB);
-        setFilteredShipments(shipmentsWithAWB);
+        // Apply page type filtering
+        filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
         setLastFetchTime(new Date());
       } else {
         console.log('API Error:', data);
@@ -242,7 +259,7 @@ const ShipmentPage = () => {
 
   useEffect(() => {
     fetchShipments();
-  }, []);
+  }, [currentPageType]);
 
   // Helper function to capitalize first letter of each word
   const capitalizeWords = (str: string) => {
@@ -322,7 +339,7 @@ const ShipmentPage = () => {
     return 'N/A';
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       if (filteredShipments.length === 0) {
         toast({
@@ -333,43 +350,114 @@ const ShipmentPage = () => {
         return;
       }
 
-      // Export columns configuration for shipments
-      const exportColumns: ExportColumn[] = [
-        { key: 'awb', header: 'AWB Number', width: 20 },
-        { key: 'customer_name', header: 'Customer Name', width: 25 },
-        { key: 'customer_number', header: 'Customer Phone', width: 20 },
-        { key: 'customer_address', header: 'Delivery Address', width: 40 },
-        { key: 'pincode', header: 'Pincode', width: 12 },
-        { key: 'city', header: 'City', width: 20 },
-        { key: 'state', header: 'State', width: 20 },
-        { key: 'payment_mode', header: 'Payment Mode', width: 15 },
-        { key: 'cod_amount', header: 'COD Amount (₹)', width: 15, format: ExcelExportService.formatCurrency },
-        { key: 'total_amount', header: 'Total Amount (₹)', width: 15, format: ExcelExportService.formatCurrency },
-        { key: 'weight', header: 'Weight (kg)', width: 12 },
-        { key: 'shipment_status', header: 'Status', width: 15, format: ExcelExportService.formatStatus },
-        { key: 'order_date', header: 'Order Date', width: 20, format: ExcelExportService.formatDate },
-        { key: 'courier_partner.name', header: 'Courier Partner', width: 20 },
-        { key: 'warehouse.warehouse_name', header: 'Warehouse', width: 25 }
-      ];
+      setExportLoading(true);
 
-      ExcelExportService.exportToExcel({
-        filename: `shipments-${activeTab}-${new Date().toISOString().split('T')[0]}`,
-        sheetName: 'Shipments',
-        columns: exportColumns,
-        data: filteredShipments,
+      // Show loading state
+      toast({
+        title: "Exporting Shipments",
+        description: "Please wait while we prepare your export...",
       });
+
+      // Prepare export filters based on current filters
+      const exportFilters: {
+        date_range?: string;
+        order_type?: string[];
+        selected_status?: string[];
+      } = {};
+
+      // Add order types based on current filters
+      if (!orderTypes.all) {
+        const selectedTypes = [];
+        if (orderTypes.prepaid) selectedTypes.push('prepaid');
+        if (orderTypes.cod) selectedTypes.push('cod');
+        if (selectedTypes.length > 0) {
+          exportFilters.order_type = selectedTypes;
+        }
+      }
+
+      // Add shipment status if any are selected
+      if (shipmentStatus.length > 0) {
+        exportFilters.selected_status = shipmentStatus;
+      }
+
+      // Add date range if custom dates are selected
+      if (dateFilter === 'custom' && dateFrom && dateTo) {
+        const formatDate = (date: Date) => {
+          return date.toISOString().split('T')[0];
+        };
+        exportFilters.date_range = `${formatDate(dateFrom)} ~ ${formatDate(dateTo)}`;
+      } else if (dateFilter !== 'all') {
+        // Handle predefined date ranges
+        const today = new Date();
+        let startDate: Date;
+        let endDate: Date;
+        
+        switch (dateFilter) {
+          case 'today':
+            startDate = new Date(today);
+            endDate = new Date(today);
+            break;
+          case 'yesterday':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 1);
+            endDate = new Date(startDate);
+            break;
+          case 'last7days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 7);
+            endDate = new Date(today);
+            break;
+          case 'last30days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            endDate = new Date(today);
+            break;
+          case 'thismonth':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today);
+            break;
+          case 'lastmonth':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+          default:
+            startDate = new Date();
+            endDate = new Date();
+        }
+        
+        if (startDate && endDate) {
+          const formatDate = (date: Date) => {
+            return date.toISOString().split('T')[0];
+          };
+          exportFilters.date_range = `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+        }
+      }
+
+      // Call the API to export shipments
+      const downloadUrl = await shipmentService.exportShipments(exportFilters);
+      
+      // Trigger download from the provided URL
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `shipments-${activeTab}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.target = '_blank'; // Open in new tab to avoid navigation issues
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
       toast({
         title: "Export Successful",
-        description: "Shipments exported to Excel file successfully.",
+        description: "Shipments exported successfully!",
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to export shipments. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to export shipments. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -389,9 +477,40 @@ const ShipmentPage = () => {
     }
   };
 
+  // Filter shipments based on current page type
+  const filterShipmentsByPageType = (shipmentsData: ShipmentItem[], pageType: string) => {
+    let filtered = shipmentsData;
+    
+    if (pageType === 'reverse') {
+      filtered = shipmentsData.filter((shipment: ShipmentItem) => 
+        (shipment.payment_mode || '').toLowerCase() === 'reverse'
+      );
+    } else if (pageType === 'prepaid') {
+      filtered = shipmentsData.filter((shipment: ShipmentItem) => {
+        const paymentMode = (shipment.payment_mode || '').toLowerCase();
+        return paymentMode === 'prepaid' || paymentMode === 'cod';
+      });
+    }
+    // For 'all' page type, show all shipments
+    
+    setFilteredShipments(filtered);
+  };
+
   // Enhanced filter function (copied from OrdersPage)
   const applyFilters = () => {
     let filtered = shipments;
+
+    // First apply page type filtering
+    if (currentPageType === 'reverse') {
+      filtered = filtered.filter((shipment: ShipmentItem) => 
+        (shipment.payment_mode || '').toLowerCase() === 'reverse'
+      );
+    } else if (currentPageType === 'prepaid') {
+      filtered = filtered.filter((shipment: ShipmentItem) => {
+        const paymentMode = (shipment.payment_mode || '').toLowerCase();
+        return paymentMode === 'prepaid' || paymentMode === 'cod';
+      });
+    }
 
     // Search filter
     if (searchTerm) {
@@ -436,7 +555,8 @@ const ShipmentPage = () => {
     setDateTo(undefined);
     setOrderTypes({ prepaid: false, cod: false, all: true });
     setShipmentStatus([]);
-    setFilteredShipments(shipments);
+    // Reset to page type filtered shipments
+    filterShipmentsByPageType(shipments, currentPageType);
   };
 
   const hasSelectedShipments = selectedShipments.length > 0;
@@ -450,8 +570,16 @@ const ShipmentPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
-            Shipments Management
+            {currentPageType === 'reverse' ? 'Reverse Shipments' : 
+             currentPageType === 'prepaid' ? 'Prepaid & COD Shipments' : 
+             'Shipments Management'}
           </h1>
+          {currentPageType === 'reverse' && (
+            <p className="text-muted-foreground mt-1">Showing only reverse shipments</p>
+          )}
+          {currentPageType === 'prepaid' && (
+            <p className="text-muted-foreground mt-1">Showing only prepaid and COD shipments</p>
+          )}
           {lastFetchTime && (
             <p className="text-sm text-muted-foreground mt-1">
               Last updated: {lastFetchTime.toLocaleTimeString()}
@@ -474,9 +602,18 @@ const ShipmentPage = () => {
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button variant="outline" onClick={handleExport} disabled={exportLoading}>
+            {exportLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </>
+            )}
           </Button>
         </div>
       </div>

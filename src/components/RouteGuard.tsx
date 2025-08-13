@@ -1,87 +1,91 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 interface RouteGuardProps {
   children: React.ReactNode;
+  requireAuth?: boolean;
+  requireOnboarding?: boolean;
 }
 
-const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
+const RouteGuard: React.FC<RouteGuardProps> = ({ 
+  children, 
+  requireAuth = true, 
+  requireOnboarding = false 
+}) => {
+  const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
-  
-  // Get user data from session storage instead of context to avoid re-render issues
-  const getUserData = useCallback(() => {
-    try {
-      const savedUser = sessionStorage.getItem('user_data') || sessionStorage.getItem('user');
-      if (savedUser) {
-        return JSON.parse(savedUser);
+  const location = useLocation();
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const checkAccess = () => {
+      console.log('RouteGuard - Checking access for:', location.pathname);
+      console.log('RouteGuard - Auth state:', { isAuthenticated, user: !!user, loading, requireAuth, requireOnboarding });
+      
+      // If authentication is not required, allow access
+      if (!requireAuth) {
+        console.log('RouteGuard - No auth required, allowing access');
+        setIsChecking(false);
+        return;
       }
-      return null;
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      return null;
-    }
-  }, []);
 
-  const checkAuth = useCallback(() => {
-    // Check if user is authenticated
-    const authToken = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-    
-    if (!authToken) {
-      console.log('No auth token found, redirecting to login');
-      navigate('/login');
-      setIsLoading(false);
-      return;
-    }
-
-    // Get user data from session storage
-    const user = getUserData();
-    
-    if (user) {
-      console.log('RouteGuard - User data:', {
-        name: user.name,
-        mobile_verified_at: user.mobile_verified_at,
-        is_onboarding_filled: user.is_onboarding_filled,
-        is_kyc_verified: user.is_kyc_verified
-      });
+      // Check if user is authenticated
+      if (!isAuthenticated || !user) {
+        console.log('RouteGuard - User not authenticated, redirecting to login');
+        console.log('RouteGuard - Current auth state:', { isAuthenticated, user });
+        // Store the intended destination for after login
+        sessionStorage.setItem('redirectAfterLogin', location.pathname);
+        navigate('/login', { replace: true });
+        return;
+      }
 
       // Check mobile verification
       if (!user.mobile_verified_at) {
-        console.log('Mobile not verified, should stay on login/OTP flow');
-        // Don't redirect - let the existing OTP flow handle this
-        setIsLoading(false);
+        console.log('Mobile not verified, redirecting to OTP verification');
+        navigate('/mobile-otp-verification', { 
+          state: { 
+            phone: user.phone, 
+            authToken: user.auth_token,
+            redirectTo: location.pathname 
+          },
+          replace: true 
+        });
         return;
       }
 
-      // Check onboarding completion
-      if (!user.is_onboarding_filled) {
-        console.log('Onboarding not filled, redirecting to wizard');
-        navigate('/onboarding/wizard');
-        setIsLoading(false);
+      // Check onboarding completion if required
+      if (requireOnboarding && !user.is_onboarding_filled) {
+        console.log('Onboarding not completed, redirecting to wizard');
+        navigate('/onboarding/wizard', { 
+          state: { redirectTo: location.pathname },
+          replace: true 
+        });
         return;
       }
-    }
 
-    console.log('RouteGuard - All checks passed');
-    setIsLoading(false);
-  }, [navigate, getUserData]);
+      // All checks passed
+      setIsChecking(false);
+    };
 
-  useEffect(() => {
-    if (!hasCheckedAuth) {
-      checkAuth();
-      setHasCheckedAuth(true);
-    }
-  }, [checkAuth, hasCheckedAuth]);
+    checkAccess();
+  }, [isAuthenticated, user, loading, requireAuth, requireOnboarding, navigate, location.pathname]);
 
-  if (isLoading) {
+  // Show loading spinner while checking authentication
+  if (loading || isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
       </div>
     );
   }
 
+  // If we get here, user has access
   return <>{children}</>;
 };
 

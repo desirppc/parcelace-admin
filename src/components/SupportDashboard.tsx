@@ -1,124 +1,94 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Filter } from 'lucide-react';
 import SupportCounter from './SupportCounter';
 import TicketStatusBadge from './TicketStatusBadge';
 import PrioritySelector from './PrioritySelector';
+import CreateTicket from './CreateTicket';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SupportTicket } from '@/types/support';
+import supportService from '@/services/supportService';
 
 const SupportDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [stats, setStats] = useState({ open: 0, inProgress: 0, awaitingResponse: 0, overdue: 0, resolvedWithinSLA: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  // Mock data for tickets
-  const mockTickets: SupportTicket[] = [
-    {
-      id: '1',
-      ticketNumber: 'TKT-2024-001',
-      category: 'Pickup & Delivery Related',
-      subCategory: 'Delay in Pickup',
-      priority: 'high',
-      status: 'open',
-      awbNumbers: ['AWB123456789', 'AWB987654321'],
-      subject: 'Pickup not happening for multiple orders',
-      description: 'My orders are not being picked up for the last 2 days. This is affecting my business.',
-      attachments: [],
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      expectedClosureDate: new Date('2024-01-17'),
-      customerEmail: 'customer@example.com',
-      messages: []
-    },
-    {
-      id: '2',
-      ticketNumber: 'TKT-2024-002',
-      category: 'Finance',
-      subCategory: 'Delay in COD Remittance',
-      priority: 'medium',
-      status: 'in-progress',
-      awbNumbers: ['AWB555666777'],
-      subject: 'COD payment not received',
-      description: 'COD amount not credited to my account after delivery confirmation.',
-      attachments: [],
-      createdAt: new Date('2024-01-14'),
-      updatedAt: new Date('2024-01-15'),
-      expectedClosureDate: new Date('2024-01-18'),
-      customerEmail: 'customer@example.com',
-      assignedAgent: 'Agent Smith',
-      messages: []
-    },
-    {
-      id: '3',
-      ticketNumber: 'TKT-2024-003',
-      category: 'Shipment NDR and RTO',
-      subCategory: 'Fake NDR Remarks',
-      priority: 'high',
-      status: 'awaiting-response',
-      awbNumbers: ['AWB111222333'],
-      subject: 'False NDR marked by delivery partner',
-      description: 'Customer was available but delivery partner marked as address not found.',
-      attachments: [],
-      createdAt: new Date('2024-01-13'),
-      updatedAt: new Date('2024-01-14'),
-      expectedClosureDate: new Date('2024-01-16'),
-      customerEmail: 'customer@example.com',
-      assignedAgent: 'Agent Johnson',
-      messages: []
-    },
-    {
-      id: '4',
-      ticketNumber: 'TKT-2024-004',
-      category: 'Technical Support',
-      subCategory: 'API Integration Issues',
-      priority: 'low',
-      status: 'resolved',
-      awbNumbers: [],
-      subject: 'API rate limiting issues',
-      description: 'Getting 429 errors when trying to create bulk orders via API.',
-      attachments: [],
-      createdAt: new Date('2024-01-12'),
-      updatedAt: new Date('2024-01-14'),
-      expectedClosureDate: new Date('2024-01-15'),
-      customerEmail: 'customer@example.com',
-      assignedAgent: 'Agent Wilson',
-      messages: []
-    },
-    {
-      id: '5',
-      ticketNumber: 'TKT-2024-005',
-      category: 'Claims',
-      subCategory: 'Damage Claims',
-      priority: 'medium',
-      status: 'closed',
-      awbNumbers: ['AWB444555666'],
-      subject: 'Product damaged during transit',
-      description: 'Customer received damaged product. Need insurance claim.',
-      attachments: [],
-      createdAt: new Date('2024-01-10'),
-      updatedAt: new Date('2024-01-13'),
-      expectedClosureDate: new Date('2024-01-15'),
-      customerEmail: 'customer@example.com',
-      assignedAgent: 'Agent Davis',
-      messages: []
+  const fetchTickets = async () => {
+    try {
+      setIsLoading(true);
+      const response = await supportService.getSupportTickets();
+      console.log('Support API Response:', response);
+      
+      // Check if response has data and tickets array
+      const apiTickets = response?.data?.tickets && Array.isArray(response.data.tickets) ? response.data.tickets : [];
+      
+      if (apiTickets.length === 0) {
+        console.log('No tickets found or invalid response format');
+        setStats({ open: 0, inProgress: 0, awaitingResponse: 0, overdue: 0, resolvedWithinSLA: 0 });
+        setTickets([]);
+        return;
+      }
+      
+      console.log(`Processing ${apiTickets.length} tickets from API`);
+      console.log('Sample ticket structure:', apiTickets[0]);
+      
+      setStats(supportService.calculateStats(apiTickets));
+      const transformed = apiTickets.map((t: any) => supportService.transformTicketForFrontend(t));
+      console.log('Transformed tickets:', transformed.slice(0, 2));
+      setTickets(transformed);
+    } catch (error) {
+      console.error('Failed to load support tickets', error);
+      // Set default stats and empty tickets on error
+      setStats({ open: 0, inProgress: 0, awaitingResponse: 0, overdue: 0, resolvedWithinSLA: 0 });
+      setTickets([]);
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const stats = {
-    open: mockTickets.filter(t => t.status === 'open').length,
-    inProgress: mockTickets.filter(t => t.status === 'in-progress').length,
-    awaitingResponse: mockTickets.filter(t => t.status === 'awaiting-response').length,
-    overdue: mockTickets.filter(t => new Date() > t.expectedClosureDate && !['resolved', 'closed'].includes(t.status)).length,
-    resolvedWithinSLA: mockTickets.filter(t => t.status === 'resolved').length
   };
 
-  const filteredTickets = mockTickets.filter(ticket =>
+  useEffect(() => {
+    fetchTickets();
+    const handler = () => fetchTickets();
+    window.addEventListener('supportTicketCreated', handler as EventListener);
+    return () => window.removeEventListener('supportTicketCreated', handler as EventListener);
+  }, []);
+
+  const filteredTickets = tickets.filter(ticket =>
     ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.awbNumbers.some(awb => awb.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const totalItems = filteredTickets.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * pageSize;
+  const pageItems = filteredTickets.slice(startIdx, startIdx + pageSize);
+
+  const formatDate = (value: any): string => {
+    if (!value) return '-';
+    if (value instanceof Date) return value.toLocaleDateString();
+    if (typeof value === 'string') {
+      // API returns formats like "08 Aug 2025 05:52 AM"; take only the date parts
+      const parts = value.split(' ');
+      if (parts.length >= 3) return parts.slice(0, 3).join(' ');
+      // ISO fallback
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) return d.toLocaleDateString();
+      return value;
+    }
+    return String(value);
+  };
+
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -130,16 +100,40 @@ const SupportDashboard: React.FC = () => {
           </h1>
           <p className="text-muted-foreground">Manage and track your support tickets</p>
         </div>
-        <Button 
-          className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 hover:from-pink-600 hover:via-purple-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Ticket
-        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 hover:from-pink-600 hover:via-purple-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Ticket
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <CreateTicket hideHeader onSuccess={() => setOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Statistics Cards */}
       <SupportCounter stats={stats} />
+
+      {/* Debug Information - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800">Debug Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm space-y-2">
+              <div><strong>Total Tickets:</strong> {tickets.length}</div>
+              <div><strong>Filtered Tickets:</strong> {filteredTickets.length}</div>
+              <div><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</div>
+              <div><strong>Stats:</strong> {JSON.stringify(stats)}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Filters */}
       <Card>
@@ -171,7 +165,7 @@ const SupportDashboard: React.FC = () => {
                   <TableHead>Ticket ID</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Priority</TableHead>
+                  
                   <TableHead>Status</TableHead>
                   <TableHead>AWB Numbers</TableHead>
                   <TableHead>Created</TableHead>
@@ -179,7 +173,16 @@ const SupportDashboard: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTickets.map((ticket) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-6">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                        <span className="text-muted-foreground">Loading tickets...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                 ) : pageItems.map((ticket) => (
                   <TableRow 
                     key={ticket.id}
                     className="hover:bg-gradient-to-r hover:from-purple-50/50 hover:via-blue-50/50 hover:to-pink-50/50 dark:hover:from-purple-900/20 dark:hover:via-blue-900/20 dark:hover:to-pink-900/20 transition-all duration-300 cursor-pointer"
@@ -196,13 +199,7 @@ const SupportDashboard: React.FC = () => {
                         <div className="text-muted-foreground text-xs">{ticket.subCategory}</div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <PrioritySelector 
-                        value={ticket.priority} 
-                        onValueChange={() => {}} 
-                        disabled 
-                      />
-                    </TableCell>
+                    
                     <TableCell>
                       <TicketStatusBadge status={ticket.status} />
                     </TableCell>
@@ -220,21 +217,69 @@ const SupportDashboard: React.FC = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ticket.createdAt.toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {ticket.expectedClosureDate.toLocaleDateString()}
-                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(ticket.createdAt)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(ticket.expectedClosureDate)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
 
-          {filteredTickets.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No tickets found matching your search criteria.
+          {!isLoading && filteredTickets.length === 0 && (
+            <div className="text-center py-8">
+              {tickets.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="text-muted-foreground text-lg">
+                    No support tickets found
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    You haven't created any support tickets yet. Create your first ticket to get started.
+                  </div>
+                  <Button 
+                    onClick={() => setOpen(true)}
+                    className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600 hover:from-pink-600 hover:via-purple-600 hover:to-blue-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Ticket
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  No tickets found matching your search criteria.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!isLoading && filteredTickets.length > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIdx + 1}-{Math.min(startIdx + pageSize, totalItems)} of {totalItems}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">Rows:</label>
+                <select
+                  className="border rounded px-2 py-1 bg-background"
+                  value={pageSize}
+                  onChange={(e) => {
+                    const newSize = Number(e.target.value);
+                    setPageSize(newSize);
+                    setPage(1);
+                  }}
+                >
+                  {[10, 20, 50, 100].map(size => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" disabled={currentPage === 1} onClick={() => setPage(1)}>First</Button>
+                  <Button variant="outline" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
+                  <div className="text-sm">Page {currentPage} of {totalPages}</div>
+                  <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</Button>
+                  <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setPage(totalPages)}>Last</Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

@@ -33,7 +33,8 @@ import {
   History,
   Route,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,19 +87,19 @@ const OnboardingLayout = () => {
       id: 'profile',
       title: 'Profile',
       icon: User,
-      route: '/onboarding/profile'
+      route: '/dashboard/profile'
     },
     {
       id: 'ai',
       title: 'ParcelAce AI',
       icon: Sparkles,
-      route: '/ai'
+      route: '/dashboard/ai'
     },
     {
       id: 'view-order',
       title: 'Shipment View Details',
       icon: Package,
-      route: '/view-order'
+      route: '/dashboard/orders/view'
     },
     {
       id: 'onboarding',
@@ -107,7 +108,7 @@ const OnboardingLayout = () => {
       progress: 30,
       subItems: [
         { id: 'checklist', title: 'Onboarding Checklist', icon: CheckCircle, progress: 60 },
-        { id: 'kyc', title: 'KYC Verification', icon: Fingerprint, progress: 0, route: '/onboarding/kyc' },
+        { id: 'kyc', title: 'KYC Verification', icon: Fingerprint, progress: 0, route: '/dashboard/kyc' },
         { id: 'integration', title: 'Shopify Integration', icon: Circle, progress: 0 }
       ]
     },
@@ -172,38 +173,51 @@ const OnboardingLayout = () => {
         { id: 'my-tickets', title: 'My Tickets', icon: FileText },
         { id: 'ticket-history', title: 'Ticket History', icon: History }
       ]
-    }
+    },
+
+    {
+      id: 'reports',
+      title: 'Reports',
+      icon: BarChart3,
+      subItems: [
+        { id: 'daily-report', title: 'Daily Report', icon: BarChart3 }
+      ]
+    },
+
   ];
 
   const routeMapping: { [key: string]: string } = {
-    'profile': '/onboarding/profile',
-    'ai': '/ai',
+    // Dashboard Routes (Primary)
+    'profile': '/dashboard/profile',
+    'ai': '/dashboard/ai',
     'checklist': '/onboarding/checklist',
     'integration': '/onboarding/shopify-integration',
-    'aadhar-verification': '/onboarding/kyc',
-    'pan-verification': '/onboarding/kyc',
-    'bank-verification': '/onboarding/kyc',
-    'gst-verification': '/onboarding/kyc',
-    'prepaid-orders': '/onboarding/orders/prepaid-orders',
-    'reverse-orders': '/onboarding/orders/reverse-orders',
-    'prepaid-shipments': '/onboarding/shipments/prepaid-shipments',
-    'reverse-shipments': '/onboarding/shipments/reverse-shipments',
-    'tracking': '/onboarding/shipments/tracking',
-    'tracking-page': '/tracking-page',
-    'courier-selection': '/onboarding/shipments/courier-selection',
-    'cod-remittance': '/onboarding/finance/cod-remittance',
-    'wallet-transaction': '/onboarding/finance/wallet-transaction',
-    'early-cod': '/onboarding/finance/early-cod',
-    'invoice': '/onboarding/finance/invoice',
+    'aadhar-verification': '/dashboard/kyc',
+    'pan-verification': '/dashboard/kyc',
+    'bank-verification': '/dashboard/kyc',
+    'gst-verification': '/dashboard/kyc',
+    'prepaid-orders': '/dashboard/orders/prepaid',
+    'reverse-orders': '/dashboard/orders/reverse',
+    'prepaid-shipments': '/dashboard/shipments/prepaid',
+    'reverse-shipments': '/dashboard/shipments/reverse',
+    'tracking': '/dashboard/shipments/tracking',
+    'tracking-page': '/dashboard/settings/tracking-page',
+    'courier-selection': '/dashboard/shipments/courier-selection',
+    'cod-remittance': '/dashboard/finance/cod-remittance',
+    'wallet-transaction': '/dashboard/finance/wallet-transaction',
+    'early-cod': '/dashboard/finance/early-cod',
+    'invoice': '/dashboard/finance/invoice',
     'return-pro': '/onboarding/postship/return-pro',
-    'billing': '/onboarding/settings/billing',
-    'invoice-settings': '/onboarding/settings/invoice-settings',
-    'warehouse': '/warehouse',
-    'warehouse-location': '/onboarding/warehouse-location',
-    'support-dashboard': '/onboarding/support/support-dashboard',
-    'create-ticket': '/onboarding/support/create-ticket',
-    'my-tickets': '/onboarding/support/my-tickets',
-    'ticket-history': '/onboarding/support/ticket-history'
+    'billing': '/dashboard/settings/billing',
+    'invoice-settings': '/dashboard/settings/invoice-settings',
+    'warehouse': '/dashboard/warehouse',
+    'warehouse-location': '/dashboard/settings/warehouse',
+    'support-dashboard': '/dashboard/support/support-dashboard',
+    'create-ticket': '/dashboard/support/create-ticket',
+    'my-tickets': '/dashboard/support/my-tickets',
+    'ticket-history': '/dashboard/support/ticket-history',
+    'daily-report': '/dashboard/reports/daily',
+
   };
 
   const toggleMenu = (menuId: string) => {

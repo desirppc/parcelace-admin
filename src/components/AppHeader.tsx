@@ -330,7 +330,7 @@ const AppHeader: React.FC = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-purple-200 dark:border-purple-800 z-[70] animate-fade-in min-w-[180px]">
-            <DropdownMenuItem onClick={() => navigate('/onboarding/profile')} className="flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer transition-colors duration-200">
+                            <DropdownMenuItem onClick={() => navigate('/dashboard/profile')} className="flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer transition-colors duration-200">
               <User className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
               Profile
             </DropdownMenuItem>

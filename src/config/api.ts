@@ -27,6 +27,7 @@ const API_CONFIG = {
     CREATE_ORDER: 'api/order/create',
     UPDATE_ORDER: 'api/order/update',
     DELETE_ORDER: 'api/order/delete',
+    ORDER_EXPORT: 'api/order/export',
     
     // Shipments
     SHIPMENTS: 'api/shipments/list',
@@ -88,7 +89,14 @@ const API_CONFIG = {
 
 // Helper function to get API URL with endpoint
 export const getApiUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  const fullUrl = `${API_CONFIG.BASE_URL}${endpoint}`;
+  console.log('API Config Debug:', {
+    BASE_URL: API_CONFIG.BASE_URL,
+    endpoint,
+    fullUrl,
+    VITE_API_URL: import.meta.env.VITE_API_URL
+  });
+  return fullUrl;
 };
 
 // Helper function to get auth headers

@@ -9,9 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
 import MobileOTPVerification from "./pages/MobileOTPVerification";
-import TestLogin from "./pages/TestLogin";
 import AddOrder from "./components/AddOrder";
 import ShipmentPage from "./components/ShipmentPage";
 import TrackingPage from "./components/TrackingPage";
@@ -46,8 +44,12 @@ import OnboardingShopifyIntegration from './pages/OnboardingShopifyIntegration';
 import ProfilePage from './components/ProfilePage';
 import OnboardingWizard from './components/OnboardingWizard';
 import RouteGuard from './components/RouteGuard';
+import OnboardingRoute from './components/OnboardingRoute';
+import PublicRoute from './components/PublicRoute';
 import ParcelAceAI from './components/ParcelAceAI';
 import AnalyticsTest from './pages/AnalyticsTest';
+import DailyReport from './pages/DailyReport';
+
 import { UserProvider } from './contexts/UserContext';
 // Add imports for forgot password flow
 import OTPVerification from './pages/OTPVerification';
@@ -64,75 +66,112 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/mobile-otp-verification" element={<MobileOTPVerification />} />
-            <Route path="/test-login" element={<TestLogin />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/otp-verification" element={<OTPVerification />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            {/* Dashboard redirect */}
-            <Route path="/dashboard" element={<OrdersPage />} />
-            {/* Onboarding Wizard - standalone route */}
-            <Route path="/onboarding/wizard" element={
-              <OnboardingWizard 
-                onComplete={() => window.location.href = '/orders'} 
-                onNavigateBack={() => window.history.back()} 
-              />
-            } />
-            <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
-              <Route path="/add-order" element={<AddOrder />} />
-              <Route path="/shipments" element={<ShipmentPage />} />
-              <Route path="/view-order" element={<ViewOrder />} />
-              <Route path="/order/:orderId" element={<ViewOrderDetails />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/tracking" element={<ShipmentPage />} />
-              <Route path="/tracking-page" element={<TrackingPage />} />
-              <Route path="/tracking-v2" element={<TrackingV2 />} />
-              <Route path="/courier-selection" element={<CourierPartnerSelection />} />
-              {/* AI Route */}
-              <Route path="/ai" element={<ParcelAceAI />} />
-              {/* Analytics Test Route */}
-              <Route path="/analytics-test" element={<AnalyticsTest />} />
-              {/* Warehouse Route */}
-              <Route path="/warehouse" element={<WarehouseScreen />} />
-              {/* Onboarding Routes */}
-              <Route path="/onboarding/checklist" element={<OnboardingChecklist />} />
-              <Route path="/onboarding/shopify-integration" element={<OnboardingShopifyIntegration />} />
-              <Route path="/onboarding/postship/return-pro" element={<OnboardingReturnPro />} />
-              <Route path="/onboarding/orders/prepaid-orders" element={<OnboardingPrepaidOrders />} />
-              <Route path="/onboarding/orders/reverse-orders" element={<OnboardingReverseOrders />} />
-              {/* KYC Route */}
-              <Route path="/onboarding/kyc" element={<OnboardingKYC />} />
-              {/* Shipment Routes */}
-              <Route path="/onboarding/shipments/prepaid-shipments" element={<OnboardingPrepaidShipments />} />
-              <Route path="/onboarding/shipments/reverse-shipments" element={<OnboardingReverseShipments />} />
-              <Route path="/onboarding/shipments/tracking" element={<OnboardingShipmentTracking />} />
-              <Route path="/onboarding/shipments/courier-selection" element={<OnboardingCourierSelection />} />
-              {/* Finance Routes */}
-              <Route path="/onboarding/finance/cod-remittance" element={<OnboardingCODRemittance />} />
-              <Route path="/onboarding/finance/wallet-transaction" element={<OnboardingWalletTransaction />} />
-              <Route path="/onboarding/finance/early-cod" element={<OnboardingEarlyCOD />} />
-              <Route path="/onboarding/finance/invoice" element={<OnboardingInvoice />} />
-              {/* Settings Routes */}
-              <Route path="/onboarding/settings/billing" element={<OnboardingBilling />} />
-              <Route path="/onboarding/settings/invoice-settings" element={<OnboardingInvoiceSettings />} />
-              <Route path="/onboarding/settings/tracking-page" element={<OnboardingTrackingPage />} />
-              {/* Support Routes */}
-              <Route path="/onboarding/support/support-dashboard" element={<OnboardingSupportDashboard />} />
-              <Route path="/onboarding/support/create-ticket" element={<OnboardingCreateTicket />} />
-              <Route path="/onboarding/support/my-tickets" element={<OnboardingMyTickets />} />
-              <Route path="/onboarding/support/ticket-history" element={<OnboardingTicketHistory />} />
-              {/* Profile Route */}
-              <Route path="/onboarding/profile" element={<ProfilePage />} />
-              {/* Legacy Warehouse Route */}
-              <Route path="/onboarding/warehouse-location" element={<WarehouseScreen />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+              {/* Public Routes - No Authentication Required */}
+              <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/mobile-otp-verification" element={<PublicRoute><MobileOTPVerification /></PublicRoute>} />
+              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+              <Route path="/otp-verification" element={<PublicRoute><OTPVerification /></PublicRoute>} />
+              <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+              
+              {/* Onboarding Wizard - Requires Authentication but not onboarding completion */}
+              <Route path="/onboarding/wizard" element={
+                <RouteGuard requireAuth={true} requireOnboarding={false}>
+                  <OnboardingWizard 
+                    onComplete={() => window.location.href = '/dashboard'} 
+                    onNavigateBack={() => window.history.back()} 
+                  />
+                </RouteGuard>
+              } />
+              
+              {/* Protected Routes - Require Authentication */}
+              <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
+                {/* Core Dashboard Routes */}
+                <Route path="/dashboard" element={<OrdersPage />} />
+                <Route path="/dashboard/orders" element={<OrdersPage />} />
+                <Route path="/dashboard/shipments" element={<ShipmentPage />} />
+                <Route path="/dashboard/tracking" element={<ShipmentPage />} />
+                <Route path="/dashboard/warehouse" element={<WarehouseScreen />} />
+                <Route path="/dashboard/ai" element={<ParcelAceAI />} />
+                <Route path="/dashboard/analytics" element={<AnalyticsTest />} />
+                <Route path="/dashboard/reports/daily" element={<DailyReport />} />
+                
+                {/* Order Management */}
+                <Route path="/dashboard/orders/add" element={<AddOrder />} />
+                <Route path="/dashboard/orders/view" element={<ViewOrder />} />
+                <Route path="/dashboard/orders/:orderId" element={<ViewOrderDetails />} />
+                
+                {/* Profile Route */}
+                <Route path="/dashboard/profile" element={<ProfilePage />} />
+                
+                {/* Onboarding Routes - Require both authentication and onboarding completion */}
+                <Route path="/dashboard/orders/prepaid" element={<OnboardingRoute><OnboardingPrepaidOrders /></OnboardingRoute>} />
+                <Route path="/dashboard/orders/reverse" element={<OnboardingRoute><OnboardingReverseOrders /></OnboardingRoute>} />
+                
+                {/* Shipment Management */}
+                <Route path="/dashboard/shipments/prepaid" element={<OnboardingRoute><OnboardingPrepaidShipments /></OnboardingRoute>} />
+                <Route path="/dashboard/shipments/reverse" element={<OnboardingRoute><OnboardingReverseShipments /></OnboardingRoute>} />
+                <Route path="/dashboard/shipments/tracking" element={<OnboardingRoute><OnboardingShipmentTracking /></OnboardingRoute>} />
+                <Route path="/dashboard/shipments/courier-selection" element={<OnboardingRoute><OnboardingCourierSelection /></OnboardingRoute>} />
+                
+                {/* Finance Routes */}
+                <Route path="/dashboard/finance/cod-remittance" element={<OnboardingRoute><OnboardingCODRemittance /></OnboardingRoute>} />
+                <Route path="/dashboard/finance/wallet-transaction" element={<OnboardingRoute><OnboardingWalletTransaction /></OnboardingRoute>} />
+                <Route path="/dashboard/finance/early-cod" element={<OnboardingRoute><OnboardingEarlyCOD /></OnboardingRoute>} />
+                <Route path="/dashboard/finance/invoice" element={<OnboardingRoute><OnboardingInvoice /></OnboardingRoute>} />
+                
+                {/* Support Routes */}
+                <Route path="/dashboard/support/support-dashboard" element={<OnboardingRoute><OnboardingSupportDashboard /></OnboardingRoute>} />
+                <Route path="/dashboard/support/create-ticket" element={<OnboardingRoute><OnboardingCreateTicket /></OnboardingRoute>} />
+                <Route path="/dashboard/support/my-tickets" element={<OnboardingRoute><OnboardingMyTickets /></OnboardingRoute>} />
+                <Route path="/dashboard/support/ticket-history" element={<OnboardingRoute><OnboardingTicketHistory /></OnboardingRoute>} />
+                
+                {/* Settings Routes */}
+                <Route path="/dashboard/settings/billing" element={<OnboardingRoute><OnboardingBilling /></OnboardingRoute>} />
+                <Route path="/dashboard/settings/invoice-settings" element={<OnboardingRoute><OnboardingInvoiceSettings /></OnboardingRoute>} />
+                <Route path="/dashboard/settings/tracking-page" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
+                <Route path="/dashboard/settings/warehouse" element={<OnboardingRoute><WarehouseScreen /></OnboardingRoute>} />
+                
+                {/* KYC Route */}
+                <Route path="/dashboard/kyc" element={<OnboardingRoute><OnboardingKYC /></OnboardingRoute>} />
+                
+                {/* Onboarding Routes - Keep for backward compatibility */}
+                <Route path="/onboarding/checklist" element={<OnboardingRoute><OnboardingChecklist /></OnboardingRoute>} />
+                <Route path="/onboarding/shopify-integration" element={<OnboardingRoute><OnboardingShopifyIntegration /></OnboardingRoute>} />
+                <Route path="/onboarding/postship/return-pro" element={<OnboardingRoute><OnboardingReturnPro /></OnboardingRoute>} />
+                <Route path="/onboarding/orders/prepaid-orders" element={<OnboardingRoute><OnboardingPrepaidOrders /></OnboardingRoute>} />
+                <Route path="/onboarding/orders/reverse-orders" element={<OnboardingRoute><OnboardingReverseOrders /></OnboardingRoute>} />
+                <Route path="/onboarding/kyc" element={<OnboardingRoute><OnboardingKYC /></OnboardingRoute>} />
+                <Route path="/onboarding/shipments/prepaid-shipments" element={<OnboardingRoute><OnboardingPrepaidShipments /></OnboardingRoute>} />
+                <Route path="/onboarding/shipments/reverse-shipments" element={<OnboardingRoute><OnboardingReverseShipments /></OnboardingRoute>} />
+                <Route path="/onboarding/shipments/tracking" element={<OnboardingRoute><OnboardingShipmentTracking /></OnboardingRoute>} />
+                <Route path="/onboarding/shipments/courier-selection" element={<OnboardingRoute><OnboardingCourierSelection /></OnboardingRoute>} />
+                <Route path="/onboarding/finance/cod-remittance" element={<OnboardingRoute><OnboardingCODRemittance /></OnboardingRoute>} />
+                <Route path="/onboarding/finance/wallet-transaction" element={<OnboardingRoute><OnboardingWalletTransaction /></OnboardingRoute>} />
+                <Route path="/onboarding/finance/early-cod" element={<OnboardingRoute><OnboardingEarlyCOD /></OnboardingRoute>} />
+                <Route path="/onboarding/finance/invoice" element={<OnboardingRoute><OnboardingInvoice /></OnboardingRoute>} />
+                <Route path="/onboarding/settings/billing" element={<OnboardingRoute><OnboardingBilling /></OnboardingRoute>} />
+                <Route path="/onboarding/settings/invoice-settings" element={<OnboardingRoute><OnboardingInvoiceSettings /></OnboardingRoute>} />
+                <Route path="/onboarding/settings/tracking-page" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
+                <Route path="/onboarding/support/support-dashboard" element={<OnboardingRoute><OnboardingSupportDashboard /></OnboardingRoute>} />
+                <Route path="/onboarding/support/create-ticket" element={<OnboardingRoute><OnboardingCreateTicket /></OnboardingRoute>} />
+                <Route path="/onboarding/support/my-tickets" element={<OnboardingRoute><OnboardingMyTickets /></OnboardingRoute>} />
+                <Route path="/onboarding/support/ticket-history" element={<OnboardingRoute><OnboardingTicketHistory /></OnboardingRoute>} />
+                <Route path="/onboarding/profile" element={<OnboardingRoute><ProfilePage /></OnboardingRoute>} />
+                <Route path="/onboarding/warehouse-location" element={<OnboardingRoute><WarehouseScreen /></OnboardingRoute>} />
+                
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              
+              {/* Catch-all route for any unmatched paths - Must be protected */}
+              <Route path="*" element={
+                <RouteGuard>
+                  <NotFound />
+                </RouteGuard>
+              } />
+            </Routes>
+          </BrowserRouter>
         </UserProvider>
       </TooltipProvider>
     </ThemeProvider>

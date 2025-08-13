@@ -98,7 +98,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Verify Now',
           buttonVariant: 'default' as const,
           icon: Fingerprint,
-          route: '/onboarding/kyc'
+          route: '/dashboard/kyc'
         }
       ]
     }]),
@@ -119,7 +119,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Recharge Now',
           buttonVariant: 'default' as const,
           icon: Wallet,
-          route: '/onboarding/finance/wallet-transaction'
+          route: '/dashboard/finance/wallet-transaction'
         },
         {
           id: 'add-warehouse',
@@ -129,7 +129,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Add Now',
           buttonVariant: 'default' as const,
           icon: Warehouse,
-          route: '/onboarding/warehouse-location'
+          route: '/dashboard/warehouse'
         },
         {
           id: 'add-orders',
@@ -139,7 +139,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Add Now',
           buttonVariant: 'default' as const,
           icon: Package,
-          route: '/onboarding/orders/prepaid-orders'
+          route: '/dashboard/orders/prepaid'
         },
         {
           id: 'courier-priority',
@@ -149,7 +149,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Configure',
           buttonVariant: 'outline' as const,
           icon: Truck,
-          route: '/onboarding/shipments/courier-selection'
+          route: '/dashboard/shipments/courier-selection'
         },
         {
           id: 'ship-order',
@@ -159,7 +159,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Ship Now',
           buttonVariant: 'default' as const,
           icon: Truck,
-          route: '/onboarding/first-shipment'
+          route: '/dashboard/shipments/prepaid'
         }
       ]
     },
@@ -191,7 +191,7 @@ const OnboardingChecklist = () => {
           buttonText: 'Enable',
           buttonVariant: 'default' as const,
           icon: BarChart3,
-          route: '/onboarding/support/support-dashboard'
+          route: '/dashboard/support/support-dashboard'
         }
       ]
     }

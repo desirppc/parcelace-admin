@@ -219,6 +219,63 @@ class OrderService {
     };
     return this.getOrders(statusFilters);
   }
+
+  async exportOrders(exportFilters: {
+    date_range?: string;
+    order_id?: string;
+    order_type?: string[];
+  }): Promise<string> {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      const url = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order/export`;
+      console.log('Export API URL:', url);
+      console.log('Export filters:', exportFilters);
+      console.log('Auth token available:', !!token);
+      
+      // Ensure we have valid filters
+      const requestBody = {
+        date_range: exportFilters.date_range || "",
+        order_id: exportFilters.order_id || "",
+        order_type: exportFilters.order_type || []
+      };
+      
+      console.log('Request body being sent:', requestBody);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Export API response status:', response.status);
+      console.log('Export API response headers:', response.headers);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Export API error response:', errorData);
+        throw new Error(errorData.message || `Failed to export orders (${response.status})`);
+      }
+
+      // Parse the response to get the download URL
+      const result = await response.json();
+      console.log('Export API response:', result);
+      
+      if (result.status && result.data?.download_url) {
+        console.log('Export successful, download URL:', result.data.download_url);
+        return result.data.download_url;
+      } else {
+        throw new Error('Invalid response format: missing download URL');
+      }
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+      throw error;
+    }
+  }
 }
 
 export const orderService = new OrderService(); 

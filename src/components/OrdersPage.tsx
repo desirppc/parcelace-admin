@@ -27,10 +27,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
-import { ExcelExportService, ExportColumn } from '@/utils/excelExport';
 import CourierPartnerSelection from './CourierPartnerSelection';
+import { orderService } from '@/services/orderService';
 
 
 const OrdersPage = () => {
@@ -53,12 +53,14 @@ const OrdersPage = () => {
   const [orderTypes, setOrderTypes] = useState({
     prepaid: false,
     cod: false,
+    reverse: false,
     all: true
   });
   const [warehouseSearch, setWarehouseSearch] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [warehouses, setWarehouses] = useState([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
   
@@ -73,6 +75,20 @@ const OrdersPage = () => {
   
   // Filter API states
   const [filterLoading, setFilterLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  // Determine current page type based on URL
+  const getCurrentPageType = () => {
+    const pathname = location.pathname;
+    if (pathname.includes('/dashboard/orders/reverse')) {
+      return 'reverse';
+    } else if (pathname.includes('/dashboard/orders/prepaid')) {
+      return 'prepaid';
+    }
+    return 'all';
+  };
+
+  const currentPageType = getCurrentPageType();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -95,8 +111,8 @@ const OrdersPage = () => {
             return dateB.getTime() - dateA.getTime();
           });
           setOrders(sortedOrders);
-          // Filter based on active tab
-          filterOrdersByTab(sortedOrders, activeTab);
+          // Filter based on current page type
+          filterOrdersByPageType(sortedOrders, currentPageType);
         } else {
           toast({
             title: 'Error',
@@ -113,7 +129,7 @@ const OrdersPage = () => {
       }
     };
     fetchOrders();
-  }, []);
+  }, [currentPageType]);
 
   useEffect(() => {
     const fetchWarehouses = async () => {
@@ -133,9 +149,9 @@ const OrdersPage = () => {
           warehousesData = data.data.warehouses_data;
         } else if (data && Array.isArray(data)) {
           warehousesData = data;
-        } else if (data && Array.isArray(data.data)) {
-          warehousesData = data.data;
         } else if (data && data.data && Array.isArray(data.data.warehouses)) {
+          warehousesData = data.data.warehouses;
+        } else if (data && data.data && data.data.warehouses && Array.isArray(data.data.warehouses)) {
           warehousesData = data.data.warehouses;
         } else if (data && data.warehouses && Array.isArray(data.warehouses)) {
           warehousesData = data.warehouses;
@@ -150,24 +166,43 @@ const OrdersPage = () => {
     fetchWarehouses();
   }, []);
 
+  // Filter orders based on current page type
+  const filterOrdersByPageType = (ordersData: any[], pageType: string) => {
+    // Apply page type filtering first, then apply current tab filtering
+    filterOrdersByTab(ordersData, activeTab);
+  };
+
   // Filter orders based on active tab
   const filterOrdersByTab = (ordersData: any[], tab: string) => {
     let filtered = ordersData;
     
-    if (tab === 'pending') {
+    // First apply page type filtering
+    if (currentPageType === 'reverse') {
       filtered = ordersData.filter((order: any) => 
+        (order.order_type || '').toLowerCase() === 'reverse'
+      );
+    } else if (currentPageType === 'prepaid') {
+      filtered = ordersData.filter((order: any) => {
+        const orderType = (order.order_type || '').toLowerCase();
+        return orderType === 'prepaid' || orderType === 'cod';
+      });
+    }
+    
+    // Then apply tab filtering
+    if (tab === 'pending') {
+      filtered = filtered.filter((order: any) => 
         (order.status || '').toLowerCase() === 'pending' || !order.status || order.status === ''
       );
     }
-    // For 'all' tab, show all orders
+    // For 'all' tab, keep the page type filtering
     
     setFilteredOrders(filtered);
   };
 
-  // Update filtered orders when tab changes
+  // Update filtered orders when tab changes or page type changes
   useEffect(() => {
     filterOrdersByTab(orders, activeTab);
-  }, [activeTab, orders]);
+  }, [activeTab, orders, currentPageType]);
 
   const dateFilterOptions = [
     { value: 'all', label: 'All Time' },
@@ -201,7 +236,7 @@ const OrdersPage = () => {
     return <Badge variant={variants[statusLower] || 'outline'}>{displayStatus}</Badge>;
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       if (filteredOrders.length === 0) {
         toast({
@@ -212,39 +247,111 @@ const OrdersPage = () => {
         return;
       }
 
-      // Export columns configuration for orders
-      const exportColumns: ExportColumn[] = [
-        { key: 'order_id', header: 'Order ID', width: 20 },
-        { key: 'customer_name', header: 'Customer Name', width: 25 },
-        { key: 'customer_phone', header: 'Customer Phone', width: 20 },
-        { key: 'customer_email', header: 'Customer Email', width: 30 },
-        { key: 'pickup_address', header: 'Pickup Address', width: 40 },
-        { key: 'delivery_address', header: 'Delivery Address', width: 40 },
-        { key: 'amount', header: 'Amount (₹)', width: 15, format: ExcelExportService.formatCurrency },
-        { key: 'payment_mode', header: 'Payment Mode', width: 15 },
-        { key: 'status', header: 'Status', width: 15, format: ExcelExportService.formatStatus },
-        { key: 'created_at', header: 'Created Date', width: 20, format: ExcelExportService.formatDate },
-        { key: 'updated_at', header: 'Updated Date', width: 20, format: ExcelExportService.formatDate }
-      ];
+      setExportLoading(true);
 
-      ExcelExportService.exportToExcel({
-        filename: `orders-${activeTab}-${new Date().toISOString().split('T')[0]}`,
-        sheetName: 'Orders',
-        columns: exportColumns,
-        data: filteredOrders,
+      // Show loading state
+      toast({
+        title: "Exporting Orders",
+        description: "Please wait while we prepare your export...",
       });
+
+      // Prepare export filters based on current page type and filters
+      const exportFilters: {
+        date_range?: string;
+        order_id?: string;
+        order_type?: string[];
+      } = {};
+
+      // Add order types based on current page
+      if (currentPageType === 'reverse') {
+        exportFilters.order_type = ['reverse'];
+      } else if (currentPageType === 'prepaid') {
+        exportFilters.order_type = ['prepaid', 'cod'];
+      }
+
+      // Add search term if available
+      if (searchTerm) {
+        exportFilters.order_id = searchTerm;
+      }
+
+      // Add date range if custom dates are selected
+      if (dateFilter === 'custom' && dateFrom && dateTo) {
+        const formatDate = (date: Date) => {
+          return date.toISOString().split('T')[0];
+        };
+        exportFilters.date_range = `${formatDate(dateFrom)} ~ ${formatDate(dateTo)}`;
+      } else if (dateFilter !== 'all') {
+        // Handle predefined date ranges
+        const today = new Date();
+        let startDate: Date;
+        let endDate: Date;
+        
+        switch (dateFilter) {
+          case 'today':
+            startDate = new Date(today);
+            endDate = new Date(today);
+            break;
+          case 'yesterday':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 1);
+            endDate = new Date(startDate);
+            break;
+          case 'last7days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 7);
+            endDate = new Date(today);
+            break;
+          case 'last30days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            endDate = new Date(today);
+            break;
+          case 'thismonth':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today);
+            break;
+          case 'lastmonth':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+          default:
+            startDate = new Date();
+            endDate = new Date();
+        }
+        
+        if (startDate && endDate) {
+          const formatDate = (date: Date) => {
+            return date.toISOString().split('T')[0];
+          };
+          exportFilters.date_range = `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+        }
+      }
+
+      // Call the API to export orders
+      const downloadUrl = await orderService.exportOrders(exportFilters);
+      
+      // Trigger download from the provided URL
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `orders-${currentPageType}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.target = '_blank'; // Open in new tab to avoid navigation issues
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
       toast({
         title: "Export Successful",
-        description: "Orders exported to Excel file successfully.",
+        description: "Orders exported successfully!",
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to export orders. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to export orders. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -380,6 +487,7 @@ const OrdersPage = () => {
       const selectedTypes = [];
       if (orderTypes.prepaid) selectedTypes.push('prepaid');
       if (orderTypes.cod) selectedTypes.push('cod');
+      if (orderTypes.reverse) selectedTypes.push('reverse');
       if (selectedTypes.length > 0) {
         filterPayload.order_types = selectedTypes;
       }
@@ -448,7 +556,7 @@ const OrdersPage = () => {
     setDateFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
-    setOrderTypes({ prepaid: false, cod: false, all: true });
+    setOrderTypes({ prepaid: false, cod: false, reverse: false, all: true });
     
     // Reset to original orders by refetching
     const fetchOrders = async () => {
@@ -721,9 +829,19 @@ const OrdersPage = () => {
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
-            Orders Management
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
+              {currentPageType === 'reverse' ? 'Reverse Orders' : 
+               currentPageType === 'prepaid' ? 'Prepaid & COD Orders' : 
+               'Orders Management'}
+            </h1>
+            {currentPageType === 'reverse' && (
+              <p className="text-muted-foreground mt-1">Showing only reverse orders</p>
+            )}
+            {currentPageType === 'prepaid' && (
+              <p className="text-muted-foreground mt-1">Showing only prepaid and COD orders</p>
+            )}
+          </div>
           <div className="flex items-center space-x-3">
             <Button 
               onClick={() => navigate('/add-order')}
@@ -843,16 +961,25 @@ const OrdersPage = () => {
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Export
+            <Button variant="outline" onClick={handleExport} disabled={exportLoading}>
+              {exportLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </>
+              )}
             </Button>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-60 grid-cols-2 h-8">
+          <TabsList className="grid w-48 grid-cols-2 h-8">
             <TabsTrigger value="all" className="text-xs px-4 py-2">All Orders</TabsTrigger>
             <TabsTrigger value="pending" className="text-xs px-4 py-2">Pending</TabsTrigger>
           </TabsList>
@@ -956,10 +1083,20 @@ const OrdersPage = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
+                      id="reverse" 
+                      checked={orderTypes.reverse}
+                      onCheckedChange={(checked) => 
+                        setOrderTypes(prev => ({ ...prev, reverse: !!checked, all: false }))
+                      }
+                    />
+                    <label htmlFor="reverse" className="text-sm">Reverse</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
                       id="all" 
                       checked={orderTypes.all}
                       onCheckedChange={(checked) => 
-                        setOrderTypes(prev => ({ ...prev, all: !!checked, prepaid: false, cod: false }))
+                        setOrderTypes(prev => ({ ...prev, all: !!checked, prepaid: false, cod: false, reverse: false }))
                       }
                     />
                     <label htmlFor="all" className="text-sm">All</label>
@@ -1227,6 +1364,10 @@ const OrdersPage = () => {
             </Table>
           </Card>
           </TabsContent>
+
+
+
+
         </Tabs>
 
           {/* Ship Modal */}
