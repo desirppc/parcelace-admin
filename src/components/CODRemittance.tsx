@@ -1,243 +1,476 @@
 
-import React from 'react';
-import { Eye, Download, Receipt, TrendingUp, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, Download, Receipt, TrendingUp, Clock, RefreshCw, FileText, Calendar, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import CODRemittanceService, { CODRemittance, CODRemittanceResponse } from '@/services/codRemittanceService';
 import FinanceCounter from './FinanceCounter';
 import FinanceTable from './FinanceTable';
 
 const CODRemittance = () => {
+  const navigate = useNavigate();
+  const [codRemittances, setCodRemittances] = useState<CODRemittance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    total_page: 1,
+    per_page: 50,
+    total: 0
+  });
+  const [selectedRemittance, setSelectedRemittance] = useState<CODRemittance | null>(null);
+  const [utrDialogOpen, setUtrDialogOpen] = useState(false);
+  const [utrNumber, setUtrNumber] = useState('');
+  const [utrDate, setUtrDate] = useState('');
+  const [updatingUtr, setUpdatingUtr] = useState(false);
+  const { toast } = useToast();
+
+  // Calculate summary data from API response
+  const calculateSummaryData = (data: CODRemittanceResponse) => {
+    const totalAmount = data.cod_remittances.reduce((sum, item) => {
+      return sum + parseFloat(item.total_amount.replace('₹', '').replace(',', ''));
+    }, 0);
+    
+    const pendingAmount = data.cod_remittances
+      .filter(item => !item.check_payment)
+      .reduce((sum, item) => {
+        return sum + parseFloat(item.total_amount.replace('₹', '').replace(',', ''));
+      }, 0);
+    
+    const paidAmount = data.cod_remittances
+      .filter(item => item.check_payment)
+      .reduce((sum, item) => {
+        return sum + parseFloat(item.total_amount.replace('₹', '').replace(',', ''));
+      }, 0);
+
+    return {
+      totalAmount: `₹${totalAmount.toLocaleString('en-IN')}`,
+      pendingAmount: `₹${pendingAmount.toLocaleString('en-IN')}`,
+      paidAmount: `₹${paidAmount.toLocaleString('en-IN')}`,
+      totalCount: data.total
+    };
+  };
+
   const counters = [
     {
-      label: 'Total COD Received',
-      value: '₹1,24,850',
+      label: 'Total COD Remittances',
+      value: calculateSummaryData({ cod_remittances: codRemittances, pagination }).totalAmount,
       icon: Receipt,
-      trend: { value: '12.5%', isPositive: true }
+      trend: { value: `${pagination.total}`, isPositive: true }
     },
     {
-      label: 'COD Pending',
-      value: '₹45,230',
+      label: 'Pending Payments',
+      value: calculateSummaryData({ cod_remittances: codRemittances, pagination }).pendingAmount,
       icon: Clock,
-      trend: { value: '5.2%', isPositive: false }
+      trend: { value: 'Pending', isPositive: false }
     },
     {
-      label: 'Early COD',
-      value: '₹32,450',
+      label: 'Paid Amount',
+      value: calculateSummaryData({ cod_remittances: codRemittances, pagination }).paidAmount,
       icon: TrendingUp,
-      trend: { value: '18.3%', isPositive: true }
+      trend: { value: 'Paid', isPositive: true }
     },
     {
-      label: 'This Month',
-      value: '₹89,650',
-      icon: Receipt,
-      trend: { value: '8.7%', isPositive: true }
+      label: 'Total AWB Count',
+      value: codRemittances.reduce((sum, item) => sum + item.total_awb, 0).toString(),
+      icon: FileText,
+      trend: { value: 'AWB', isPositive: true }
     }
   ];
 
-  const codData = [
-    {
-      id: 'COD001',
-      date: '2024-01-15',
-      orderId: 'ORD-2024-001',
-      amount: '₹2,450',
-      status: 'Pending',
-      customer: 'John Doe',
-      phone: '+91 9876543210',
-      location: 'Mumbai, MH'
-    },
-    {
-      id: 'COD002',
-      date: '2024-01-14',
-      orderId: 'ORD-2024-002',
-      amount: '₹1,890',
-      status: 'Received',
-      customer: 'Jane Smith',
-      phone: '+91 9876543211',
-      location: 'Delhi, DL'
-    },
-    {
-      id: 'COD003',
-      date: '2024-01-13',
-      orderId: 'ORD-2024-003',
-      amount: '₹3,200',
-      status: 'In Transit',
-      customer: 'Mike Johnson',
-      phone: '+91 9876543212',
-      location: 'Bangalore, KA'
-    },
-    {
-      id: 'COD004',
-      date: '2024-01-12',
-      orderId: 'ORD-2024-004',
-      amount: '₹1,650',
-      status: 'Delivered',
-      customer: 'Sarah Wilson',
-      phone: '+91 9876543213',
-      location: 'Chennai, TN'
-    },
-    {
-      id: 'COD005',
-      date: '2024-01-11',
-      orderId: 'ORD-2024-005',
-      amount: '₹2,890',
-      status: 'Pending',
-      customer: 'David Brown',
-      phone: '+91 9876543214',
-      location: 'Pune, MH'
-    },
-    {
-      id: 'COD006',
-      date: '2024-01-10',
-      orderId: 'ORD-2024-006',
-      amount: '₹4,200',
-      status: 'Received',
-      customer: 'Lisa Davis',
-      phone: '+91 9876543215',
-      location: 'Hyderabad, TS'
-    },
-    {
-      id: 'COD007',
-      date: '2024-01-09',
-      orderId: 'ORD-2024-007',
-      amount: '₹1,750',
-      status: 'In Transit',
-      customer: 'Chris Anderson',
-      phone: '+91 9876543216',
-      location: 'Kolkata, WB'
-    },
-    {
-      id: 'COD008',
-      date: '2024-01-08',
-      orderId: 'ORD-2024-008',
-      amount: '₹3,450',
-      status: 'Delivered',
-      customer: 'Emma Taylor',
-      phone: '+91 9876543217',
-      location: 'Ahmedabad, GJ'
-    },
-    {
-      id: 'COD009',
-      date: '2024-01-07',
-      orderId: 'ORD-2024-009',
-      amount: '₹2,100',
-      status: 'Pending',
-      customer: 'Robert Miller',
-      phone: '+91 9876543218',
-      location: 'Jaipur, RJ'
-    },
-    {
-      id: 'COD010',
-      date: '2024-01-06',
-      orderId: 'ORD-2024-010',
-      amount: '₹2,850',
-      status: 'Received',
-      customer: 'Olivia Garcia',
-      phone: '+91 9876543219',
-      location: 'Surat, GJ'
-    },
-    {
-      id: 'COD011',
-      date: '2024-01-05',
-      orderId: 'ORD-2024-011',
-      amount: '₹1,950',
-      status: 'In Transit',
-      customer: 'William Rodriguez',
-      phone: '+91 9876543220',
-      location: 'Lucknow, UP'
-    },
-    {
-      id: 'COD012',
-      date: '2024-01-04',
-      orderId: 'ORD-2024-012',
-      amount: '₹3,650',
-      status: 'Delivered',
-      customer: 'Sophia Martinez',
-      phone: '+91 9876543221',
-      location: 'Kanpur, UP'
-    },
-    {
-      id: 'COD013',
-      date: '2024-01-03',
-      orderId: 'ORD-2024-013',
-      amount: '₹2,300',
-      status: 'Pending',
-      customer: 'James Wilson',
-      phone: '+91 9876543222',
-      location: 'Nagpur, MH'
-    },
-    {
-      id: 'COD014',
-      date: '2024-01-02',
-      orderId: 'ORD-2024-014',
-      amount: '₹1,800',
-      status: 'Received',
-      customer: 'Isabella Lopez',
-      phone: '+91 9876543223',
-      location: 'Indore, MP'
-    },
-    {
-      id: 'COD015',
-      date: '2024-01-01',
-      orderId: 'ORD-2024-015',
-      amount: '₹4,100',
-      status: 'Delivered',
-      customer: 'Benjamin Lee',
-      phone: '+91 9876543224',
-      location: 'Thane, MH'
+  const fetchCODRemittances = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await CODRemittanceService.getCODRemittances(page);
+      
+      if (response.success && response.data) {
+        setCodRemittances(response.data.cod_remittances);
+        setPagination(response.data.pagination);
+      } else {
+        setError(response.error || 'Failed to fetch COD remittances');
+        toast({
+          title: "Error",
+          description: response.error || 'Failed to fetch COD remittances',
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      toast({
+        title: "Error",
+        description: 'An unexpected error occurred',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      'Pending': 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-      'Received': 'bg-green-500/10 text-green-700 dark:text-green-400',
-      'In Transit': 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-      'Delivered': 'bg-purple-500/10 text-purple-700 dark:text-purple-400'
-    };
+  useEffect(() => {
+    fetchCODRemittances();
+  }, []);
+
+  const handlePageChange = (page: number) => {
+    fetchCODRemittances(page);
+  };
+
+  const handleUpdateUTR = async () => {
+    if (!selectedRemittance || !utrNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid UTR number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setUpdatingUtr(true);
+      const response = await CODRemittanceService.updateUTRNumber(
+        selectedRemittance.id,
+        utrNumber.trim(),
+        utrDate || undefined
+      );
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: response.message || "UTR number updated successfully",
+        });
+        
+        // Refresh the data
+        fetchCODRemittances(pagination.current_page);
+        
+        // Close dialog and reset form
+        setUtrDialogOpen(false);
+        setUtrNumber('');
+        setUtrDate('');
+        setSelectedRemittance(null);
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to update UTR number",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingUtr(false);
+    }
+  };
+
+  const handleMarkAsPaid = async (id: number) => {
+    try {
+      const response = await CODRemittanceService.markAsPaid(id);
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: response.message || "COD remittance marked as paid",
+        });
+        
+        // Refresh the data
+        fetchCODRemittances(pagination.current_page);
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to mark as paid",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'excel') => {
+    try {
+      const response = await CODRemittanceService.exportCODRemittances(format);
+      
+      if (response.success && response.data) {
+        // Create download link
+        const url = window.URL.createObjectURL(response.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cod-remittances.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Success",
+          description: `Export successful - ${format.toUpperCase()} file downloaded`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to export data",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during export",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusBadge = (remittance: CODRemittance) => {
+    if (remittance.check_payment) {
+      return <Badge className="bg-green-500/10 text-green-700 dark:text-green-400">Paid</Badge>;
+    }
     
-    return (
-      <Badge className={statusColors[status as keyof typeof statusColors] || 'bg-gray-500/10 text-gray-700'}>
-        {status}
-      </Badge>
-    );
+    if (remittance.utr_no) {
+      return <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400">UTR Added</Badge>;
+    }
+    
+    return <Badge className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">Pending</Badge>;
   };
 
   const columns = [
-    { key: 'date', label: 'Date' },
-    { key: 'orderId', label: 'Order ID' },
-    { key: 'amount', label: 'Amount' },
     { 
-      key: 'status', 
-      label: 'Status',
-      render: (value: string) => getStatusBadge(value)
+      key: 'reference_id', 
+      label: 'Reference ID',
+      render: (value: string) => (
+        <div className="font-mono text-sm">{value}</div>
+      )
     },
-    { key: 'customer', label: 'Customer' },
-    { key: 'location', label: 'Location' },
+    { 
+      key: 'total_awb', 
+      label: 'Total AWB',
+      render: (value: number) => (
+        <div className="text-center font-medium">{value}</div>
+      )
+    },
+    { 
+      key: 'due_date', 
+      label: 'Due Date',
+      render: (value: string) => (
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-gray-500" />
+          {value}
+        </div>
+      )
+    },
+    { 
+      key: 'total_amount', 
+      label: 'Amount',
+      render: (value: string) => (
+        <div className="font-semibold text-green-600">₹{value}</div>
+      )
+    },
+    { 
+      key: 'utr_no', 
+      label: 'UTR Number',
+      render: (value: string | null) => (
+        <div className="flex items-center gap-2">
+          <Hash className="h-4 w-4 text-gray-500" />
+          {value || '-'}
+        </div>
+      )
+    },
+    { 
+      key: 'check_payment', 
+      label: 'Status',
+      render: (value: boolean, row: CODRemittance) => getStatusBadge(row)
+    },
     {
       key: 'actions',
       label: 'Actions',
-      render: () => (
+      render: (value: any, row: CODRemittance) => (
         <div className="flex space-x-2">
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-            <Eye className="h-4 w-4" />
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 w-8 p-0"
+            onClick={() => {
+              setSelectedRemittance(row);
+              setUtrDialogOpen(true);
+            }}
+            title="Update UTR"
+          >
+            <Hash className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-            <Download className="h-4 w-4" />
+          
+          {!row.check_payment && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+              onClick={() => handleMarkAsPaid(row.id)}
+              title="Mark as Paid"
+            >
+              <Receipt className="h-4 w-4" />
+            </Button>
+          )}
+          
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-8 w-8 p-0"
+            title="View Details"
+            onClick={() => navigate(`/dashboard/finance/cod-remittance/${row.id}`)}
+          >
+            <Eye className="h-4 w-4" />
           </Button>
         </div>
       )
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+            <span>Loading COD remittances...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="text-red-500 mb-4">❌</div>
+                <h3 className="text-lg font-semibold mb-2">Error Loading Data</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={() => fetchCODRemittances()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <FinanceCounter counters={counters} />
-      <FinanceTable
-        title="COD Remittance"
-        data={codData}
-        columns={columns}
-        searchPlaceholder="Search by Order ID, Customer..."
-      />
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>COD Remittance</CardTitle>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => handleExport('csv')}
+              disabled={codRemittances.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleExport('excel')}
+              disabled={codRemittances.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button onClick={() => fetchCODRemittances()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <FinanceTable
+            title=""
+            data={codRemittances}
+            columns={columns}
+            searchPlaceholder="Search by Reference ID, UTR..."
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            useExternalPagination={true}
+          />
+        </CardContent>
+      </Card>
+
+      {/* UTR Update Dialog */}
+      <Dialog open={utrDialogOpen} onOpenChange={setUtrDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update UTR Number</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="utr-number">UTR Number *</Label>
+              <Input
+                id="utr-number"
+                placeholder="Enter UTR number"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="utr-date">UTR Date (Optional)</Label>
+              <Input
+                id="utr-date"
+                type="date"
+                value={utrDate}
+                onChange={(e) => setUtrDate(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setUtrDialogOpen(false)}
+                disabled={updatingUtr}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateUTR}
+                disabled={updatingUtr || !utrNumber.trim()}
+              >
+                {updatingUtr ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update UTR'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

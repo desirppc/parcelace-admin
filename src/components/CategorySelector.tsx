@@ -1,28 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { CategoryMapping, KeywordMapping } from '@/types/support';
+import { CategoryMapping } from '@/types/support';
 
 interface CategorySelectorProps {
   category: string;
-  subCategory: string;
+  subcategory: string;
   onCategoryChange: (category: string) => void;
-  onSubCategoryChange: (subCategory: string) => void;
+  onSubCategoryChange: (subcategory: string) => void;
   disabled?: boolean;
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({
   category,
-  subCategory,
+  subcategory,
   onCategoryChange,
   onSubCategoryChange,
   disabled = false
 }) => {
-  const [searchText, setSearchText] = useState('');
-  const [isAutoDetected, setIsAutoDetected] = useState(false);
 
   const categories: CategoryMapping = {
     "Pickup & Delivery Related": [
@@ -62,124 +58,53 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     ]
   };
 
-  const keywordMappings: KeywordMapping = {
-    "pickup not happening": { category: "Pickup & Delivery Related", subCategory: "Delay in Pickup" },
-    "pickup delay": { category: "Pickup & Delivery Related", subCategory: "Delay in Pickup" },
-    "delay pickup": { category: "Pickup & Delivery Related", subCategory: "Delay in Pickup" },
-    "delivery delay": { category: "Pickup & Delivery Related", subCategory: "Delay in Delivery" },
-    "delay delivery": { category: "Pickup & Delivery Related", subCategory: "Delay in Delivery" },
-    "delivery pending": { category: "Pickup & Delivery Related", subCategory: "Delay in Delivery" },
-    "rto delay": { category: "Pickup & Delivery Related", subCategory: "Delay in RTO" },
-    "fake ndr": { category: "Shipment NDR and RTO", subCategory: "Fake NDR Remarks" },
-    "false ndr": { category: "Shipment NDR and RTO", subCategory: "Fake NDR Remarks" },
-    "cod not received": { category: "Finance", subCategory: "Delay in COD Remittance" },
-    "cod delay": { category: "Finance", subCategory: "Delay in COD Remittance" },
-    "payment delay": { category: "Finance", subCategory: "Delay in COD Remittance" },
-    "recharge issue": { category: "Finance", subCategory: "Unable to Recharge" },
-    "unable to recharge": { category: "Finance", subCategory: "Unable to Recharge" },
-    "wallet issue": { category: "Finance", subCategory: "Close account - transfer wallet balance to bank" },
-    "close account": { category: "Finance", subCategory: "Close account - transfer wallet balance to bank" },
-    "damaged package": { category: "Claims", subCategory: "Damage Claims" },
-    "package damaged": { category: "Claims", subCategory: "Damage Claims" },
-    "lost package": { category: "Claims", subCategory: "Lost Package Claims" },
-    "package lost": { category: "Claims", subCategory: "Lost Package Claims" },
-    "api issue": { category: "Technical Support", subCategory: "API Integration Issues" },
-    "api problem": { category: "Technical Support", subCategory: "API Integration Issues" },
-    "login issue": { category: "Technical Support", subCategory: "Platform Access Problems" },
-    "access problem": { category: "Technical Support", subCategory: "Platform Access Problems" },
-    "invoice wrong": { category: "Billing Remittance", subCategory: "Invoice Discrepancies" },
-    "billing issue": { category: "Billing Remittance", subCategory: "Invoice Discrepancies" },
-    "gst problem": { category: "Billing & Taxation", subCategory: "GST Issues" },
-    "tax issue": { category: "Billing & Taxation", subCategory: "GST Issues" }
-  };
-
-  useEffect(() => {
-    if (searchText.trim().length > 3) {
-      const lowerSearchText = searchText.toLowerCase();
-      
-      // Find matching keywords
-      const matchedKeyword = Object.keys(keywordMappings).find(keyword => 
-        lowerSearchText.includes(keyword.toLowerCase())
-      );
-
-      if (matchedKeyword) {
-        const mapping = keywordMappings[matchedKeyword];
-        onCategoryChange(mapping.category);
-        onSubCategoryChange(mapping.subCategory);
-        setIsAutoDetected(true);
-      }
-    }
-  }, [searchText, onCategoryChange, onSubCategoryChange]);
-
   const handleCategoryChange = (newCategory: string) => {
     onCategoryChange(newCategory);
     onSubCategoryChange(''); // Reset sub-category when category changes
-    setIsAutoDetected(false);
   };
 
   return (
-    <div className="space-y-4">
-      {/* Smart Search Input */}
-      <div>
-        <Label htmlFor="issue-description" className="text-sm font-medium text-foreground">
-          Describe your issue (optional - for smart detection)
-        </Label>
-        <Input
-          id="issue-description"
-          placeholder="e.g., pickup not happening, delivery delay, cod not received..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="mt-1 border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
-          disabled={disabled}
-        />
-        {isAutoDetected && (
-          <div className="mt-2">
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              Auto-detected category
-            </Badge>
-          </div>
-        )}
-      </div>
+    <div className="space-y-6">
+      {/* Category and Sub-Category Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Category Selection */}
+        <div className="relative">
+          <Label htmlFor="category" className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 block">
+            Category *
+          </Label>
+          <Select value={category} onValueChange={handleCategoryChange} disabled={disabled}>
+            <SelectTrigger className="border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-sm hover:shadow-md focus:shadow-lg focus:shadow-purple-100 dark:focus:shadow-purple-900/20 rounded-lg h-12">
+              <SelectValue placeholder="Select a category" className="text-gray-600 dark:text-gray-300" />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-gray-900 border-2 border-purple-200 dark:border-purple-800 shadow-xl rounded-lg">
+              {Object.keys(categories).map((cat) => (
+                <SelectItem key={cat} value={cat} className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 focus:bg-gradient-to-r focus:from-purple-100 focus:to-blue-100 dark:focus:from-purple-800/40 dark:focus:to-blue-800/40 transition-all duration-200 cursor-pointer">
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* Category Selection */}
-      <div>
-        <Label htmlFor="category" className="text-sm font-medium text-foreground">
-          Category *
-        </Label>
-        <Select value={category} onValueChange={handleCategoryChange} disabled={disabled}>
-          <SelectTrigger className="mt-1 border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.keys(categories).map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Sub-Category Selection */}
-      {category && (
-        <div>
-          <Label htmlFor="sub-category" className="text-sm font-medium text-foreground">
+        {/* Sub-Category Selection */}
+        <div className="relative">
+          <Label htmlFor="sub-category" className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 block">
             Sub-Category *
           </Label>
-          <Select value={subCategory} onValueChange={onSubCategoryChange} disabled={disabled}>
-            <SelectTrigger className="mt-1 border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600">
-              <SelectValue placeholder="Select a sub-category" />
+          <Select value={subcategory} onValueChange={onSubCategoryChange} disabled={disabled || !category}>
+            <SelectTrigger className="border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-sm hover:shadow-md focus:shadow-lg focus:shadow-purple-100 dark:focus:shadow-purple-900/20 rounded-lg h-12 disabled:opacity-60 disabled:cursor-not-allowed">
+              <SelectValue placeholder={category ? "Select a sub-category" : "Select category first"} className="text-gray-600 dark:text-gray-300" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white dark:bg-gray-900 border-2 border-purple-200 dark:border-purple-800 shadow-xl rounded-lg">
               {categories[category]?.map((subCat) => (
-                <SelectItem key={subCat} value={subCat}>
+                <SelectItem key={subCat} value={subCat} className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 focus:bg-gradient-to-r focus:from-purple-100 focus:to-blue-100 dark:focus:from-purple-800/40 dark:focus:to-blue-800/40 transition-all duration-200 cursor-pointer">
                   {subCat}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-      )}
+      </div>
     </div>
   );
 };

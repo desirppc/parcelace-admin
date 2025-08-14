@@ -30,6 +30,7 @@ import OnboardingReverseShipments from './pages/OnboardingReverseShipments';
 import OnboardingShipmentTracking from './pages/OnboardingShipmentTracking';
 import OnboardingCourierSelection from './pages/OnboardingCourierSelection';
 import OnboardingCODRemittance from './pages/OnboardingCODRemittance';
+import CODRemittanceDetails from './pages/CODRemittanceDetails';
 import OnboardingWalletTransaction from './pages/OnboardingWalletTransaction';
 import OnboardingEarlyCOD from './pages/OnboardingEarlyCOD';
 import OnboardingInvoice from './pages/OnboardingInvoice';
@@ -38,8 +39,6 @@ import OnboardingInvoiceSettings from './pages/OnboardingInvoiceSettings';
 import OnboardingTrackingPage from './pages/OnboardingTrackingPage';
 import OnboardingSupportDashboard from './pages/OnboardingSupportDashboard';
 import OnboardingCreateTicket from './pages/OnboardingCreateTicket';
-import OnboardingMyTickets from './pages/OnboardingMyTickets';
-import OnboardingTicketHistory from './pages/OnboardingTicketHistory';
 import OnboardingShopifyIntegration from './pages/OnboardingShopifyIntegration';
 import ProfilePage from './components/ProfilePage';
 import OnboardingWizard from './components/OnboardingWizard';
@@ -49,6 +48,8 @@ import PublicRoute from './components/PublicRoute';
 import ParcelAceAI from './components/ParcelAceAI';
 import AnalyticsTest from './pages/AnalyticsTest';
 import DailyReport from './pages/DailyReport';
+import AdminEmailReportsPage from './pages/AdminEmailReportsPage';
+import SessionWarning from './components/SessionWarning';
 
 import { UserProvider } from './contexts/UserContext';
 // Add imports for forgot password flow
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/dashboard/ai" element={<ParcelAceAI />} />
                 <Route path="/dashboard/analytics" element={<AnalyticsTest />} />
                 <Route path="/dashboard/reports/daily" element={<DailyReport />} />
+                <Route path="/dashboard/reports/admin-email" element={<AdminEmailReportsPage />} />
                 
                 {/* Order Management */}
                 <Route path="/dashboard/orders/add" element={<OnboardingRoute><AddOrder /></OnboardingRoute>} />
@@ -119,6 +121,7 @@ const App = () => (
                 
                 {/* Finance Routes */}
                 <Route path="/dashboard/finance/cod-remittance" element={<OnboardingRoute><OnboardingCODRemittance /></OnboardingRoute>} />
+                <Route path="/dashboard/finance/cod-remittance/:id" element={<OnboardingRoute><CODRemittanceDetails /></OnboardingRoute>} />
                 <Route path="/dashboard/finance/wallet-transaction" element={<OnboardingRoute><OnboardingWalletTransaction /></OnboardingRoute>} />
                 <Route path="/dashboard/finance/early-cod" element={<OnboardingRoute><OnboardingEarlyCOD /></OnboardingRoute>} />
                 <Route path="/dashboard/finance/invoice" element={<OnboardingRoute><OnboardingInvoice /></OnboardingRoute>} />
@@ -126,8 +129,6 @@ const App = () => (
                 {/* Support Routes */}
                 <Route path="/dashboard/support/support-dashboard" element={<OnboardingRoute><OnboardingSupportDashboard /></OnboardingRoute>} />
                 <Route path="/dashboard/support/create-ticket" element={<OnboardingRoute><OnboardingCreateTicket /></OnboardingRoute>} />
-                <Route path="/dashboard/support/my-tickets" element={<OnboardingRoute><OnboardingMyTickets /></OnboardingRoute>} />
-                <Route path="/dashboard/support/ticket-history" element={<OnboardingRoute><OnboardingTicketHistory /></OnboardingRoute>} />
                 
                 {/* Settings Routes */}
                 <Route path="/dashboard/settings/billing" element={<OnboardingRoute><OnboardingBilling /></OnboardingRoute>} />
@@ -158,8 +159,6 @@ const App = () => (
                 <Route path="/onboarding/settings/tracking-page" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
                 <Route path="/onboarding/support/support-dashboard" element={<OnboardingRoute><OnboardingSupportDashboard /></OnboardingRoute>} />
                 <Route path="/onboarding/support/create-ticket" element={<OnboardingRoute><OnboardingCreateTicket /></OnboardingRoute>} />
-                <Route path="/onboarding/support/my-tickets" element={<OnboardingRoute><OnboardingMyTickets /></OnboardingRoute>} />
-                <Route path="/onboarding/support/ticket-history" element={<OnboardingRoute><OnboardingTicketHistory /></OnboardingRoute>} />
                 <Route path="/onboarding/profile" element={<OnboardingRoute><ProfilePage /></OnboardingRoute>} />
                 <Route path="/onboarding/warehouse-location" element={<OnboardingRoute><WarehouseScreen /></OnboardingRoute>} />
                 
@@ -174,6 +173,9 @@ const App = () => (
                 </RouteGuard>
               } />
             </Routes>
+            
+            {/* Session Warning Component - Available throughout the app */}
+            <SessionWarning />
           </BrowserRouter>
         </UserProvider>
       </TooltipProvider>

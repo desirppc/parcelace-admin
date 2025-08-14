@@ -25,27 +25,20 @@ const SupportDashboard: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await supportService.getSupportTickets();
-      console.log('Support API Response:', response);
       
       // Check if response has data and tickets array
       const apiTickets = response?.data?.tickets && Array.isArray(response.data.tickets) ? response.data.tickets : [];
       
       if (apiTickets.length === 0) {
-        console.log('No tickets found or invalid response format');
         setStats({ open: 0, inProgress: 0, awaitingResponse: 0, overdue: 0, resolvedWithinSLA: 0 });
         setTickets([]);
         return;
       }
       
-      console.log(`Processing ${apiTickets.length} tickets from API`);
-      console.log('Sample ticket structure:', apiTickets[0]);
-      
       setStats(supportService.calculateStats(apiTickets));
       const transformed = apiTickets.map((t: any) => supportService.transformTicketForFrontend(t));
-      console.log('Transformed tickets:', transformed.slice(0, 2));
       setTickets(transformed);
     } catch (error) {
-      console.error('Failed to load support tickets', error);
       // Set default stats and empty tickets on error
       setStats({ open: 0, inProgress: 0, awaitingResponse: 0, overdue: 0, resolvedWithinSLA: 0 });
       setTickets([]);
@@ -110,7 +103,13 @@ const SupportDashboard: React.FC = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl">
-            <CreateTicket hideHeader onSuccess={() => setOpen(false)} />
+            <CreateTicket 
+              hideHeader 
+              onSuccess={() => {
+                setOpen(false); // Close the popup
+                fetchTickets(); // Reload tickets data
+              }} 
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -118,22 +117,7 @@ const SupportDashboard: React.FC = () => {
       {/* Statistics Cards */}
       <SupportCounter stats={stats} />
 
-      {/* Debug Information - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="text-orange-800">Debug Info</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm space-y-2">
-              <div><strong>Total Tickets:</strong> {tickets.length}</div>
-              <div><strong>Filtered Tickets:</strong> {filteredTickets.length}</div>
-              <div><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</div>
-              <div><strong>Stats:</strong> {JSON.stringify(stats)}</div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Search and Filters */}
       <Card>

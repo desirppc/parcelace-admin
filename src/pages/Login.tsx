@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, Truck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,29 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberCredentials, setRememberCredentials] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login } = useAuth();
 
-  const handleLogin = async () => {
+  // Load saved credentials on component mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('parcelace_saved_email');
+    const savedPassword = localStorage.getItem('parcelace_saved_password');
+    const savedRemember = localStorage.getItem('parcelace_remember_credentials');
+    
+    if (savedEmail && savedPassword && savedRemember === 'true') {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberCredentials(true);
+    }
+  }, []);
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
     if (!email || !password) {
       toast({
         title: "Missing Information",
@@ -27,6 +45,18 @@ const Login = () => {
     }
 
     setIsLoading(true);
+
+    // Save credentials if remember is checked
+    if (rememberCredentials) {
+      localStorage.setItem('parcelace_saved_email', email);
+      localStorage.setItem('parcelace_saved_password', password);
+      localStorage.setItem('parcelace_remember_credentials', 'true');
+    } else {
+      // Clear saved credentials if remember is unchecked
+      localStorage.removeItem('parcelace_saved_email');
+      localStorage.removeItem('parcelace_saved_password');
+      localStorage.removeItem('parcelace_remember_credentials');
+    }
 
     // Check for demo credentials first
     if (email === 'demo@parcelace.io' && password === 'demo123') {
@@ -210,11 +240,7 @@ const Login = () => {
           </p>
           
           {/* Login Form */}
-
-          {/* Login Form */}
-
-          {/* Form */}
-          <div className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -229,6 +255,7 @@ const Login = () => {
                   className="pl-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your business email"
                   disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -247,6 +274,7 @@ const Login = () => {
                   className="pl-10 pr-10 h-12 rounded-xl border-gray-200 focus:border-pink-400 focus:ring-pink-400 bg-white/60 backdrop-blur-sm"
                   placeholder="Enter your password"
                   disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
@@ -258,9 +286,24 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Remember Credentials Checkbox */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="remember-credentials"
+                checked={rememberCredentials}
+                onChange={(e) => setRememberCredentials(e.target.checked)}
+                className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+              />
+              <label htmlFor="remember-credentials" className="ml-2 block text-sm text-gray-700">
+                Remember my credentials
+              </label>
+            </div>
+
             {/* Forgot Password */}
             <div className="text-right">
               <button 
+                type="button"
                 onClick={handleForgotPassword}
                 className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-sm font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
               >
@@ -270,7 +313,7 @@ const Login = () => {
 
             {/* Sign In Button */}
             <Button 
-              onClick={handleLogin}
+              type="submit"
               disabled={isLoading}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none"
             >
@@ -283,7 +326,7 @@ const Login = () => {
                 'Access Dashboard'
               )}
             </Button>
-          </div>
+          </form>
 
           {/* Divider */}
           <div className="flex items-center my-6">
@@ -296,6 +339,7 @@ const Login = () => {
           <div className="text-center">
             <span className="text-gray-600">New to our platform? </span>
             <button
+              type="button"
               onClick={handleSignUp}
               className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
             >

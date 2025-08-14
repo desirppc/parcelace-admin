@@ -22,9 +22,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { getSessionInfo } from '@/utils/authUtils';
 
 const AppHeader: React.FC = () => {
-  const { user, walletBalance, updateWalletBalance } = useUser();
+  const { user, walletBalance, updateWalletBalance, isSessionValid } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isRechargeOpen, setIsRechargeOpen] = useState(false);
@@ -32,6 +33,7 @@ const AppHeader: React.FC = () => {
   const [selectedAmount, setSelectedAmount] = useState(500);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+  const sessionInfo = getSessionInfo();
 
   // Listen for wallet balance updates
   useEffect(() => {
@@ -386,6 +388,16 @@ const AppHeader: React.FC = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Session Status Indicator */}
+        {isSessionValid && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 rounded-full">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-700 dark:text-green-400 font-medium">
+              Session Active
+            </span>
+          </div>
+        )}
       </div>
     </header>
   );

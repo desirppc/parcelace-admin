@@ -20,6 +20,15 @@ interface FinanceTableProps {
   showDateFilter?: boolean;
   showExport?: boolean;
   itemsPerPage?: number;
+  pagination?: {
+    current_page: number;
+    last_page: number;
+    total_page: number;
+    per_page: number;
+    total: number;
+  };
+  onPageChange?: (page: number) => void;
+  useExternalPagination?: boolean;
 }
 
 const FinanceTable = ({ 
@@ -29,7 +38,10 @@ const FinanceTable = ({
   searchPlaceholder = "Search...", 
   showDateFilter = true,
   showExport = true,
-  itemsPerPage = 10 
+  itemsPerPage = 10,
+  pagination,
+  onPageChange,
+  useExternalPagination = false
 }: FinanceTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,9 +55,17 @@ const FinanceTable = ({
   );
 
   // Pagination
-  const totalPages = Math.ceil(filteredData.length / itemsPerPageState);
-  const startIndex = (currentPage - 1) * itemsPerPageState;
-  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPageState);
+  const totalPages = useExternalPagination && pagination ? pagination.last_page : Math.ceil(filteredData.length / itemsPerPageState);
+  const startIndex = useExternalPagination && pagination ? (pagination.current_page - 1) * pagination.per_page : (currentPage - 1) * itemsPerPageState;
+  const paginatedData = useExternalPagination ? data : filteredData.slice(startIndex, startIndex + itemsPerPageState);
+  
+  // Use external pagination values when available
+  const currentPageValue = useExternalPagination && pagination ? pagination.current_page : currentPage;
+  const totalEntries = useExternalPagination && pagination ? pagination.total : filteredData.length;
+  const showingFrom = startIndex + 1;
+  const showingTo = useExternalPagination && pagination 
+    ? Math.min(startIndex + pagination.per_page, pagination.total)
+    : Math.min(startIndex + itemsPerPageState, filteredData.length);
 
   const handleExport = () => {
     // Simulate export functionality
@@ -114,7 +134,7 @@ const FinanceTable = ({
             <span className="text-sm text-muted-foreground">entries</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPageState, filteredData.length)} of {filteredData.length} entries
+            Showing {showingFrom} to {showingTo} of {totalEntries} entries
           </div>
         </div>
 
@@ -150,22 +170,34 @@ const FinanceTable = ({
           <div className="flex items-center justify-between mt-4">
             <Button
               variant="outline"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              onClick={() => {
+                if (useExternalPagination && onPageChange) {
+                  onPageChange(currentPageValue - 1);
+                } else {
+                  setCurrentPage(prev => Math.max(1, prev - 1));
+                }
+              }}
+              disabled={currentPageValue === 1}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
             <div className="flex items-center space-x-2">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
+                const pageNum = currentPageValue <= 3 ? i + 1 : currentPageValue - 2 + i;
                 if (pageNum > totalPages) return null;
                 return (
                   <Button
                     key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
+                    variant={currentPageValue === pageNum ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => {
+                      if (useExternalPagination && onPageChange) {
+                        onPageChange(pageNum);
+                      } else {
+                        setCurrentPage(pageNum);
+                      }
+                    }}
                   >
                     {pageNum}
                   </Button>
@@ -174,8 +206,14 @@ const FinanceTable = ({
             </div>
             <Button
               variant="outline"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => {
+                if (useExternalPagination && onPageChange) {
+                  onPageChange(currentPageValue + 1);
+                } else {
+                  setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                }
+              }}
+              disabled={currentPageValue === totalPages}
             >
               Next
               <ChevronRight className="w-4 h-4 ml-2" />

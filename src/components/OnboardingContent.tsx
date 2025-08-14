@@ -14,7 +14,6 @@ import TrackingPage from './TrackingPage';
 import WarehouseScreen from './WarehouseScreen';
 import SupportDashboard from './SupportDashboard';
 import CreateTicket from './CreateTicket';
-import TicketList from './TicketList';
 import ShippingLabelSettings from './ShippingLabelSettings';
 import { SupportTicket } from '@/types/support';
 
@@ -70,7 +69,7 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       case 'pan-verification':
       case 'bank-verification':
       case 'gst-verification':
-        return <KYCVerification activeStep={activeMenuItem} />;
+        return <KYCVerification />;
 
       case 'view-order':
         return <ViewOrder />;
@@ -79,14 +78,14 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       case 'add-order':
       case 'prepaid-orders':
       case 'reverse-orders':
-        return <OrdersPage activeTab={activeMenuItem} />;
+        return <OrdersPage />;
 
       case 'shipments':
       case 'prepaid-shipments':
       case 'reverse-shipments':
       case 'tracking':
       case 'courier-selection':
-        return <ShipmentPage activeTab={activeMenuItem} />;
+        return <ShipmentPage />;
 
       case 'cod-remittance':
         return <CODRemittance />;
@@ -115,7 +114,7 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
         return <CreateTicket />;
       case 'my-tickets':
       case 'ticket-history':
-        return <TicketList onTicketSelect={handleTicketSelect} />;
+        return <SupportDashboard />; // Redirect to support dashboard instead
 
       default:
         return (

@@ -34,7 +34,8 @@ import {
   Route,
   RefreshCw,
   Sparkles,
-  BarChart3
+  BarChart3,
+  Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -167,12 +168,7 @@ const OnboardingLayout = () => {
       id: 'support',
       title: 'Support',
       icon: MessageSquare,
-      subItems: [
-        { id: 'support-dashboard', title: 'Support Dashboard', icon: MessageCircle },
-        { id: 'create-ticket', title: 'Create Ticket', icon: MessageSquare },
-        { id: 'my-tickets', title: 'My Tickets', icon: FileText },
-        { id: 'ticket-history', title: 'Ticket History', icon: History }
-      ]
+      route: '/dashboard/support/support-dashboard'
     },
 
     {
@@ -180,7 +176,8 @@ const OnboardingLayout = () => {
       title: 'Reports',
       icon: BarChart3,
       subItems: [
-        { id: 'daily-report', title: 'Daily Report', icon: BarChart3 }
+        { id: 'daily-report', title: 'Daily Report', icon: BarChart3 },
+        { id: 'admin-email', title: 'Admin Email Reports', icon: Mail }
       ]
     },
 
@@ -214,9 +211,8 @@ const OnboardingLayout = () => {
     'warehouse-location': '/dashboard/settings/warehouse',
     'support-dashboard': '/dashboard/support/support-dashboard',
     'create-ticket': '/dashboard/support/create-ticket',
-    'my-tickets': '/dashboard/support/my-tickets',
-    'ticket-history': '/dashboard/support/ticket-history',
     'daily-report': '/dashboard/reports/daily',
+    'admin-email': '/dashboard/reports/admin-email',
 
   };
 

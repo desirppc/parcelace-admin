@@ -48,6 +48,7 @@ const API_CONFIG = {
     WALLET_BALANCE: 'api/wallet/balance',
     WALLET_TRANSACTIONS: 'api/wallet/transactions',
     WALLET_RECHARGE: 'api/wallet/recharge',
+    COD_REMITTANCE: 'api/cod-remittance',
     
     // Support & Tickets
     SUPPORT: 'api/support',

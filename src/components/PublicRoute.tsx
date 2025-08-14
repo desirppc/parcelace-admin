@@ -1,16 +1,13 @@
 import React from 'react';
-import RouteGuard from './RouteGuard';
 
 interface PublicRouteProps {
   children: React.ReactNode;
 }
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  return (
-    <RouteGuard requireAuth={false}>
-      {children}
-    </RouteGuard>
-  );
+  // Simplified PublicRoute - let the child components handle their own authentication logic
+  // This prevents conflicts between Index.tsx and PublicRoute.tsx
+  return <>{children}</>;
 };
 
 export default PublicRoute;
