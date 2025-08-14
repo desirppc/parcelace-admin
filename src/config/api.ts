@@ -1,5 +1,7 @@
+import { ENVIRONMENT } from './environment';
+
 const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://app.parcelace.io/',
+  BASE_URL: ENVIRONMENT.getCurrentApiUrl(),
   ENDPOINTS: {
     // Authentication
     LOGIN: 'api/login',
@@ -29,6 +31,7 @@ const API_CONFIG = {
     EDIT_ORDER: 'api/order/edit',
     DELETE_ORDER: 'api/order/delete',
     ORDER_EXPORT: 'api/order/export',
+    ORDER_IMPORT: 'api/order/import-bulk-order',
     
     // Shipments
     SHIPMENTS: 'api/shipments/list',
@@ -91,12 +94,17 @@ const API_CONFIG = {
 // Helper function to get API URL with endpoint
 export const getApiUrl = (endpoint: string): string => {
   const fullUrl = `${API_CONFIG.BASE_URL}${endpoint}`;
-  console.log('API Config Debug:', {
-    BASE_URL: API_CONFIG.BASE_URL,
-    endpoint,
-    fullUrl,
-    VITE_API_URL: import.meta.env.VITE_API_URL
-  });
+  
+  // Enhanced debugging in development
+  if (ENVIRONMENT.isDevelopment()) {
+    console.log('🔗 API Config Debug:', {
+      BASE_URL: API_CONFIG.BASE_URL,
+      endpoint,
+      fullUrl,
+      environment: ENVIRONMENT.getInfo()
+    });
+  }
+  
   return fullUrl;
 };
 
@@ -135,6 +143,16 @@ export const apiRequest = async (
     const response = await fetch(url, config);
     const result = await response.json();
     
+    // Enhanced logging in development
+    if (ENVIRONMENT.isDevelopment()) {
+      console.log(`🌐 API Request (${method} ${endpoint}):`, {
+        url,
+        status: response.status,
+        ok: response.ok,
+        result
+      });
+    }
+    
     return {
       success: response.ok,
       data: result.data,
@@ -143,7 +161,7 @@ export const apiRequest = async (
       error: !response.ok ? result.error || 'Request failed' : null
     };
   } catch (error) {
-    console.error(`API Request Error (${method} ${endpoint}):`, error);
+    console.error(`❌ API Request Error (${method} ${endpoint}):`, error);
     return {
       success: false,
       error: 'Network error occurred',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, 
   Upload, 
@@ -39,6 +39,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import CourierPartnerSelection from './CourierPartnerSelection';
 import { orderService } from '@/services/orderService';
+import API_CONFIG from '@/config/api';
+import { getApiUrl, getAuthHeaders } from '@/config/api';
+import { testImportAPI, testFileValidation } from '@/utils/testImportAPI';
 
 
 const OrdersPage = () => {
@@ -76,6 +79,7 @@ const OrdersPage = () => {
   // Import order states
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   
   // Courier selection states
@@ -912,12 +916,40 @@ const OrdersPage = () => {
 
   // Import order handlers
   const handleFileSelect = (file: File) => {
-    if (file && (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-                 file.type === 'application/vnd.ms-excel' || 
-                 file.name.endsWith('.xlsx') || 
-                 file.name.endsWith('.xls') || 
-                 file.name.endsWith('.csv'))) {
+    console.log('File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
+
+    // More flexible file type validation
+    const isValidFile = (
+      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || // .xlsx
+      file.type === 'application/vnd.ms-excel' || // .xls
+      file.type === 'text/csv' || // .csv
+      file.type === 'application/csv' || // alternative CSV MIME type
+      file.name.toLowerCase().endsWith('.xlsx') ||
+      file.name.toLowerCase().endsWith('.xls') ||
+      file.name.toLowerCase().endsWith('.csv')
+    );
+
+    if (file && isValidFile) {
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select a file smaller than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setImportFile(file);
+      toast({
+        title: "File Selected",
+        description: `${file.name} is ready for import.`,
+      });
     } else {
       toast({
         title: "Invalid File Type",
@@ -962,18 +994,46 @@ const OrdersPage = () => {
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
 
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const formData = new FormData();
       formData.append('spreadsheet', importFile);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order/import-bulk-order`, {
+      // Use API config for the endpoint
+      const importUrl = getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT);
+      
+      console.log('Import API Debug:', {
+        url: importUrl,
+        file: importFile.name,
+        fileType: importFile.type,
+        fileSize: importFile.size,
+        formData: formData
+      });
+
+      const response = await fetch(importUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          // Don't set Content-Type for FormData, let browser set it with boundary
         },
         body: formData,
       });
 
       const data = await response.json();
+      
+      console.log('Import API Response:', {
+        status: response.status,
+        ok: response.ok,
+        data: data,
+        headers: Object.fromEntries(response.headers.entries())
+      });
 
       if (response.ok && data.status) {
         toast({
@@ -982,16 +1042,99 @@ const OrdersPage = () => {
         });
         setShowImportModal(false);
         setImportFile(null);
-        // Refresh orders list
-        window.location.reload();
+        
+        // Wait a moment for backend processing, then refresh orders data
+        setTimeout(async () => {
+          setRefreshLoading(true);
+          try {
+            console.log('Starting to refresh orders after import...');
+            let authToken = sessionStorage.getItem('auth_token');
+            if (!authToken) authToken = localStorage.getItem('auth_token');
+            
+            const refreshResponse = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.ORDERS), {
+              headers: getAuthHeaders(authToken),
+            });
+            
+            console.log('Refresh response status:', refreshResponse.status);
+            const refreshData = await refreshResponse.json();
+            console.log('Refresh response data:', refreshData);
+            
+            if (refreshResponse.ok && refreshData.status && refreshData.data?.orders_data) {
+              // Sort orders by latest first
+              const sortedOrders = refreshData.data.orders_data.sort((a: any, b: any) => {
+                const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
+                const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
+                return dateB.getTime() - dateA.getTime();
+              });
+              
+              console.log('Previous orders count:', orders.length);
+              console.log('New orders count:', sortedOrders.length);
+              console.log('New orders:', sortedOrders.slice(0, 3)); // Log first 3 orders
+              
+              setOrders(sortedOrders);
+              // Reapply current filters
+              filterOrdersByPageType(sortedOrders, currentPageType);
+              resetPagination();
+              
+              toast({
+                title: "Orders Refreshed",
+                description: `Orders list updated: ${orders.length} → ${sortedOrders.length} orders`,
+              });
+            } else {
+              console.error('Refresh failed:', refreshData);
+              toast({
+                title: "Refresh Failed",
+                description: refreshData?.message || "Failed to refresh orders list.",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            console.error('Error refreshing orders:', error);
+            toast({
+              title: "Refresh Warning",
+              description: "Orders imported but failed to refresh the list. Please refresh the page manually.",
+              variant: "destructive",
+            });
+          } finally {
+            setRefreshLoading(false);
+          }
+        }, 2000); // Wait 2 seconds for backend processing
       } else {
+        let errorMessage = "Failed to import orders.";
+        
+        if (response.status === 500) {
+          errorMessage = "Server error: The server encountered an internal error. Please contact support.";
+        } else if (response.status === 413) {
+          errorMessage = "File too large: Please select a smaller file.";
+        } else if (response.status === 415) {
+          errorMessage = "Unsupported file type: Please use Excel (.xlsx, .xls) or CSV files.";
+        } else if (response.status === 400) {
+          errorMessage = data.message || "Invalid file format or data. Please check your file and try again.";
+        } else if (response.status === 401) {
+          errorMessage = "Authentication failed. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage = "Access denied. You don't have permission to import orders.";
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error?.message) {
+          errorMessage = data.error.message;
+        }
+        
+        console.error('Import failed:', {
+          status: response.status,
+          data: data,
+          errorMessage: errorMessage,
+          url: importUrl
+        });
+        
         toast({
           title: "Import Failed",
-          description: data.message || data.error?.message || "Failed to import orders.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Import network error:', error);
       toast({
         title: "Network Error",
         description: "Please check your connection and try again.",
@@ -1003,24 +1146,19 @@ const OrdersPage = () => {
   };
 
   const handleDownloadSample = () => {
-    // Use your existing CSV structure - please replace this with your actual CSV structure
-    const sampleData = [
-      // Replace these headers and sample rows with your actual CSV structure
-      ['order_id', 'customer_name', 'customer_phone', 'customer_email', 'customer_address', 'product_name', 'quantity', 'price', 'order_type'],
-      ['ORD001', 'John Doe', '+91-9876543210', 'john@example.com', '123 Main St, City, State 12345', 'Product 1', '2', '500', 'prepaid'],
-      ['ORD002', 'Jane Smith', '+91-9876543211', 'jane@example.com', '456 Oak Ave, City, State 12345', 'Product 2', '1', '750', 'cod'],
-    ];
+    // Download the sample CSV file from the provided URL
+    const sampleUrl = 'https://app.parcelace.io/public/excelFormat/sample_import_order.csv';
     
-    const csvContent = sampleData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
+    // Create a temporary anchor element to trigger the download
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sample-import-order.csv';
+    a.href = sampleUrl;
+    a.download = 'sample_import_order.csv';
+    a.target = '_blank';
+    
+    // Append to body, click, and remove
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
   };
 
   // Courier selection handlers
@@ -1034,13 +1172,22 @@ const OrdersPage = () => {
   };
 
   const getOrderSummaryForCourier = (order: any) => {
+    // Debug logging to see what's in the order object
+    console.log('=== DEBUG: getOrderSummaryForCourier ===');
+    console.log('Order object:', order);
+    console.log('Order ID:', order.order_id);
+    console.log('Order ID type:', typeof order.order_id);
+    console.log('Parsed order ID:', parseInt(order.order_id));
+    console.log('Selected warehouse:', selectedWarehouse);
+    console.log('Order warehouse details:', order.warehouse_details);
+    
     // Use selected warehouse if available, otherwise fall back to order data
     const warehouseDetails = selectedWarehouse || order.warehouse_details;
     const pickupLocation = warehouseDetails 
       ? `${warehouseDetails.city || 'Unknown'}, ${warehouseDetails.state || 'Unknown'} - ${warehouseDetails.pincode || 'Unknown'}`
       : "Warehouse location to be determined";
 
-    return {
+    const result = {
       orderId: parseInt(order.order_id) || 1,
       warehouseId: warehouseDetails?.id || 60,
       rtoId: warehouseDetails?.id || 60,
@@ -1056,6 +1203,11 @@ const OrdersPage = () => {
         height: parseFloat(order.height) || 0
       }
     };
+    
+    console.log('Generated order summary:', result);
+    console.log('=== END DEBUG ===');
+    
+    return result;
   };
 
   // Pagination functions
@@ -1229,6 +1381,49 @@ const OrdersPage = () => {
                     </div>
                   )}
                   
+                  {refreshLoading && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
+                        <p className="text-sm text-green-800">
+                          Refreshing orders list... Please wait.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!refreshLoading && !importLoading && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                        <div className="text-sm text-red-800">
+                          <p className="font-medium">Server Error (500)</p>
+                          <p className="text-xs mt-1">
+                            The server is experiencing issues. Please contact support or try again later.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Debug Panel - Only show in development */}
+                  {import.meta.env.DEV && importFile && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-gray-600" />
+                        <p className="text-sm font-medium text-gray-800">Debug Info</p>
+                      </div>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <p><strong>File:</strong> {importFile.name}</p>
+                        <p><strong>Type:</strong> {importFile.type || 'Unknown'}</p>
+                        <p><strong>Size:</strong> {(importFile.size / 1024).toFixed(2)} KB</p>
+                        <p><strong>API URL:</strong> {getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT)}</p>
+                        <p><strong>Environment:</strong> {import.meta.env.MODE}</p>
+                        <p><strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || 'Not set (using default)'}</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between">
                     <Button 
                       variant="ghost" 
@@ -1238,6 +1433,44 @@ const OrdersPage = () => {
                       <Download className="w-4 h-4 mr-2" />
                       Download Sample
                     </Button>
+                    
+                    {/* Test API Button - Only in development */}
+                    {import.meta.env.DEV && importFile && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={async () => {
+                          const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+                          if (token && importFile) {
+                            console.log('🧪 Testing API directly...');
+                            const result = await testImportAPI(importFile, token);
+                            console.log('Test result:', result);
+                            
+                            if (result.success) {
+                              toast({
+                                title: "API Test Successful",
+                                description: "Direct API call worked! Check console for details.",
+                              });
+                            } else {
+                              toast({
+                                title: "API Test Failed",
+                                description: `Status: ${result.status || 'Unknown'}. Check console for details.`,
+                                variant: "destructive",
+                              });
+                            }
+                          } else {
+                            toast({
+                              title: "Test Failed",
+                              description: "No auth token or file found.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        🧪 Test API
+                      </Button>
+                    )}
+                    
                     <div className="flex space-x-3">
                       <Button 
                         variant="outline" 
@@ -1250,10 +1483,10 @@ const OrdersPage = () => {
                       </Button>
                       <Button 
                         onClick={handleImport}
-                        disabled={!importFile || importLoading}
+                        disabled={!importFile || importLoading || refreshLoading}
                         className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
                       >
-                        {importLoading ? 'Importing...' : 'Import'}
+                        {importLoading ? 'Importing...' : refreshLoading ? 'Refreshing...' : 'Import'}
                       </Button>
                     </div>
                   </div>

@@ -715,26 +715,43 @@ const OrderDetails = () => {
 
   // Prepare order summary for courier selection
   const getOrderSummaryForCourier = () => {
+    // Always use the most current data from the state
+    const currentOrderData = orderData.data;
+    const currentOrderDetails = currentOrderData.order_details;
+    const currentCustomerDetails = currentOrderData.customer_details;
+    
     // Use selected warehouse if available, otherwise fall back to order data
-    const warehouseDetails = selectedWarehouse || data.warehouse_details;
+    const warehouseDetails = selectedWarehouse || currentOrderData.warehouse_details;
     const pickupLocation = warehouseDetails 
-      ? `${warehouseDetails.city || 'Unknown'}, ${warehouseDetails.state || 'Unknown'} - ${warehouseDetails.pincode || 'Unknown'}`
+      ? `${warehouseDetails.warehouse_name || 'Unknown'}, ${warehouseDetails.city || 'Unknown'}, ${warehouseDetails.state || 'Unknown'}`
       : "Warehouse location to be determined";
 
+    // Build comprehensive delivery location with customer name and address details
+    const customerName = currentCustomerDetails.first_name || currentCustomerDetails.last_name || '';
+    const deliveryAddress = [
+      customerName,
+      currentCustomerDetails.address1,
+      currentCustomerDetails.address2,
+      currentCustomerDetails.city,
+      currentCustomerDetails.zipcode
+    ].filter(Boolean).join(', ');
+
+
+
     return {
-      orderId: parseInt(orderId) || parseInt(order_details.order_id) || 1, // Use URL param first, then API data
+      orderId: parseInt(orderId) || parseInt(currentOrderDetails.order_id) || 1, // Use URL param first, then API data
       warehouseId: warehouseDetails?.id || 60, // Use selected warehouse ID
       rtoId: warehouseDetails?.id || 60, // Use same as warehouse for now
-      parcelType: order_details.parcel_type || 'parcel',
+      parcelType: currentOrderDetails.parcel_type || 'parcel',
       pickupLocation: pickupLocation,
-      deliveryLocation: `${customer_details.city || 'Unknown'}, ${customer_details.zipcode || 'Unknown'}`,
-      orderType: order_details.order_type || 'prepaid',
-      weight: parseFloat(order_details.weight) || 0,
-      volumetricWeight: parseFloat(order_details.volumetric_weight) || 0,
+      deliveryLocation: deliveryAddress || `${currentCustomerDetails.city || 'Unknown'}, ${currentCustomerDetails.zipcode || 'Unknown'}`,
+      orderType: currentOrderDetails.order_type || 'prepaid',
+      weight: parseFloat(currentOrderDetails.weight) || 0,
+      volumetricWeight: parseFloat(currentOrderDetails.volumetric_weight) || 0,
       dimensions: {
-        length: parseFloat(order_details.length) || 0,
-        width: parseFloat(order_details.width) || 0,
-        height: parseFloat(order_details.height) || 0
+        length: parseFloat(currentOrderDetails.length) || 0,
+        width: parseFloat(currentOrderDetails.width) || 0,
+        height: parseFloat(currentOrderDetails.height) || 0
       }
     };
   };

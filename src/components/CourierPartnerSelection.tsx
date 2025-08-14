@@ -109,6 +109,14 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
   orderSummary,
   onCourierSelect 
 }) => {
+  // Debug logging to see what's being received
+  console.log('=== DEBUG: CourierPartnerSelection ===');
+  console.log('Received orderSummary prop:', orderSummary);
+  console.log('orderSummary.orderId:', orderSummary?.orderId);
+  console.log('orderSummary.warehouseId:', orderSummary?.warehouseId);
+  console.log('orderSummary.rtoId:', orderSummary?.rtoId);
+  console.log('orderSummary.parcelType:', orderSummary?.parcelType);
+  
   const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
   const [selectedRate, setSelectedRate] = useState<RateData | null>(null);
   const [selectedCourierData, setSelectedCourierData] = useState<ShipRate | null>(null);
@@ -140,7 +148,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
     if (warehouseData) {
       return `${warehouseData.warehouse_name}, ${warehouseData.city}`;
     }
-    return currentOrderSummary.pickupLocation;
+    return orderSummary?.pickupLocation || currentOrderSummary.pickupLocation;
   };
 
   // Fetch rates from API - only when component mounts or orderSummary changes meaningfully
@@ -163,12 +171,21 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
         }
 
         const requestBody = {
-          order_id: currentOrderSummary.orderId,
-          warehouse_id: currentOrderSummary.warehouseId,
-          rto_id: currentOrderSummary.rtoId,
-          parcel_type: currentOrderSummary.parcelType
+          order_id: orderSummary.orderId,
+          warehouse_id: orderSummary.warehouseId,
+          rto_id: orderSummary.rtoId,
+          parcel_type: orderSummary.parcelType
         };
 
+        console.log('=== DEBUG: API Request ===');
+        console.log('orderSummary prop:', orderSummary);
+        console.log('orderSummary.orderId:', orderSummary.orderId);
+        console.log('orderSummary.warehouseId:', orderSummary.warehouseId);
+        console.log('orderSummary.rtoId:', orderSummary.rtoId);
+        console.log('orderSummary.parcelType:', orderSummary.parcelType);
+        console.log('Final request body:', requestBody);
+        console.log('=== END DEBUG ===');
+        
         console.log('Fetching rates with payload:', requestBody);
         console.log('API URL:', `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/courier-partner-rates`);
 
@@ -362,7 +379,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
       }
 
       // Determine collectable amount based on order's payment mode, not courier's payment type
-      const orderPaymentMode = currentOrderSummary.orderType?.toLowerCase();
+      const orderPaymentMode = orderSummary?.orderType?.toLowerCase() || currentOrderSummary.orderType?.toLowerCase();
       const isPrepaid = orderPaymentMode === 'prepaid';
       const collectableAmount = isPrepaid ? 0 : selectedRate.totalPayable;
 
@@ -377,9 +394,9 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
       }
 
       const bookingPayload = {
-        warehouse_id: currentOrderSummary.warehouseId,
-        rto_id: currentOrderSummary.rtoId,
-        order_id: currentOrderSummary.orderId,
+        warehouse_id: orderSummary.warehouseId,
+        rto_id: orderSummary.rtoId,
+        order_id: orderSummary.orderId,
         courier_partner_id: selectedCourierData.courier_partner_id,
         rate_name: selectedRate.name,
         user_id: userId,
@@ -399,6 +416,14 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
         }
       };
 
+      console.log('=== DEBUG: Create Shipment ===');
+      console.log('orderSummary prop:', orderSummary);
+      console.log('orderSummary.orderId:', orderSummary.orderId);
+      console.log('orderSummary.warehouseId:', orderSummary.warehouseId);
+      console.log('orderSummary.rtoId:', orderSummary.rtoId);
+      console.log('Final booking payload:', bookingPayload);
+      console.log('=== END DEBUG ===');
+
       console.log('=== DEBUG: Booking Request ===');
       console.log('Order payment mode:', orderPaymentMode);
       console.log('Courier payment type:', selectedCourierData.payment_type);
@@ -406,7 +431,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
       console.log('Collectable amount:', collectableAmount);
       console.log('Selected courier data:', selectedCourierData);
       console.log('Selected rate:', selectedRate);
-      console.log('Order summary:', currentOrderSummary);
+      console.log('Order summary:', orderSummary);
       console.log('Booking payload:', bookingPayload);
       console.log('=== COMPLETE REQUEST BODY ===');
       console.log('Environment Variables:');
@@ -525,7 +550,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Pickup Location</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.pickupLocation}</p>
+                  <p className="font-medium text-sm">{orderSummary?.pickupLocation || currentOrderSummary.pickupLocation}</p>
                 </div>
               </div>
 
@@ -535,7 +560,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Delivery Location</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.deliveryLocation}</p>
+                  <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
                 </div>
               </div>
 
@@ -545,7 +570,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Order Type</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.orderType}</p>
+                  <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
                 </div>
               </div>
 
@@ -555,7 +580,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Weight</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.weight} kg</p>
+                  <p className="font-medium text-sm">{orderSummary?.weight || currentOrderSummary.weight} gm</p>
                 </div>
               </div>
 
@@ -565,7 +590,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Volumetric Weight</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.volumetricWeight} kg</p>
+                  <p className="font-medium text-sm">{orderSummary?.volumetricWeight || currentOrderSummary.volumetricWeight} gm</p>
                 </div>
               </div>
 
@@ -576,7 +601,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 <div>
                   <p className="text-sm text-muted-foreground">Dimensions (L×W×H)</p>
                   <p className="font-medium text-sm">
-                    {currentOrderSummary.dimensions.length}×{currentOrderSummary.dimensions.width}×{currentOrderSummary.dimensions.height} cm
+                    {orderSummary?.dimensions?.length || currentOrderSummary.dimensions.length}×{orderSummary?.dimensions?.width || currentOrderSummary.dimensions.width}×{orderSummary?.dimensions?.height || currentOrderSummary.dimensions.height} cm
                   </p>
                 </div>
               </div>
@@ -620,7 +645,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Delivery Location</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.deliveryLocation}</p>
+                  <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
                 </div>
               </div>
 
@@ -630,7 +655,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Order Type</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.orderType}</p>
+                  <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
                 </div>
               </div>
 
@@ -640,7 +665,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Weight</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.weight} kg</p>
+                  <p className="font-medium text-sm">{orderSummary?.weight || currentOrderSummary.weight} gm</p>
                 </div>
               </div>
 
@@ -650,7 +675,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Volumetric Weight</p>
-                  <p className="font-medium text-sm">{currentOrderSummary.volumetricWeight} kg</p>
+                  <p className="font-medium text-sm">{orderSummary?.volumetricWeight || currentOrderSummary.volumetricWeight} gm</p>
                 </div>
               </div>
 
@@ -661,7 +686,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 <div>
                   <p className="text-sm text-muted-foreground">Dimensions (L×W×H)</p>
                   <p className="font-medium text-sm">
-                    {currentOrderSummary.dimensions.length}×{currentOrderSummary.dimensions.width}×{currentOrderSummary.dimensions.height} cm
+                    {orderSummary?.dimensions?.length || currentOrderSummary.dimensions.length}×{orderSummary?.dimensions?.width || currentOrderSummary.dimensions.width}×{orderSummary?.dimensions?.height || currentOrderSummary.dimensions.height} cm
                   </p>
                 </div>
               </div>
@@ -713,7 +738,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Delivery Location</p>
-                <p className="font-medium text-sm">{currentOrderSummary.deliveryLocation}</p>
+                <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
               </div>
             </div>
 
@@ -723,7 +748,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Order Type</p>
-                <p className="font-medium text-sm">{currentOrderSummary.orderType}</p>
+                <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
               </div>
             </div>
 
@@ -733,7 +758,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Weight</p>
-                <p className="font-medium text-sm">{currentOrderSummary.weight} kg</p>
+                <p className="font-medium text-sm">{orderSummary?.weight || currentOrderSummary.weight} gm</p>
               </div>
             </div>
 
@@ -743,7 +768,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Volumetric Weight</p>
-                <p className="font-medium text-sm">{currentOrderSummary.volumetricWeight} kg</p>
+                <p className="font-medium text-sm">{orderSummary?.volumetricWeight || currentOrderSummary.volumetricWeight} gm</p>
               </div>
             </div>
 
@@ -754,7 +779,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               <div>
                 <p className="text-sm text-muted-foreground">Dimensions (L×W×H)</p>
                 <p className="font-medium text-sm">
-                  {currentOrderSummary.dimensions.length}×{currentOrderSummary.dimensions.width}×{currentOrderSummary.dimensions.height} cm
+                  {orderSummary?.dimensions?.length || currentOrderSummary.dimensions.length}×{orderSummary?.dimensions?.width || currentOrderSummary.dimensions.width}×{orderSummary?.dimensions?.height || currentOrderSummary.dimensions.height} cm
                 </p>
               </div>
             </div>
@@ -785,10 +810,10 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                   }
 
                   const requestBody = {
-                    order_id: currentOrderSummary.orderId,
-                    warehouse_id: currentOrderSummary.warehouseId,
-                    rto_id: currentOrderSummary.rtoId,
-                    parcel_type: currentOrderSummary.parcelType
+                    order_id: orderSummary.orderId,
+                    warehouse_id: orderSummary.warehouseId,
+                    rto_id: orderSummary.rtoId,
+                    parcel_type: orderSummary.parcelType
                   };
 
                   const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/courier-partner-rates`, {

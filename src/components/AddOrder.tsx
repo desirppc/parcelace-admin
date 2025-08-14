@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Plus, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import OnboardingLayout from './OnboardingLayout';
+import { ArrowLeft, Package, User, MapPin, CreditCard, Truck, Calendar, Phone, Mail, Save, Plus, Minus } from 'lucide-react';
+import { getApiUrl, getAuthHeaders } from '@/config/api';
+import API_CONFIG from '@/config/api';
 import pincodeMapping from '@/data/pincode-city-state.json';
 
 interface ProductItem {
@@ -186,10 +190,10 @@ const AddOrder = () => {
         orderData.collectable_amount = payment.collectableAmount;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`, {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.ORDERS), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          ...getAuthHeaders(authToken),
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
@@ -403,7 +407,7 @@ const AddOrder = () => {
                       size="sm"
                       className="text-red-500 hover:text-red-700 border-red-200 hover:border-red-300"
                     >
-                      <X className="w-4 h-4" />
+                      <Minus className="w-4 h-4" />
                     </Button>
                   )}
                 </div>
