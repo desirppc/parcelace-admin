@@ -3033,6 +3033,279 @@ const TrackingV2 = () => {
         </DialogContent>
       </Dialog>
 
+      {/* PostShip Section with Sidebar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-4 gap-6 mb-8">
+          {/* Main Content - 3 columns */}
+          <div className="lg:col-span-3">
+            <Card className="shadow-lg border-0 bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl font-bold text-gray-800">
+                  <Truck className="w-6 h-6 mr-3 text-blue-600" />
+                  PostShip Services
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  {/* PostShip Overview */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Complete Post-Delivery Solutions</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Our PostShip services provide comprehensive solutions for all your post-delivery needs, 
+                      including returns, exchanges, customer support, and analytics to enhance your business operations.
+                    </p>
+                  </div>
+
+                  {/* Service Cards */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Returns Management</h4>
+                            <p className="text-sm text-gray-600">Streamlined return process with tracking</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Exchange Services</h4>
+                            <p className="text-sm text-gray-600">Easy product exchanges and replacements</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Headphones className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Customer Support</h4>
+                            <p className="text-sm text-gray-600">24/7 support with ticket system</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <Navigation className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Analytics Dashboard</h4>
+                            <p className="text-sm text-gray-600">Comprehensive business insights</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Features List */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <h4 className="font-semibold text-gray-800 mb-4">Key Features</h4>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Automated return processing</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Real-time tracking updates</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Multi-courier integration</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Customer feedback system</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Performance analytics</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600">Automated notifications</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar - 1 column */}
+          <div className="lg:col-span-1">
+            <div className="space-y-6">
+              {/* Brand Details Card */}
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg font-bold text-gray-800">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                      <span className="text-white text-sm font-bold">B</span>
+                    </div>
+                    Brand Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    {/* Brand Logo */}
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                        <Truck className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="font-bold text-lg text-gray-800">ParcelAce</h3>
+                      <p className="text-sm text-gray-600">Your Logistics Partner</p>
+                    </div>
+
+                    {/* Brand Information */}
+                    <div className="space-y-3">
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">Company</p>
+                        <p className="text-sm font-medium text-gray-800">ParcelAce Logistics Pvt. Ltd.</p>
+                      </div>
+                      
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">Industry</p>
+                        <p className="text-sm font-medium text-gray-800">E-commerce Logistics</p>
+                      </div>
+                      
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">Founded</p>
+                        <p className="text-sm font-medium text-gray-800">2020</p>
+                      </div>
+                      
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">Headquarters</p>
+                        <p className="text-sm font-medium text-gray-800">Mumbai, India</p>
+                      </div>
+                    </div>
+
+                    {/* Brand Values */}
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Core Values</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-gray-700">Reliability</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-gray-700">Innovation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-gray-700">Customer Focus</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-gray-700">Sustainability</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Contact</p>
+                      <div className="space-y-2 text-xs text-gray-700">
+                        <p>📧 support@parcelace.com</p>
+                        <p>📞 +91-1800-123-4567</p>
+                        <p>🌐 www.parcelace.com</p>
+                      </div>
+                    </div>
+
+                    {/* Social Media */}
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Follow Us</p>
+                      <div className="flex justify-center space-x-3">
+                        <a href="#" className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors">
+                          <Facebook className="w-4 h-4 text-white" />
+                        </a>
+                        <a href="#" className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center hover:bg-pink-600 transition-colors">
+                          <Instagram className="w-4 h-4 text-white" />
+                        </a>
+                        <a href="#" className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center hover:bg-blue-800 transition-colors">
+                          <Linkedin className="w-4 h-4 text-white" />
+                        </a>
+                        <a href="#" className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center hover:bg-sky-600 transition-colors">
+                          <Twitter className="w-4 h-4 text-white" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions Card */}
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold text-gray-800">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      <Package className="w-4 h-4 mr-2" />
+                      Create Return
+                    </Button>
+                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Request Exchange
+                    </Button>
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                      <Headphones className="w-4 h-4 mr-2" />
+                      Get Support
+                    </Button>
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
+                      <Navigation className="w-4 h-4 mr-2" />
+                      View Analytics
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Statistics Card */}
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold text-gray-800">Performance Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">98.5%</div>
+                      <p className="text-xs text-gray-600">Delivery Success Rate</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">24h</div>
+                      <p className="text-xs text-gray-600">Average Delivery Time</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">4.8★</div>
+                      <p className="text-xs text-gray-600">Customer Rating</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
