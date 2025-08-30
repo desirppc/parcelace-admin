@@ -33,15 +33,10 @@ export const useAuth = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { clearUserData, validateSession, isSessionValid, isInitialized } = useUser(); // Add isInitialized
+  const { clearUserData } = useUser();
 
   // Check if user is authenticated
   const checkAuthStatus = useCallback(async () => {
-    // CRITICAL: Wait for UserContext to initialize before checking auth
-    if (!isInitialized) {
-      console.log('🔄 useAuth: Waiting for UserContext to initialize...');
-      return;
-    }
 
     setLoading(true);
     
@@ -65,21 +60,7 @@ export const useAuth = () => {
             // This prevents the login page from showing while validating
             setLoading(false);
             
-            // Now validate session with server in background
-            setTimeout(async () => {
-              try {
-                const isValid = await validateSession();
-                if (isValid) {
-                  console.log('✅ useAuth: Session validated successfully with server');
-                } else {
-                  console.log('⚠️ useAuth: Session validation failed, but keeping local state for now');
-                  // Don't immediately clear auth state - let user continue
-                  // The session warning will handle this
-                }
-              } catch (error) {
-                console.error('❌ useAuth: Error during background session validation:', error);
-              }
-            }, 100);
+            // Session validation removed - keeping local state for now
             
             return;
           } else {
@@ -104,25 +85,18 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [validateSession, isInitialized]); // Add isInitialized dependency
+  }, []); // Remove dependencies that no longer exist
 
-  // Wait for UserContext to initialize before checking auth
+  // Check auth status on mount
   useEffect(() => {
-    if (isInitialized) {
-      console.log('✅ useAuth: UserContext initialized, checking auth status...');
-      checkAuthStatus();
-    }
-  }, [isInitialized, checkAuthStatus]);
+    console.log('✅ useAuth: Checking auth status...');
+    checkAuthStatus();
+  }, [checkAuthStatus]);
 
   // Update authentication state when UserContext changes
   useEffect(() => {
-    if (isSessionValid && user && isInitialized) {
-      console.log('✅ useAuth: Setting authenticated state from UserContext');
-      setIsAuthenticated(true);
-    }
-    // Don't immediately set isAuthenticated to false when isSessionValid is false
-    // This prevents the login page from showing during validation
-  }, [isSessionValid, user, isInitialized]);
+    // This will be handled by the UserContext directly
+  }, []);
 
   const login = (userData: UserData, token: string) => {
     console.log('Logging in user with fresh data:', userData);

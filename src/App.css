@@ -40,3 +40,24 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Toggle Switch Styles */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #3B82F6;
+}
+
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #3B82F6;
+}
+
+.toggle-checkbox {
+  right: 0;
+  z-index: 5;
+  border-color: #D1D5DB;
+  transition: all 0.3s;
+}
+
+.toggle-label {
+  transition: all 0.3s;
+}

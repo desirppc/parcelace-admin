@@ -1,34 +1,34 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/UserContext';
+import { getStoredToken, getStoredUserData } from '@/utils/authUtils';
 
-const AuthDebug: React.FC = () => {
+const AuthDebug = () => {
   const { isAuthenticated, user, loading } = useAuth();
-  const { isSessionValid, isInitialized } = useUser();
-
-  // Only show in development
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
+  const { user: contextUser } = useUser();
+  
+  const storedToken = getStoredToken();
+  const storedUserData = getStoredUserData();
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs font-mono z-50 max-w-sm">
-      <div className="font-bold mb-2">🔐 Auth Debug</div>
-      <div className="space-y-1">
-        <div>useAuth.loading: {loading ? '🔄' : '✅'}</div>
-        <div>useAuth.isAuthenticated: {isAuthenticated ? '✅' : '❌'}</div>
-        <div>useAuth.user: {user ? `✅ (${user.id})` : '❌'}</div>
-        <div>UserContext.isInitialized: {isInitialized ? '✅' : '🔄'}</div>
-        <div>UserContext.isSessionValid: {isSessionValid ? '✅' : '❌'}</div>
-        <div>UserContext.user: {user ? `✅ (${user.id})` : '❌'}</div>
+    <div className="fixed top-4 right-4 bg-white border border-gray-300 rounded-lg p-4 shadow-lg z-50 max-w-md">
+      <h3 className="font-bold text-sm mb-2">🔐 Auth Debug Info</h3>
+      <div className="text-xs space-y-1">
+        <div><strong>Loading:</strong> {loading ? '🔄 Yes' : '✅ No'}</div>
+        <div><strong>Authenticated:</strong> {isAuthenticated ? '✅ Yes' : '❌ No'}</div>
+        <div><strong>User ID:</strong> {user?.id || 'None'}</div>
+        <div><strong>Stored Token:</strong> {storedToken ? `✅ ${storedToken.substring(0, 10)}...` : '❌ None'}</div>
+        <div><strong>Stored User:</strong> {storedUserData ? `✅ ID: ${storedUserData.id}` : '❌ None'}</div>
+        <div><strong>Local Storage:</strong> {localStorage.getItem('auth_token') ? '✅ Has token' : '❌ No token'}</div>
+        <div><strong>Session Storage:</strong> {sessionStorage.getItem('auth_token') ? '✅ Has token' : '❌ No token'}</div>
+        <div><strong>Current Path:</strong> {window.location.pathname}</div>
       </div>
-      <div className="mt-2 pt-2 border-t border-white/20">
-        <div className="text-xs opacity-75">
-          {!isInitialized && '🔄 Waiting for UserContext...'}
-          {isInitialized && !isAuthenticated && '❌ Not authenticated'}
-          {isInitialized && isAuthenticated && '✅ Authenticated'}
-        </div>
-      </div>
+      <button 
+        onClick={() => window.location.reload()} 
+        className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+      >
+        🔄 Reload
+      </button>
     </div>
   );
 };

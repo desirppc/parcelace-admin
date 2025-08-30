@@ -16,6 +16,7 @@ import TrackingPage from "./components/TrackingPage";
 import TrackingV2Page from "./components/TrackingV2Page";
 import ViewOrder from "./components/ViewOrder";
 import ViewOrderDetails from "./components/ViewOrderDetails";
+import ViewShipment from "./components/ViewShipment";
 import OrdersPage from "./components/OrdersPage";
 import WarehouseScreen from "./components/WarehouseScreen";
 import CourierPartnerSelection from "./components/CourierPartnerSelection";
@@ -41,6 +42,7 @@ import OnboardingSupportDashboard from './pages/OnboardingSupportDashboard';
 import OnboardingCreateTicket from './pages/OnboardingCreateTicket';
 import OnboardingShopifyIntegration from './pages/OnboardingShopifyIntegration';
 import ProfilePage from './components/ProfilePage';
+import ProfileTest from './components/ProfileTest';
 import OnboardingWizard from './components/OnboardingWizard';
 import RouteGuard from './components/RouteGuard';
 import OnboardingRoute from './components/OnboardingRoute';
@@ -53,7 +55,7 @@ import BrandDetails from './pages/BrandDetails';
 import NPS from './pages/NPS';
 import CustomiseTrackingPage from './pages/CustomiseTrackingPage';
 import PublicTracking from './pages/PublicTracking';
-import SessionWarning from './components/SessionWarning';
+import TrackingTemplate from './pages/TrackingTemplate';
 
 import { UserProvider } from './contexts/UserContext';
 // Add imports for forgot password flow
@@ -70,6 +72,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            
             <Routes>
               {/* Public Routes - No Authentication Required */}
               <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
@@ -79,6 +82,7 @@ const App = () => (
               <Route path="/otp-verification" element={<PublicRoute><OTPVerification /></PublicRoute>} />
               <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
               <Route path="/tracking/:awbNumber" element={<PublicTracking />} />
+              <Route path="/tracking-template" element={<TrackingTemplate />} />
               
               {/* Onboarding Wizard - Requires Authentication but not onboarding completion */}
               <Route path="/onboarding/wizard" element={
@@ -109,10 +113,13 @@ const App = () => (
                 {/* Order Management */}
                 <Route path="/dashboard/orders/add" element={<OnboardingRoute><AddOrder /></OnboardingRoute>} />
                 <Route path="/dashboard/orders/view" element={<OnboardingRoute><ViewOrder /></OnboardingRoute>} />
-                <Route path="/dashboard/orders/:orderId" element={<OnboardingRoute><ViewOrderDetails /></OnboardingRoute>} />
+                <Route path="/dashboard/orders/:orderId" element={<RouteGuard><ViewOrderDetails /></RouteGuard>} />
                 
                 {/* Profile Route */}
                 <Route path="/dashboard/profile" element={<ProfilePage />} />
+                
+                {/* Test Route */}
+                <Route path="/test/profile" element={<ProfileTest />} />
                 
                 {/* Onboarding Routes - Require both authentication and onboarding completion */}
                 <Route path="/dashboard/orders/prepaid" element={<OnboardingRoute><OnboardingPrepaidOrders /></OnboardingRoute>} />
@@ -121,6 +128,7 @@ const App = () => (
                 {/* Shipment Management */}
                 <Route path="/dashboard/shipments/prepaid" element={<OnboardingRoute><OnboardingPrepaidShipments /></OnboardingRoute>} />
                 <Route path="/dashboard/shipments/reverse" element={<OnboardingRoute><OnboardingReverseShipments /></OnboardingRoute>} />
+                <Route path="/dashboard/shipments/:shipmentId" element={<RouteGuard><ViewShipment /></RouteGuard>} />
                 <Route path="/dashboard/shipments/tracking" element={<OnboardingRoute><OnboardingShipmentTracking /></OnboardingRoute>} />
                 <Route path="/dashboard/shipments/tracking-v1" element={<OnboardingRoute><TrackingPage /></OnboardingRoute>} />
                 <Route path="/dashboard/shipments/tracking-v2" element={<OnboardingRoute><TrackingV2Page /></OnboardingRoute>} />
@@ -186,8 +194,7 @@ const App = () => (
               } />
             </Routes>
             
-            {/* Session Warning Component - Available throughout the app */}
-            <SessionWarning />
+            
           </BrowserRouter>
         </UserProvider>
       </TooltipProvider>

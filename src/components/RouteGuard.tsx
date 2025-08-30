@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useUser } from '@/contexts/UserContext';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -15,21 +14,20 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
   requireOnboarding = false 
 }) => {
   const { isAuthenticated, user, loading } = useAuth();
-  const { isInitialized } = useUser(); // Add UserContext initialization check
   const navigate = useNavigate();
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // CRITICAL: Wait for both useAuth and UserContext to be ready
-    if (loading || !isInitialized) {
-      console.log('🔄 RouteGuard: Waiting for initialization...', { loading, isInitialized });
+    // Wait for useAuth to be ready
+    if (loading) {
+      console.log('🔄 RouteGuard: Waiting for authentication...', { loading });
       return;
     }
 
     const checkAccess = () => {
       console.log('🔄 RouteGuard: Checking access for:', location.pathname);
-      console.log('🔄 RouteGuard: Auth state:', { isAuthenticated, user: !!user, loading, requireAuth, requireOnboarding, isInitialized });
+      console.log('🔄 RouteGuard: Auth state:', { isAuthenticated, user: !!user, loading, requireAuth, requireOnboarding });
       
       // If authentication is not required, allow access
       if (!requireAuth) {
@@ -41,7 +39,7 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
       // Check if user is authenticated
       if (!isAuthenticated || !user) {
         console.log('❌ RouteGuard: User not authenticated, redirecting to login');
-        console.log('❌ RouteGuard: Current auth state:', { isAuthenticated, user, isInitialized });
+        console.log('❌ RouteGuard: Current auth state:', { isAuthenticated, user });
         // Store the intended destination for after login
         sessionStorage.setItem('redirectAfterLogin', location.pathname);
         navigate('/login', { replace: true });
@@ -78,16 +76,16 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
     };
 
     checkAccess();
-  }, [isAuthenticated, user, loading, requireAuth, requireOnboarding, navigate, location.pathname, isInitialized]);
+  }, [isAuthenticated, user, loading, requireAuth, requireOnboarding, navigate, location.pathname]);
 
-  // Show loading spinner while checking authentication or waiting for initialization
-  if (loading || isChecking || !isInitialized) {
+  // Show loading spinner while checking authentication
+  if (loading || isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            {!isInitialized ? 'Initializing application...' : 'Checking authentication...'}
+            Checking authentication...
           </p>
         </div>
       </div>
