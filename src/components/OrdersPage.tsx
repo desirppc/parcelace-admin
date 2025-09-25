@@ -50,11 +50,12 @@ const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
   const [showShipModal, setShowShipModal] = useState(false);
-  const [showBulkShipModal, setShowBulkShipModal] = useState(false);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showBulkCancelConfirm, setShowBulkCancelConfirm] = useState(false);
+  const [showBulkShipModal, setShowBulkShipModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
@@ -68,13 +69,14 @@ const OrdersPage = () => {
     reverse: false,
     all: true
   });
-  const [warehouseSearch, setWarehouseSearch] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [warehouses, setWarehouses] = useState([]);
   const [warehousesLoading, setWarehousesLoading] = useState(true);
+  const [warehouseSearch, setWarehouseSearch] = useState('');
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   
   // Import order states
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -411,18 +413,64 @@ const OrdersPage = () => {
     if (!canBulkShipSelectedOrders()) {
       toast({
         title: "Cannot Ship Selected Orders",
-        description: "Some selected orders have 'booked' or 'cancelled' status and cannot be shipped.",
+        description: "Some selected orders have 'booked' or 'cancelled' fees and cannot be shipped.",
         variant: "destructive"
       });
       return;
     }
 
+    // Show the bulk ship modal for warehouse selection
     setShowBulkShipModal(true);
   };
+
+  const handleBulkShipConfirm = async () => {
+    if (!selectedWarehouse) {
+      toast({
+        title: "No Warehouse Selected",
+        description: "Please select a warehouse to proceed.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const currentPageSelectedIds = getCurrentPageSelectedIds();
+    
+    try {
+      // Close the modal
+      setShowBulkShipModal(false);
+      
+      // Navigate to CourierChoiceHub with selected orders and warehouse
+      navigate('/dashboard/shipments/courier-choice-hub', {
+        state: {
+          selectedOrders: currentPageSelectedIds,
+          warehouseId: selectedWarehouse.id.toString(),
+          rtoId: selectedWarehouse.id.toString() // Same as warehouse ID
+        }
+      });
+      
+      // Clear the current page selections
+      setSelectedOrders(prev => prev.filter(id => !currentPageSelectedIds.includes(id)));
+      
+      // Reset warehouse selection
+      setSelectedWarehouse(null);
+      
+    } catch (error) {
+      console.error('Error in bulk ship confirmation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to proceed with bulk shipping. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+
 
   const handleWarehouseSelect = (warehouse: any) => {
     setSelectedWarehouse(warehouse);
   };
+
+
 
   const confirmShipment = () => {
     if (!selectedWarehouse) {
@@ -440,37 +488,7 @@ const OrdersPage = () => {
     setSelectedOrderForShipping(selectedOrder);
   };
 
-  const confirmBulkShipment = () => {
-    if (!selectedWarehouse) {
-      toast({
-        title: "No Warehouse Selected",
-        description: "Please select a warehouse to proceed.",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    const currentPageSelectedIds = getCurrentPageSelectedIds();
-
-    // Final validation to ensure all selected orders can be shipped
-    if (!canBulkShipSelectedOrders()) {
-      toast({
-        title: "Cannot Ship Selected Orders",
-        description: "Some selected orders have 'booked' or 'cancelled' status and cannot be shipped.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "Bulk Shipment Booked",
-      description: `${currentPageSelectedIds.length} orders from current page have been assigned to ${selectedWarehouse.warehouse_name}`,
-    });
-    setShowBulkShipModal(false);
-    // Only clear selections for the current page, keep other page selections
-    setSelectedOrders(prev => prev.filter(id => !currentPageSelectedIds.includes(id)));
-    setSelectedWarehouse(null);
-  };
 
   const handleCancelOrder = (order: any) => {
     setSelectedOrder(order);
@@ -1392,37 +1410,9 @@ const OrdersPage = () => {
                     </div>
                   )}
                   
-                  {!refreshLoading && !importLoading && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-600" />
-                        <div className="text-sm text-red-800">
-                          <p className="font-medium">Server Error (500)</p>
-                          <p className="text-xs mt-1">
-                            The server is experiencing issues. Please contact support or try again later.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
                   
-                  {/* Debug Panel - Only show in development */}
-                  {import.meta.env.DEV && importFile && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-4 h-4 text-gray-600" />
-                        <p className="text-sm font-medium text-gray-800">Debug Info</p>
-                      </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        <p><strong>File:</strong> {importFile.name}</p>
-                        <p><strong>Type:</strong> {importFile.type || 'Unknown'}</p>
-                        <p><strong>Size:</strong> {(importFile.size / 1024).toFixed(2)} KB</p>
-                        <p><strong>API URL:</strong> {getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT)}</p>
-                        <p><strong>Environment:</strong> {import.meta.env.MODE}</p>
-                        <p><strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || 'Not set (using default)'}</p>
-                      </div>
-                    </div>
-                  )}
+
                   
                   <div className="flex items-center justify-between">
                     <Button 
@@ -1434,42 +1424,7 @@ const OrdersPage = () => {
                       Download Sample
                     </Button>
                     
-                    {/* Test API Button - Only in development */}
-                    {import.meta.env.DEV && importFile && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={async () => {
-                          const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-                          if (token && importFile) {
-                            console.log('🧪 Testing API directly...');
-                            const result = await testImportAPI(importFile, token);
-                            console.log('Test result:', result);
-                            
-                            if (result.success) {
-                              toast({
-                                title: "API Test Successful",
-                                description: "Direct API call worked! Check console for details.",
-                              });
-                            } else {
-                              toast({
-                                title: "API Test Failed",
-                                description: `Status: ${result.status || 'Unknown'}. Check console for details.`,
-                                variant: "destructive",
-                              });
-                            }
-                          } else {
-                            toast({
-                              title: "Test Failed",
-                              description: "No auth token or file found.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        🧪 Test API
-                      </Button>
-                    )}
+
                     
                     <div className="flex space-x-3">
                       <Button 
@@ -2089,15 +2044,21 @@ const OrdersPage = () => {
             </DialogContent>
           </Dialog>
 
+
+            
+
           {/* Bulk Ship Modal */}
           <Dialog open={showBulkShipModal} onOpenChange={setShowBulkShipModal}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Select Warehouse for {getCurrentPageSelectedCount()} Orders</DialogTitle>
+                <DialogTitle>Get Courier Rates for {getCurrentPageSelectedCount()} Orders</DialogTitle>
+                <DialogDescription>
+                  Select a warehouse to get real-time courier rates and pricing for your selected orders
+                </DialogDescription>
                 {!canBulkShipSelectedOrders() && (
-                  <DialogDescription className="text-amber-600">
+                  <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
                     ⚠️ Some selected orders cannot be shipped (booked or cancelled status)
-                  </DialogDescription>
+                  </div>
                 )}
               </DialogHeader>
               <div className="space-y-4">
@@ -2132,29 +2093,46 @@ const OrdersPage = () => {
                           <div className="text-xs text-muted-foreground">{warehouse.pincode}</div>
                         </div>
                         {selectedWarehouse?.id === warehouse.id && (
-                          <Check className="w-5 h-5 text-primary" />
+                          <Check className="w-5 h-4 text-primary" />
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setShowBulkShipModal(false);
-                      setSelectedWarehouse(null);
-                    }}
-                  >
-                    Close
-                  </Button>
-                  <Button 
-                    onClick={confirmBulkShipment}
-                    className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
-                  >
-                    <Ship className="w-4 h-4 mr-2" />
-                    Bulk Ship
-                  </Button>
+                <div className="space-y-3">
+                  {!selectedWarehouse ? (
+                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                      ⚠️ <strong>Please select a warehouse first</strong> to proceed to the Courier Choice Hub
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      💡 <strong>What happens next?</strong> After selecting a warehouse, you'll be taken to the Courier Choice Hub where you can:
+                      <ul className="mt-2 ml-4 list-disc space-y-1">
+                        <li>Get real-time courier rates for your selected orders</li>
+                        <li>Compare different courier partners and pricing</li>
+                        <li>Apply bulk courier selection to all orders at once</li>
+                      </ul>
+                    </div>
+                  )}
+                  <div className="flex justify-end space-x-3 pt-2 border-t">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowBulkShipModal(false);
+                        setSelectedWarehouse(null);
+                      }}
+                    >
+                      Close
+                    </Button>
+                    <Button 
+                      onClick={handleBulkShipConfirm}
+                      className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
+                      disabled={!selectedWarehouse}
+                    >
+                      <Ship className="w-4 h-4 mr-2" />
+                      Get Courier Rates
+                    </Button>
+                  </div>
                 </div>
               </div>
             </DialogContent>

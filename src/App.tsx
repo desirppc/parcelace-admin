@@ -36,7 +36,6 @@ import OnboardingWalletTransaction from './pages/OnboardingWalletTransaction';
 import OnboardingEarlyCOD from './pages/OnboardingEarlyCOD';
 import OnboardingInvoice from './pages/OnboardingInvoice';
 import OnboardingBilling from './pages/OnboardingBilling';
-import OnboardingInvoiceSettings from './pages/OnboardingInvoiceSettings';
 import OnboardingTrackingPage from './pages/OnboardingTrackingPage';
 import OnboardingSupportDashboard from './pages/OnboardingSupportDashboard';
 import OnboardingCreateTicket from './pages/OnboardingCreateTicket';
@@ -56,6 +55,9 @@ import NPS from './pages/NPS';
 import CustomiseTrackingPage from './pages/CustomiseTrackingPage';
 import PublicTracking from './pages/PublicTracking';
 import TrackingTemplate from './pages/TrackingTemplate';
+import CourierChoiceHub from './pages/CourierChoiceHub';
+import CourierPriorityRules from './pages/CourierPriorityRules';
+import NotifyAce from './pages/NotifyAce';
 
 import { UserProvider } from './contexts/UserContext';
 // Add imports for forgot password flow
@@ -133,6 +135,11 @@ const App = () => (
                 <Route path="/dashboard/shipments/tracking-v1" element={<OnboardingRoute><TrackingPage /></OnboardingRoute>} />
                 <Route path="/dashboard/shipments/tracking-v2" element={<OnboardingRoute><TrackingV2Page /></OnboardingRoute>} />
                 <Route path="/dashboard/shipments/courier-selection" element={<OnboardingRoute><OnboardingCourierSelection /></OnboardingRoute>} />
+                <Route path="/dashboard/shipments/courier-choice-hub" element={<OnboardingRoute><CourierChoiceHub /></OnboardingRoute>} />
+                <Route path="/dashboard/settings/courier-priority-rules" element={<OnboardingRoute><CourierPriorityRules /></OnboardingRoute>} />
+                
+                {/* Postship Routes */}
+                <Route path="/dashboard/postship/notify-ace" element={<NotifyAce />} />
                 
                 {/* Finance Routes */}
                 <Route path="/dashboard/finance/cod-remittance" element={<OnboardingRoute><OnboardingCODRemittance /></OnboardingRoute>} />
@@ -148,8 +155,7 @@ const App = () => (
                 {/* Settings Routes */}
                 <Route path="/dashboard/settings/billing" element={<OnboardingRoute><OnboardingBilling /></OnboardingRoute>} />
                 <Route path="/dashboard/settings/brand-details" element={<OnboardingRoute><BrandDetails /></OnboardingRoute>} />
-                <Route path="/dashboard/settings/invoice-settings" element={<OnboardingRoute><OnboardingInvoiceSettings /></OnboardingRoute>} />
-                <Route path="/dashboard/settings/tracking-page" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
+                <Route path="/dashboard/settings/customise-shipping-label" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
                 <Route path="/dashboard/settings/warehouse" element={<OnboardingRoute><WarehouseScreen /></OnboardingRoute>} />
                 
                 {/* KYC Route */}
@@ -169,14 +175,15 @@ const App = () => (
                 <Route path="/onboarding/shipments/reverse-shipments" element={<OnboardingRoute><OnboardingReverseShipments /></OnboardingRoute>} />
                 <Route path="/onboarding/shipments/tracking" element={<OnboardingRoute><OnboardingShipmentTracking /></OnboardingRoute>} />
                 <Route path="/onboarding/shipments/courier-selection" element={<OnboardingRoute><OnboardingCourierSelection /></OnboardingRoute>} />
+                <Route path="/onboarding/shipments/courier-choice-hub" element={<OnboardingRoute><CourierChoiceHub /></OnboardingRoute>} />
+
                 <Route path="/onboarding/finance/cod-remittance" element={<OnboardingRoute><OnboardingCODRemittance /></OnboardingRoute>} />
                 <Route path="/onboarding/finance/wallet-transaction" element={<OnboardingRoute><OnboardingWalletTransaction /></OnboardingRoute>} />
                 <Route path="/onboarding/finance/early-cod" element={<OnboardingRoute><OnboardingEarlyCOD /></OnboardingRoute>} />
                 <Route path="/onboarding/finance/invoice" element={<OnboardingRoute><OnboardingInvoice /></OnboardingRoute>} />
                 <Route path="/onboarding/settings/billing" element={<OnboardingRoute><OnboardingBilling /></OnboardingRoute>} />
                 <Route path="/onboarding/settings/brand-details" element={<OnboardingRoute><BrandDetails /></OnboardingRoute>} />
-                <Route path="/onboarding/settings/invoice-settings" element={<OnboardingRoute><OnboardingInvoiceSettings /></OnboardingRoute>} />
-                <Route path="/onboarding/settings/tracking-page" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
+                <Route path="/onboarding/settings/customise-shipping-label" element={<OnboardingRoute><OnboardingTrackingPage /></OnboardingRoute>} />
                 <Route path="/onboarding/support/support-dashboard" element={<OnboardingRoute><OnboardingSupportDashboard /></OnboardingRoute>} />
                 <Route path="/onboarding/support/create-ticket" element={<OnboardingRoute><OnboardingCreateTicket /></OnboardingRoute>} />
                 <Route path="/onboarding/profile" element={<OnboardingRoute><ProfilePage /></OnboardingRoute>} />

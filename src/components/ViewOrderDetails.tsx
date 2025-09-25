@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { orderService } from '@/services/orderService';
 import CourierPartnerSelection from './CourierPartnerSelection';
+import pincodeMapping from '@/data/pincode-city-state.json';
 
 // Initial empty state
 const initialOrderData = {
@@ -22,6 +23,7 @@ const initialOrderData = {
       "order_id": "",
       "order_date": "",
       "order_type": "",
+      "order_status": null,
       "parcel_type": "parcel",
       "weight": "0.00",
       "height": "0.00",
@@ -81,6 +83,97 @@ const OrderDetails = () => {
   const { data } = orderData;
   const { order_details, customer_details, product_details, payment_details } = data;
 
+  // Helper functions to map new API structure to existing component logic
+  const getOrderType = () => order_details.order_type || 'prepaid';
+  const getOrderDate = () => order_details.order_date || '';
+  const getOrderStatus = () => order_details.order_status || 'pending';
+  const getCustomerName = () => `${customer_details.first_name || ''} ${customer_details.last_name || ''}`.trim();
+  const getCustomerPhone = () => customer_details.phone || '';
+  const getCustomerEmail = () => customer_details.email || '';
+  const getCustomerAddress1 = () => customer_details.address1 || '';
+  const getCustomerAddress2 = () => customer_details.address2 || '';
+  const getCustomerCity = () => customer_details.city || '';
+  const getCustomerZipcode = () => customer_details.zipcode || '';
+
+  // Helper function to get order status display
+  const getOrderStatusDisplay = () => {
+    const status = getOrderStatus();
+    if (!status || status === null) {
+      return 'Pending';
+    }
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
+  // Helper function to get status badge variant
+  const getStatusBadgeVariant = (status: string) => {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+        return 'secondary';
+      case 'booked':
+        return 'default';
+      case 'cancelled':
+        return 'destructive';
+      case 'delivered':
+        return 'default';
+      case 'shipped':
+        return 'default';
+      default:
+        return 'secondary';
+    }
+  };
+
+  // Helper function to get status color
+  const getStatusColor = (status: string) => {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50';
+      case 'booked':
+        return 'text-blue-600 bg-blue-50';
+      case 'cancelled':
+        return 'text-red-600 bg-red-50';
+      case 'delivered':
+        return 'text-green-600 bg-green-50';
+      case 'shipped':
+        return 'text-purple-600 bg-purple-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
+  };
+  
+  // Payment details mapping
+  const getPaymentDetails = () => ({
+    shipping_tax: payment_details.shipping_tax || 0,
+    total_tax: payment_details.total_tax || 0,
+    product_total: payment_details.product_total || 0,
+    total: payment_details.total || '0.00',
+    cod_charges: payment_details.cod_charges || '0.00',
+    collectable_amount: payment_details.collectable_amount || '0.00',
+    discount: payment_details.discount || 0
+  });
+
+  // Helper functions for order status checks (same logic as OrdersPage)
+  const canCancelOrder = (orderData: any) => {
+    const status = (orderData?.data?.order_details?.order_status || '').toLowerCase();
+    return status !== 'booked' && status !== 'cancelled';
+  };
+
+  const canShipOrder = (orderData: any) => {
+    const status = (orderData?.data?.order_details?.order_status || '').toLowerCase();
+    return !status || status === '' || status === 'pending';
+  };
+
+  const canEditOrder = (orderData: any) => {
+    const status = (orderData?.data?.order_details?.order_status || '').toLowerCase();
+    return status !== 'booked' && status !== 'cancelled';
+  };
+
+  const isOrderCancelled = (orderData: any) => {
+    const status = (orderData?.data?.order_details?.order_status || '').toLowerCase();
+    return status === 'cancelled';
+  };
+
   // Fetch order data from API
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -102,9 +195,9 @@ const OrderDetails = () => {
           return;
         }
 
+        // Call the original order API
         const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order/${orderId}`;
         console.log('Fetching order data from:', apiUrl);
-        console.log('Environment VITE_API_URL:', import.meta.env.VITE_API_URL);
         console.log('Order ID from URL params:', orderId);
         
         const response = await fetch(apiUrl, {
@@ -117,6 +210,7 @@ const OrderDetails = () => {
         const data = await response.json();
 
         if (response.ok && data.status && data.data) {
+          console.log('Order data received:', data);
           setOrderData(data);
         } else {
           setError(data?.message || 'Failed to fetch order data');
@@ -195,7 +289,10 @@ const OrderDetails = () => {
     fetchWarehouses();
   }, []);
 
-  const formatCurrency = (amount: string | number) => {
+  const formatCurrency = (amount: string | number | null | undefined) => {
+    if (amount === null || amount === undefined) {
+      return '₹0.00';
+    }
     return `₹${parseFloat(amount.toString()).toFixed(2)}`;
   };
 
@@ -227,7 +324,7 @@ const OrderDetails = () => {
 
   const handleBack = () => {
     // Redirect to appropriate order type page based on order type
-    const orderType = order_details.order_type?.toLowerCase();
+    const orderType = getOrderType()?.toLowerCase();
     
     if (orderType === 'prepaid') {
       navigate('/dashboard/orders/prepaid');
@@ -269,36 +366,36 @@ const OrderDetails = () => {
 
       // Prepare order data for creating new order - using the exact structure you specified
       const orderData = {
-        order_type: order_details.order_type || "prepaid",
+        order_type: getOrderType() || "prepaid",
         parcel_type: order_details.parcel_type || "parcel",
         store_customer_id: null,
         store_customer_address_id: null,
         order_id: null,
-        shipping_charges: parseFloat(payment_details.shipping_tax) || 0,
-        COD_charges: parseFloat(payment_details.cod_charges) || 0,
-        tax_amount: parseFloat(payment_details.total_tax) || 0,
-        discount: parseFloat(payment_details.discount) || 0,
-        order_total: parseFloat(payment_details.total) || 0,
-        collectable_amount: parseFloat(payment_details.collectable_amount) || 0,
-        weight: parseFloat(order_details.weight) * 1000, // Convert to grams
-        length: parseFloat(order_details.length) || 0,
-        width: parseFloat(order_details.width) || 0,
-        height: parseFloat(order_details.height) || 0,
-        customer_phone: customer_details.phone || "",
-        customer_first_name: `${customer_details.first_name} ${customer_details.last_name}`.trim() || "",
-        address: `${customer_details.address1} ${customer_details.address2}`.trim() || "",
+        shipping_charges: parseFloat(payment_details.shipping_tax?.toString() || '0') || 0,
+        COD_charges: parseFloat(payment_details.cod_charges?.toString() || '0') || 0,
+        tax_amount: parseFloat(payment_details.total_tax?.toString() || '0') || 0,
+        discount: parseFloat(payment_details.discount?.toString() || '0') || 0,
+        order_total: parseFloat(payment_details.total?.toString() || '0') || 0,
+        collectable_amount: parseFloat(payment_details.collectable_amount?.toString() || '0') || 0,
+        weight: parseFloat(order_details.weight?.toString() || '0') || 0,
+        length: parseFloat(order_details.length?.toString() || '0') || 0,
+        width: parseFloat(order_details.width?.toString() || '0') || 0,
+        height: parseFloat(order_details.height?.toString() || '0') || 0,
+        customer_phone: getCustomerPhone() || "",
+        customer_first_name: getCustomerName() || "",
+        address: `${getCustomerAddress1()} ${getCustomerAddress2()}`.trim() || "",
         landmark: "",
-        customer_email: customer_details.email || "",
-        pin_code: parseInt(customer_details.zipcode) || 0,
-        city: customer_details.city || "",
+        customer_email: getCustomerEmail() || "",
+        pin_code: parseInt(getCustomerZipcode() || '0') || 0,
+        city: getCustomerCity() || "",
         state: "",
         products: product_details.map(product => ({
           name: product.name || "",
-          total_price: parseFloat(product.total_price) || 0,
-          quantity: parseInt(product.quantity) || 1,
+          total_price: parseFloat(product.total_price?.toString() || '0') || 0,
+          quantity: parseInt(product.quantity?.toString() || '1') || 1,
           sku: product.sku || "",
-          price: parseFloat(product.price) || 0,
-          tax_rate: parseFloat(product.tax_rate) || 0,
+          price: parseFloat(product.price?.toString() || '0') || 0,
+          tax_rate: parseFloat(product.tax_rate?.toString() || '0') || 0,
           hsn_code: product.hsn_code || ""
         }))
       };
@@ -427,7 +524,7 @@ const OrderDetails = () => {
 
       // Prepare order data - using the exact structure you specified
       const orderData = {
-        order_type: order_details.order_type || "prepaid",
+        order_type: getOrderType() || "prepaid",
         parcel_type: order_details.parcel_type || "parcel",
         store_customer_id: null,
         store_customer_address_id: null,
@@ -438,17 +535,17 @@ const OrderDetails = () => {
         discount: 12,
         order_total: 300,
         collectable_amount: 0,
-        weight: parseFloat(order_details.weight) * 1000, // Convert to grams
-        length: parseFloat(order_details.length) || 0,
-        width: parseFloat(order_details.width) || 0,
-        height: parseFloat(order_details.height) || 0,
-        customer_phone: customer_details.phone || "",
-        customer_first_name: `${customer_details.first_name} ${customer_details.last_name}`.trim() || "",
-        address: `${customer_details.address1} ${customer_details.address2}`.trim() || "",
+        weight: parseFloat(order_details.weight?.toString() || '0') || 0,
+        length: parseFloat(order_details.length?.toString() || '0') || 0,
+        width: parseFloat(order_details.width?.toString() || '0') || 0,
+        height: parseFloat(order_details.height?.toString() || '0') || 0,
+        customer_phone: getCustomerPhone() || "",
+        customer_first_name: getCustomerName() || "",
+        address: `${getCustomerAddress1()} ${getCustomerAddress2()}`.trim() || "",
         landmark: "landmark33",
-        customer_email: customer_details.email || "",
-        pin_code: parseInt(customer_details.zipcode) || 0,
-        city: customer_details.city || "",
+        customer_email: getCustomerEmail() || "",
+        pin_code: parseInt(getCustomerZipcode() || '0') || 0,
+        city: getCustomerCity() || "",
         state: "jaipur",
         products: product_details.map(product => ({
           name: product.name || "product one11",
@@ -553,6 +650,19 @@ const OrderDetails = () => {
         }
       }
     }));
+  };
+
+  // Handle pincode change and auto-fill city/state
+  const handlePincodeChange = (pincode: string) => {
+    updateCustomerDetails('zipcode', pincode);
+    
+    if (pincode.length === 6) {
+      const pincodeData = pincodeMapping[pincode as keyof typeof pincodeMapping];
+      if (pincodeData) {
+        updateCustomerDetails('city', pincodeData.city);
+        updateCustomerDetails('state', pincodeData.state);
+      }
+    }
   };
 
   const updateProductDetails = (index: number, field: string, value: string | number) => {
@@ -727,31 +837,37 @@ const OrderDetails = () => {
       : "Warehouse location to be determined";
 
     // Build comprehensive delivery location with customer name and address details
-    const customerName = currentCustomerDetails.first_name || currentCustomerDetails.last_name || '';
+    const customerName = getCustomerName();
     const deliveryAddress = [
       customerName,
-      currentCustomerDetails.address1,
-      currentCustomerDetails.address2,
-      currentCustomerDetails.city,
-      currentCustomerDetails.zipcode
+      getCustomerAddress1(),
+      getCustomerAddress2(),
+      getCustomerCity(),
+      getCustomerZipcode()
     ].filter(Boolean).join(', ');
 
+    // Extract warehouse and RTO IDs from the API response if available
+    const apiWarehouseId = warehouseDetails?.id;
 
+    console.log('=== getOrderSummaryForCourier Debug ===');
+    console.log('currentOrderData:', currentOrderData);
+    console.log('apiWarehouseId:', apiWarehouseId);
+    console.log('warehouseDetails?.id:', warehouseDetails?.id);
 
     return {
       orderId: parseInt(orderId) || parseInt(currentOrderDetails.order_id) || 1, // Use URL param first, then API data
-      warehouseId: warehouseDetails?.id || 60, // Use selected warehouse ID
-      rtoId: warehouseDetails?.id || 60, // Use same as warehouse for now
+      warehouseId: apiWarehouseId || warehouseDetails?.id || 60, // Use API warehouse ID first, then selected warehouse, then fallback
+      rtoId: apiWarehouseId || warehouseDetails?.id || 60, // Use API RTO ID first, then selected warehouse, then fallback
       parcelType: currentOrderDetails.parcel_type || 'parcel',
       pickupLocation: pickupLocation,
-      deliveryLocation: deliveryAddress || `${currentCustomerDetails.city || 'Unknown'}, ${currentCustomerDetails.zipcode || 'Unknown'}`,
-      orderType: currentOrderDetails.order_type || 'prepaid',
-      weight: parseFloat(currentOrderDetails.weight) || 0,
-      volumetricWeight: parseFloat(currentOrderDetails.volumetric_weight) || 0,
+      deliveryLocation: deliveryAddress || `${getCustomerCity() || 'Unknown'}, ${getCustomerZipcode() || 'Unknown'}`,
+      orderType: getOrderType() || 'prepaid',
+      weight: parseFloat(currentOrderDetails.weight?.toString() || '0') || 0,
+      volumetricWeight: parseFloat(currentOrderDetails.volumetric_weight?.toString() || '0') || 0,
       dimensions: {
-        length: parseFloat(currentOrderDetails.length) || 0,
-        width: parseFloat(currentOrderDetails.width) || 0,
-        height: parseFloat(currentOrderDetails.height) || 0
+        length: parseFloat(currentOrderDetails.length?.toString() || '0') || 0,
+        width: parseFloat(currentOrderDetails.width?.toString() || '0') || 0,
+        height: parseFloat(currentOrderDetails.height?.toString() || '0') || 0
       }
     };
   };
@@ -855,23 +971,34 @@ const OrderDetails = () => {
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900"></h1>
-              <p className="text-gray-600 mt-1">Order #{order_details.order_id}</p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-gray-600">Order #{order_details.order_id}</p>
+                <Badge 
+                  className={`${getStatusColor(getOrderStatus())} border-0 font-medium text-base px-3 py-1`}
+                >
+                  {getOrderStatusDisplay()}
+                </Badge>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge className={getOrderTypeColor(order_details.order_type || '')}>
-              {(order_details.order_type || 'Unknown').charAt(0).toUpperCase() + (order_details.order_type || 'Unknown').slice(1).toLowerCase()}
+            <Badge className={getOrderTypeColor(getOrderType() || '')}>
+              {(getOrderType() || 'Unknown').charAt(0).toUpperCase() + (getOrderType() || 'Unknown').slice(1).toLowerCase()}
             </Badge>
             {!isEditing ? (
               <div className="flex gap-2">
-                <Button onClick={handleEdit} variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button onClick={handleCancelOrder} variant="destructive" size="sm">
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel Order
-                </Button>
+                {canEditOrder(orderData) && (
+                  <Button onClick={handleEdit} variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                )}
+                {canCancelOrder(orderData) && (
+                  <Button onClick={handleCancelOrder} variant="destructive" size="sm">
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel Order
+                  </Button>
+                )}
                 <Button onClick={handleDuplicate} variant="outline" size="sm">
                   <Copy className="h-4 w-4 mr-2" />
                   Duplicate
@@ -917,14 +1044,28 @@ const OrderDetails = () => {
                       <Calendar className="h-4 w-4 text-gray-500" />
                       <div>
                         <p className="text-sm text-gray-600">Order Date</p>
-                        <p className="font-medium">{order_details.order_date}</p>
+                        <p className="font-medium">{getOrderDate()}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-600">Order Status</p>
+                        <div className="mt-1">
+                          <Badge 
+                            className={`${getStatusColor(getOrderStatus())} border-0 font-medium`}
+                          >
+                            {getOrderStatusDisplay()}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                     
                     <div>
                       <Label htmlFor="order-type" className="text-sm text-gray-600">Order Type</Label>
                       {isEditing ? (
-                        <Select value={order_details.order_type} onValueChange={(value) => updateOrderDetails('order_type', value)}>
+                        <Select value={getOrderType()} onValueChange={(value) => updateOrderDetails('order_type', value)}>
                           <SelectTrigger className="mt-1">
                             <SelectValue />
                           </SelectTrigger>
@@ -935,7 +1076,7 @@ const OrderDetails = () => {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <p className="font-medium mt-1">{(order_details.order_type || 'Unknown').charAt(0).toUpperCase() + (order_details.order_type || 'Unknown').slice(1).toLowerCase()}</p>
+                        <p className="font-medium mt-1">{(getOrderType() || 'Unknown').charAt(0).toUpperCase() + (getOrderType() || 'Unknown').slice(1).toLowerCase()}</p>
                       )}
                     </div>
 
@@ -1014,12 +1155,12 @@ const OrderDetails = () => {
                             <span className="font-semibold text-amber-800 text-lg">{calculateVolumetricWeight()} kg</span>
                           </div>
                           <p className="text-xs text-amber-600 mt-1 font-medium">
-                            ⚡ Auto-calculated: L×B×H÷4000 = {order_details.length} × {order_details.width} × {order_details.height} ÷ 4000 = {((parseFloat(order_details.length) * parseFloat(order_details.width) * parseFloat(order_details.height)) / 4000).toFixed(2)} kg
+                            ⚡ Auto-calculated: L×B×H÷4000 = {order_details.length || '0'} × {order_details.width || '0'} × {order_details.height || '0'} ÷ 4000 = {((parseFloat(order_details.length || '0') * parseFloat(order_details.width || '0') * parseFloat(order_details.height || '0')) / 4000).toFixed(2)} kg
                           </p>
                           {/* Show warning if there's a discrepancy */}
                           {(() => {
-                            const calculated = (parseFloat(order_details.length) * parseFloat(order_details.width) * parseFloat(order_details.height)) / 4000;
-                            const apiValue = parseFloat(order_details.volumetric_weight);
+                            const calculated = (parseFloat(order_details.length || '0') * parseFloat(order_details.width || '0') * parseFloat(order_details.height || '0')) / 4000;
+                            const apiValue = parseFloat(order_details.volumetric_weight || '0');
                             if (Math.abs(calculated - apiValue) > 0.01) {
                               return (
                                 <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
@@ -1027,10 +1168,10 @@ const OrderDetails = () => {
                                     ⚠️ API data discrepancy detected
                                   </p>
                                   <p className="text-xs text-red-500 mt-1">
-                                    API value: {order_details.volumetric_weight} kg | Calculated: {calculated.toFixed(2)} kg
+                                    API value: {order_details.volumetric_weight || '0'} kg | Calculated: {calculated.toFixed(2)} kg
                                   </p>
                                   <p className="text-xs text-red-500">
-                                    Using calculated value based on dimensions: {order_details.length} × {order_details.width} × {order_details.height} ÷ 4000
+                                    Using calculated value based on dimensions: {order_details.length || '0'} × {order_details.width || '0'} × {order_details.height || '0'} ÷ 4000
                                   </p>
                                 </div>
                               );
@@ -1054,18 +1195,22 @@ const OrderDetails = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
                     <p className="text-xs text-blue-600 font-medium">Order ID</p>
-                    <p className="text-lg font-bold text-blue-900">{order_details.order_id}</p>
+                    <p className="text-lg font-bold text-blue-900">{order_details.order_id || 'N/A'}</p>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-600 font-medium">Order Type</p>
-                    <p className="text-lg font-bold text-green-900">{(order_details.order_type || 'Unknown').charAt(0).toUpperCase() + (order_details.order_type || 'Unknown').slice(1).toLowerCase()}</p>
+                    <p className="text-lg font-bold text-green-900">{(getOrderType() || 'Unknown').charAt(0).toUpperCase() + (getOrderType() || 'Unknown').slice(1).toLowerCase()}</p>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                    <p className="text-xs text-red-600 font-medium">Order Status</p>
+                    <p className="text-lg font-bold text-red-900">{getOrderStatusDisplay()}</p>
                   </div>
                   <div className="text-center p-3 bg-amber-50 rounded-lg">
                     <p className="text-xs text-amber-600 font-medium">Weight</p>
-                                            <p className="text-lg font-bold text-amber-900">{order_details.weight} gm</p>
+                    <p className="text-lg font-bold text-amber-900">{order_details.weight || '0'} gm</p>
                   </div>
                   <div className="text-center p-3 bg-purple-50 rounded-lg">
                     <p className="text-xs text-purple-600 font-medium">Vol. Weight</p>
@@ -1084,90 +1229,70 @@ const OrderDetails = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    {isEditing ? (
-                      <>
-                        <div>
-                          <Label className="text-sm text-gray-600">Phone Number</Label>
-                          <Input
-                            value={customer_details.phone}
-                            onChange={(e) => updateCustomerDetails('phone', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">First Name</Label>
-                          <Input
-                            value={customer_details.first_name}
-                            onChange={(e) => updateCustomerDetails('first_name', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">Last Name</Label>
-                          <Input
-                            value={customer_details.last_name || ''}
-                            onChange={(e) => updateCustomerDetails('last_name', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">Email</Label>
-                          <Input
-                            value={customer_details.email || ''}
-                            onChange={(e) => updateCustomerDetails('email', e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <Label className="text-sm text-gray-600">First Name</Label>
-                          <p className="font-medium mt-1">{customer_details.first_name}</p>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">Last Name</Label>
-                          <p className="font-medium mt-1">{customer_details.last_name || 'N/A'}</p>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">Phone Number</Label>
-                          <p className="font-medium mt-1">{customer_details.phone}</p>
-                        </div>
-                        
-                        <div>
-                          <Label className="text-sm text-gray-600">Email</Label>
-                          <p className="font-medium mt-1">{customer_details.email || 'N/A'}</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4">
+                <div className="space-y-4">
+                  {/* Row 1: Phone Number, First Name */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm text-gray-600">Address Line 1</Label>
+                      <Label className="text-sm text-gray-600">Phone Number</Label>
                       {isEditing ? (
                         <Input
-                          value={customer_details.address1}
+                          value={customer_details.phone || ''}
+                          onChange={(e) => updateCustomerDetails('phone', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.phone || 'N/A'}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm text-gray-600">First Name</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.first_name || ''}
+                          onChange={(e) => updateCustomerDetails('first_name', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.first_name || 'N/A'}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Row 2: Last Name, Address Line 1 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-gray-600">Last Name</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.last_name || ''}
+                          onChange={(e) => updateCustomerDetails('last_name', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.last_name || 'N/A'}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.address1 || ''}
                           onChange={(e) => updateCustomerDetails('address1', e.target.value)}
                           className="mt-1"
                         />
                       ) : (
                         <div className="flex items-start gap-3 mt-1">
                           <MapPin className="h-4 w-4 text-gray-500 mt-1 flex-shrink-0" />
-                          <p className="text-sm leading-relaxed">{customer_details.address1}</p>
+                          <p className="text-sm leading-relaxed">{customer_details.address1 || 'N/A'}</p>
                         </div>
                       )}
                     </div>
-                    
+                  </div>
+                  
+                  {/* Row 3: Address Line 2, Email */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm text-gray-600">Address Line 2</Label>
                       {isEditing ? (
                         <Input
                           value={customer_details.address2 || ''}
@@ -1179,32 +1304,59 @@ const OrderDetails = () => {
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-sm text-gray-600">City</Label>
-                        {isEditing ? (
-                          <Input
-                            value={customer_details.city}
-                            onChange={(e) => updateCustomerDetails('city', e.target.value)}
-                            className="mt-1"
-                          />
-                        ) : (
-                          <p className="font-medium mt-1">{customer_details.city}</p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm text-gray-600">Zipcode</Label>
-                        {isEditing ? (
-                          <Input
-                            value={customer_details.zipcode}
-                            onChange={(e) => updateCustomerDetails('zipcode', e.target.value)}
-                            className="mt-1"
-                          />
-                        ) : (
-                          <p className="font-medium mt-1">{customer_details.zipcode}</p>
-                        )}
-                      </div>
+                    <div>
+                      <Label className="text-sm text-gray-600">Email</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.email || ''}
+                          onChange={(e) => updateCustomerDetails('email', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.email || 'N/A'}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Row 4: Pincode, City, State */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm text-gray-600">Pincode</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.zipcode}
+                          onChange={(e) => handlePincodeChange(e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.zipcode}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm text-gray-600">City</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.city || ''}
+                          onChange={(e) => updateCustomerDetails('city', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.city || 'N/A'}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm text-gray-600">State</Label>
+                      {isEditing ? (
+                        <Input
+                          value={customer_details.state || ''}
+                          onChange={(e) => updateCustomerDetails('state', e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium mt-1">{customer_details.state || 'N/A'}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1304,7 +1456,7 @@ const OrderDetails = () => {
                           <div className="flex-1">
                             <h3 className="font-medium text-gray-900">{product.name}</h3>
                             <p className="text-sm text-gray-600">
-                              Quantity: {product.quantity} × {formatCurrency(product.price)}
+                              Quantity: {product.quantity || 0} × {formatCurrency(product.price || 0)}
                             </p>
                             {product.sku && <p className="text-sm text-gray-500">SKU: {product.sku}</p>}
                             {product.tax_rate && parseFloat(product.tax_rate) > 0 && (
@@ -1313,10 +1465,10 @@ const OrderDetails = () => {
                             {product.hsn_code && <p className="text-sm text-gray-500">HSN Code: {product.hsn_code}</p>}
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-lg">{formatCurrency(product.total_price)}</p>
+                            <p className="font-semibold text-lg">{formatCurrency(product.total_price || 0)}</p>
                             {product.tax_rate && parseFloat(product.tax_rate) > 0 && (
                               <p className="text-xs text-gray-500">
-                                Tax: {formatCurrency((parseFloat(product.price) * parseFloat(product.tax_rate) / 100) * product.quantity)}
+                                Tax: {formatCurrency((parseFloat(product.price || 0) * parseFloat(product.tax_rate || 0) / 100) * (product.quantity || 0))}
                               </p>
                             )}
                           </div>
@@ -1388,7 +1540,7 @@ const OrderDetails = () => {
                   {/* Product Total */}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Product Total (₹)</span>
-                    <span className="font-medium">{formatCurrency(payment_details.product_total)}</span>
+                    <span className="font-medium">{formatCurrency(payment_details.product_total || 0)}</span>
                   </div>
 
                   {/* Order Total */}
@@ -1404,12 +1556,12 @@ const OrderDetails = () => {
                         className="w-32 h-8 text-right font-semibold text-blue-600"
                       />
                     ) : (
-                      <span className="text-blue-600">{formatCurrency(payment_details.total)}</span>
+                      <span className="text-blue-600">{formatCurrency(payment_details.total || 0)}</span>
                     )}
                   </div>
 
                   {/* COD Specific Fields - Only show for COD orders */}
-                  {order_details.order_type === 'cod' && (
+                  {getOrderType() === 'cod' && (
                     <>
                       {/* COD Charges */}
                       <div className="flex justify-between items-center">
@@ -1436,14 +1588,14 @@ const OrderDetails = () => {
                             className="w-32 h-8 text-right font-semibold text-orange-600"
                           />
                         ) : (
-                          <span>{formatCurrency(payment_details.collectable_amount)}</span>
+                          <span>{formatCurrency(payment_details.collectable_amount || 0)}</span>
                         )}
                       </div>
                     </>
                   )}
                 </div>
 
-                {!isEditing && (
+                {!isEditing && canShipOrder(orderData) && (
                   <div className="pt-4 space-y-3">
                     <Button 
                       className="w-full bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
@@ -1570,6 +1722,7 @@ const OrderDetails = () => {
             <CourierPartnerSelection
               orderSummary={getOrderSummaryForCourier()}
               onCourierSelect={handleCourierSelect}
+              initialShipRates={[]}
             />
           </div>
         </DialogContent>

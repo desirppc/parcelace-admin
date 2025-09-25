@@ -641,26 +641,61 @@ const ViewOrderContent = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <div>
-                    <p className="font-medium text-sm">{mockOrder.customer.name}</p>
-                  </div>
+                  {/* Phone Number */}
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-3 w-3 text-gray-400" />
                     <span>{mockOrder.customer.phone}</span>
                   </div>
+                  
+                  {/* First Name */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-3 w-3 text-gray-400" />
+                    <span className="font-medium">{mockOrder.customer.name.split(' ')[0] || 'N/A'}</span>
+                  </div>
+                  
+                  {/* Last Name */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-3 w-3 text-gray-400" />
+                    <span className="font-medium">{mockOrder.customer.name.split(' ').slice(1).join(' ') || 'N/A'}</span>
+                  </div>
+                  
+                  {/* Address Line 1 */}
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-gray-400 mt-1 flex-shrink-0" />
+                    <span>{mockOrder.customer.address.split(',')[0] || mockOrder.customer.address}</span>
+                  </div>
+                  
+                  {/* Address Line 2 */}
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-gray-400 mt-1 flex-shrink-0" />
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {mockOrder.customer.address.split(',').slice(1).join(',').trim() || 
+                       (mockOrder.customer.landmark ? `${mockOrder.customer.landmark}` : 'N/A')}
+                    </span>
+                  </div>
+                  
+                  {/* Email */}
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-3 w-3 text-gray-400" />
                     <span className="truncate text-xs">{mockOrder.customer.email}</span>
                   </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-3 w-3 text-gray-400 mt-1 flex-shrink-0" />
-                    <div className="text-xs leading-relaxed">
-                      <p>{mockOrder.customer.address}</p>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        {mockOrder.customer.landmark && `${mockOrder.customer.landmark}, `}
-                        {mockOrder.customer.city}, {mockOrder.customer.state} - {mockOrder.customer.pin}
-                      </p>
-                    </div>
+                  
+                  {/* Pincode */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-gray-400" />
+                    <span>{mockOrder.customer.pin}</span>
+                  </div>
+                  
+                  {/* City */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-gray-400" />
+                    <span>{mockOrder.customer.city}</span>
+                  </div>
+                  
+                  {/* State */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-gray-400" />
+                    <span>{mockOrder.customer.state}</span>
                   </div>
                 </CardContent>
               </Card>

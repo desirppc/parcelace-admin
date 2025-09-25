@@ -17,6 +17,7 @@ const API_CONFIG = {
     // User & Profile
     USER_PROFILE: 'api/user/profile',
     UPDATE_PROFILE: 'api/user/profile',
+    PROFILE_DASHBOARD: 'api/profile-dashboard',
     
     // Onboarding
     ONBOARDING: 'api/onboarding',
@@ -39,11 +40,21 @@ const API_CONFIG = {
     CREATE_SHIPMENT: 'api/shipments/create',
     UPDATE_SHIPMENT: 'api/shipments/update',
     DELETE_SHIPMENT: 'api/shipments/delete',
+    SHIPMENT_CANCEL: 'api/shipments/cancel',
     SHIPMENT_LABEL: 'api/shipments/label',
+    BULK_SHIPMENT_LABELS: 'api/shipments/bulk-shipment-labels',
+    BULK_SHIPMENT_INVOICE: 'api/shipments/bulk-shipment-invoice',
     SHIPMENT_EXPORT: 'api/shipments/export',
     SHIPMENT_TRACKING: 'api/shipments/tracking',
     SHIPMENT_FEEDBACK: 'api/shipments/feedback-list',
     SHIPMENT_FEEDBACK_VIEW: 'api/shipments/feedback-view',
+    
+    // Bulk Booking
+    BULK_BOOKING_REQUEST: 'api/shipments/bulk-booking-request',
+    GET_BULK_BOOKING_RATES: 'api/shipments/get-bulk-booking-rates',
+    BULK_BOOKING_CREATE: 'api/shipments/bulk-booking',
+    
+
     
     // Wallet & Finance
     WALLET: 'api/wallet',
@@ -75,6 +86,7 @@ const API_CONFIG = {
     // Courier Partners
     COURIER_PARTNERS: 'api/courier-partners',
     COURIER_SELECTION: 'api/courier-selection',
+    COURIER_PRIORITY: 'api/courier-priority',
     
     // Analytics & Reports
     ANALYTICS: 'api/analytics',
@@ -86,11 +98,18 @@ const API_CONFIG = {
     
     // Tracking
     TRACKING: 'api/tracking',
+    TRACKING_SEND_OTP: 'api/tracking/send-otp',
+    TRACKING_VERIFY_OTP: 'api/tracking/verify-otp',
     
     // Brand Details
     GET_USER_META: 'api/get-user-meta',
     UPDATE_USER_META: 'api/user-meta',
     IMAGE_UPLOAD: 'api/image-upload',
+    
+    // Shipping Label Settings
+    SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',
+    SHIPPING_LABEL_SETTINGS_UPDATE: 'api/shipping-label-settings/update',
+    SHIPPING_LABEL_BRAND_LOGO: 'api/shipping-label-settings/brand-logo',
   },
   METHODS: {
     GET: 'GET',

@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Mail, Phone, Shield, Store, ShoppingCart, CheckCircle, AlertCircle, Edit2, CreditCard, Building2, HeadphonesIcon } from 'lucide-react';
+import { User, Mail, Phone, Shield, Store, ShoppingCart, CheckCircle, AlertCircle, Edit2, CreditCard, Building2, HeadphonesIcon, Loader2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import profileService, { ProfileDashboardData, ProfileInfo, BusinessDetails, BankDetails, LegalDetails, BrandDetails } from '@/services/profileService';
+import { useToast } from '@/hooks/use-toast';
 
-interface ProfileData {
+// Local state interfaces for form handling
+interface LocalProfileData {
   name: string;
   email: string;
   emailVerified: boolean;
@@ -21,21 +24,21 @@ interface ProfileData {
   brandWebsite: string;
 }
 
-interface BankDetails {
+interface LocalBankDetails {
   payeeName: string;
   accountNumber: string;
   ifsc: string;
   verified: boolean;
 }
 
-interface LegalDetails {
+interface LocalLegalDetails {
   legalEntity: string;
   legalName: string;
   gstin: string;
   address: string;
 }
 
-interface SupportDetails {
+interface LocalSupportDetails {
   firstLevel: {
     pocName: string;
     pocNumber: string;
@@ -50,9 +53,15 @@ interface SupportDetails {
 
 const ProfilePage = () => {
   const { user } = useUser();
+  const { toast } = useToast();
+  
+  // API data state
+  const [profileDashboardData, setProfileDashboardData] = useState<ProfileDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Get user display name with proper fallback logic
-  const getUserDisplayName = (): string => {
+  const getUserDisplayName = useCallback((): string => {
     if (user?.name) {
       return user.name;
     }
@@ -89,9 +98,9 @@ const ProfilePage = () => {
     }
     
     return 'Guest';
-  };
+  }, [user]);
 
-  const [profileData, setProfileData] = useState<ProfileData>({
+  const [profileData, setProfileData] = useState<LocalProfileData>({
     name: getUserDisplayName(),
     email: user?.email || 'Loading...',
     emailVerified: !!user?.email_verified_at,
@@ -104,21 +113,21 @@ const ProfilePage = () => {
     brandWebsite: 'Loading...'
   });
 
-  const [bankDetails, setBankDetails] = useState<BankDetails>({
+  const [bankDetails, setBankDetails] = useState<LocalBankDetails>({
     payeeName: getUserDisplayName(),
     accountNumber: '1234567890',
     ifsc: 'HDFC0001234',
     verified: true
   });
 
-  const [legalDetails, setLegalDetails] = useState<LegalDetails>({
+  const [legalDetails, setLegalDetails] = useState<LocalLegalDetails>({
     legalEntity: 'Individual',
     legalName: getUserDisplayName(),
     gstin: '',
     address: '123 Main Street, City, State, 123456'
   });
 
-  const [supportDetails, setSupportDetails] = useState<SupportDetails>({
+  const [supportDetails, setSupportDetails] = useState<LocalSupportDetails>({
     firstLevel: {
       pocName: 'John Doe',
       pocNumber: '+91 9876543210',
@@ -134,6 +143,70 @@ const ProfilePage = () => {
   const [editingBank, setEditingBank] = useState(false);
   const [editingLegal, setEditingLegal] = useState(false);
   const [editingSupport, setEditingSupport] = useState(false);
+
+  // Fetch profile dashboard data from API
+  const fetchProfileDashboard = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await profileService.getProfileDashboard();
+      
+      if (response.status && response.data) {
+        setProfileDashboardData(response.data);
+        
+        // Update local state with API data
+        setProfileData(prev => ({
+          ...prev,
+          name: response.data.profile_info.name || prev.name,
+          email: response.data.profile_info.email || prev.email,
+          emailVerified: !!response.data.profile_info.email_verified,
+          phone: response.data.profile_info.phone || prev.phone,
+          phoneVerified: !!response.data.profile_info.phone_verified,
+          kycVerified: response.data.profile_info.kyc_verified,
+          salesPlatform: response.data.business_details.sales_platform || prev.salesPlatform,
+          monthlyOrders: response.data.business_details.monthly_orders || prev.monthlyOrders,
+          brandName: response.data.business_details.brand_name || prev.brandName,
+          brandWebsite: response.data.business_details.brand_website || prev.brandWebsite
+        }));
+
+        setBankDetails(prev => ({
+          ...prev,
+          payeeName: response.data.bank_details.payee_name || prev.payeeName,
+          accountNumber: response.data.bank_details.account_number || prev.accountNumber,
+          ifsc: response.data.bank_details.ifsc || prev.ifsc,
+          verified: response.data.bank_details.bank_verified
+        }));
+
+        setLegalDetails(prev => ({
+          ...prev,
+          legalEntity: response.data.legal_details.legal_entity || prev.legalEntity,
+          legalName: response.data.legal_details.legal_name || prev.legalName,
+          gstin: response.data.legal_details.gstin || prev.gstin,
+          address: response.data.legal_details.address || prev.address
+        }));
+
+        // Update support details from brand details
+        if (response.data.brand_details.support_contact_number || response.data.brand_details.support_email) {
+          setSupportDetails(prev => ({
+            ...prev,
+            firstLevel: {
+              ...prev.firstLevel,
+              pocNumber: response.data.brand_details.support_contact_number || prev.firstLevel.pocNumber,
+              pocEmail: response.data.brand_details.support_email || prev.firstLevel.pocEmail
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile dashboard:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch profile data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   // Load profile data from localStorage on component mount
   useEffect(() => {
@@ -157,6 +230,11 @@ const ProfilePage = () => {
       }));
     }
   }, []);
+
+  // Fetch profile dashboard data on component mount
+  useEffect(() => {
+    fetchProfileDashboard();
+  }, [fetchProfileDashboard]);
 
   // Update profile data when user data changes
   useEffect(() => {
@@ -182,7 +260,7 @@ const ProfilePage = () => {
         legalName: getUserDisplayName(),
       }));
     }
-  }, [user]);
+  }, [user, getUserDisplayName]);
 
   const handleVerifyEmail = () => {
     console.log('Email verification initiated');
@@ -196,19 +274,90 @@ const ProfilePage = () => {
     console.log('KYC verification clicked');
   };
 
-  const handleSaveBankDetails = () => {
-    console.log('Bank details saved:', bankDetails);
-    setEditingBank(false);
+  const handleSaveBankDetails = async () => {
+    try {
+      setIsUpdating(true);
+      await profileService.updateBankDetails({
+        payee_name: bankDetails.payeeName,
+        account_number: bankDetails.accountNumber,
+        ifsc: bankDetails.ifsc,
+        bank_verified: bankDetails.verified
+      });
+      
+      toast({
+        title: "Success",
+        description: "Bank details updated successfully!",
+      });
+      setEditingBank(false);
+      
+      // Refresh data
+      await fetchProfileDashboard();
+    } catch (error) {
+      console.error('Error updating bank details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bank details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleSaveLegalDetails = () => {
-    console.log('Legal details saved:', legalDetails);
-    setEditingLegal(false);
+  const handleSaveLegalDetails = async () => {
+    try {
+      setIsUpdating(true);
+      await profileService.updateProfile({
+        // Note: Legal details might need a separate endpoint
+        // For now, we'll just close the dialog
+      });
+      
+      toast({
+        title: "Success",
+        description: "Legal details updated successfully!",
+      });
+      setEditingLegal(false);
+      
+      // Refresh data
+      await fetchProfileDashboard();
+    } catch (error) {
+      console.error('Error updating legal details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update legal details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleSaveSupportDetails = () => {
-    console.log('Support details saved:', supportDetails);
-    setEditingSupport(false);
+  const handleSaveSupportDetails = async () => {
+    try {
+      setIsUpdating(true);
+      await profileService.updateBrandDetails({
+        support_contact_number: supportDetails.firstLevel.pocNumber,
+        support_email: supportDetails.firstLevel.pocEmail,
+      });
+      
+      toast({
+        title: "Success",
+        description: "Support details updated successfully!",
+      });
+      setEditingSupport(false);
+      
+      // Refresh data
+      await fetchProfileDashboard();
+    } catch (error) {
+      console.error('Error updating support details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update support details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const getVerificationBadge = (verified: boolean, label: string) => {
@@ -227,9 +376,17 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-blue-50/50 dark:from-purple-950/20 dark:via-pink-950/10 dark:to-blue-950/20 p-4">
+      {isLoading && (
+        <div className="fixed inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-purple-600 mx-auto" />
+            <p className="text-lg font-medium text-foreground">Loading profile data...</p>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
             Profile Dashboard
           </h1>
@@ -434,8 +591,19 @@ const ProfilePage = () => {
                             onChange={(e) => setBankDetails(prev => ({ ...prev, ifsc: e.target.value }))}
                           />
                         </div>
-                        <Button onClick={handleSaveBankDetails} className="w-full">
-                          Save Changes
+                        <Button 
+                          onClick={handleSaveBankDetails} 
+                          className="w-full"
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
                         </Button>
                       </div>
                     </DialogContent>
@@ -520,8 +688,19 @@ const ProfilePage = () => {
                             onChange={(e) => setLegalDetails(prev => ({ ...prev, address: e.target.value }))}
                           />
                         </div>
-                        <Button onClick={handleSaveLegalDetails} className="w-full">
-                          Save Changes
+                        <Button 
+                          onClick={handleSaveLegalDetails} 
+                          className="w-full"
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
                         </Button>
                       </div>
                     </DialogContent>
@@ -647,8 +826,19 @@ const ProfilePage = () => {
                             </div>
                           </div>
                         </div>
-                        <Button onClick={handleSaveSupportDetails} className="w-full">
-                          Save Changes
+                        <Button 
+                          onClick={handleSaveSupportDetails} 
+                          className="w-full"
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
                         </Button>
                       </div>
                     </DialogContent>

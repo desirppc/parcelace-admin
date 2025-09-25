@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
   Wallet, 
@@ -6,7 +6,6 @@ import {
   Zap, 
   Bell, 
   Settings, 
-  User, 
   ChevronDown, 
   ChevronRight,
   Home,
@@ -20,7 +19,6 @@ import {
   Fingerprint,
   Tag,
   Receipt,
-  MapPin,
   CreditCard as BankIcon,
   Bolt,
   Link,
@@ -31,9 +29,7 @@ import {
   MessageCircle,
   Headphones,
   History,
-  Route,
   RefreshCw,
-  Sparkles,
   BarChart3,
   Mail,
   Building,
@@ -47,7 +43,6 @@ import NotificationPanel from './NotificationPanel';
 
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
-import { useEffect } from 'react';
 import API_CONFIG from '@/config/api';
 import AppHeader from './AppHeader';
 
@@ -66,9 +61,12 @@ const OnboardingLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['onboarding']);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const navigate = useNavigate();
   const { walletBalance, updateWalletBalance, user } = useUser();
+  
+  // Add refs for timeout management
+  const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const submenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update wallet balance on mount and when wallet is updated
   useEffect(() => {
@@ -86,24 +84,6 @@ const OnboardingLayout = () => {
   }, [updateWalletBalance]);
 
   const menuItems: MenuItem[] = [
-    {
-      id: 'profile',
-      title: 'Profile',
-      icon: User,
-      route: '/dashboard/profile'
-    },
-    {
-      id: 'ai',
-      title: 'ParcelAce AI',
-      icon: Sparkles,
-      route: '/dashboard/ai'
-    },
-    {
-      id: 'view-order',
-      title: 'Shipment View Details',
-      icon: Package,
-      route: '/dashboard/orders/view'
-    },
     {
       id: 'onboarding',
       title: 'Onboarding',
@@ -130,12 +110,7 @@ const OnboardingLayout = () => {
       icon: Truck,
       subItems: [
         { id: 'prepaid-shipments', title: 'Prepaid Shipments', icon: Truck },
-        { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck },
-        { id: 'tracking', title: 'Tracking', icon: Truck },
-        { id: 'tracking-v1', title: 'Tracking V1', icon: MapPin },
-        { id: 'tracking-v2', title: 'Tracking V2', icon: MapPin },
-        { id: 'tracking-page', title: 'Tracking Page', icon: MapPin },
-        { id: 'courier-selection', title: 'Courier Selection', icon: Route }
+        { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck }
       ]
     },
     {
@@ -157,7 +132,8 @@ const OnboardingLayout = () => {
         { id: 'return-pro', title: 'Return Pro', icon: Package },
         { id: 'brand-details', title: 'Brand Details', icon: Building },
         { id: 'nps', title: 'NPS', icon: Star },
-        { id: 'customise-tracking', title: 'Customise Tracking', icon: Settings }
+        { id: 'customise-tracking', title: 'Customise Tracking', icon: Settings },
+        { id: 'notify-ace', title: 'Notify Ace', icon: MessageSquare }
       ]
     },
     {
@@ -166,9 +142,9 @@ const OnboardingLayout = () => {
       icon: Settings,
       subItems: [
         { id: 'billing', title: 'Billing', icon: CreditCard },
-        { id: 'invoice-settings', title: 'Invoice Settings', icon: FileText },
-        { id: 'tracking-page', title: 'Tracking Page', icon: Tag },
-        { id: 'warehouse', title: 'Warehouse', icon: MapPin }
+        { id: 'tracking-page', title: 'Customise Label', icon: Tag },
+        { id: 'warehouse', title: 'Warehouse', icon: Building },
+        { id: 'courier-priority', title: 'Courier Priority', icon: Bolt }
       ]
     },
     {
@@ -192,8 +168,6 @@ const OnboardingLayout = () => {
 
   const routeMapping: { [key: string]: string } = {
     // Dashboard Routes (Primary)
-    'profile': '/dashboard/profile',
-    'ai': '/dashboard/ai',
     'checklist': '/onboarding/checklist',
     'integration': '/onboarding/shopify-integration',
     'aadhar-verification': '/dashboard/kyc',
@@ -204,11 +178,7 @@ const OnboardingLayout = () => {
     'reverse-orders': '/dashboard/orders/reverse',
     'prepaid-shipments': '/dashboard/shipments/prepaid',
     'reverse-shipments': '/dashboard/shipments/reverse',
-    'tracking': '/dashboard/shipments/tracking',
-    'tracking-v1': '/dashboard/shipments/tracking-v1',
-    'tracking-v2': '/dashboard/shipments/tracking-v2',
-    'tracking-page': '/dashboard/settings/tracking-page',
-    'courier-selection': '/dashboard/shipments/courier-selection',
+    'courier-priority-rules': '/dashboard/settings/courier-priority-rules',
     'cod-remittance': '/dashboard/finance/cod-remittance',
     'wallet-transaction': '/dashboard/finance/wallet-transaction',
     'early-cod': '/dashboard/finance/early-cod',
@@ -217,14 +187,16 @@ const OnboardingLayout = () => {
     'brand-details': '/dashboard/postship/brand-details',
     'nps': '/dashboard/postship/nps',
     'customise-tracking': '/dashboard/postship/customise-tracking',
+    'notify-ace': '/dashboard/postship/notify-ace',
     'billing': '/dashboard/settings/billing',
-    'invoice-settings': '/dashboard/settings/invoice-settings',
+    'tracking-page': '/dashboard/settings/customise-shipping-label',
+    'courier-priority': '/dashboard/settings/courier-priority-rules',
     'warehouse': '/dashboard/warehouse',
     'warehouse-location': '/dashboard/settings/warehouse',
     'support-dashboard': '/dashboard/support/support-dashboard',
     'create-ticket': '/dashboard/support/create-ticket',
     'daily-report': '/dashboard/reports/daily',
-    'admin-email': '/dashboard/reports/admin-email',
+    'admin-email': '/dashboard/reports/admin-email'
 
   };
 
@@ -248,7 +220,7 @@ const OnboardingLayout = () => {
   const settingsOptions = [
     { icon: Tag, label: 'Shipping Labels' },
     { icon: Receipt, label: 'Billing & Invoices' },
-    { icon: MapPin, label: 'Warehouse Location' },
+    { icon: Building, label: 'Warehouse Location' },
     { icon: BankIcon, label: 'Bank Accounts' },
     { icon: Bolt, label: 'Courier Priority' },
     { icon: Link, label: 'Tracking Links' },
@@ -289,15 +261,76 @@ const OnboardingLayout = () => {
     }
   };
 
+  // Add auto-close functionality for sidebar
+  const handleSidebarMouseEnter = () => {
+    // Clear any existing timeout
+    if (sidebarTimeoutRef.current) {
+      clearTimeout(sidebarTimeoutRef.current);
+      sidebarTimeoutRef.current = null;
+    }
+    setSidebarOpen(true);
+  };
+
+  const handleSidebarMouseLeave = () => {
+    // Set a delay before closing to prevent flickering
+    // This delay allows users to move between sidebar and submenus
+    sidebarTimeoutRef.current = setTimeout(() => {
+      setSidebarOpen(false);
+      // Auto-close all submenus when sidebar closes
+      setExpandedMenus([]);
+    }, 500); // Increased to 500ms for better UX when navigating submenus
+  };
+
+  // Add auto-close functionality for submenus
+  const handleSubmenuMouseEnter = () => {
+    // Clear any existing submenu timeout
+    if (submenuTimeoutRef.current) {
+      clearTimeout(submenuTimeoutRef.current);
+      submenuTimeoutRef.current = null;
+    }
+    // Keep sidebar open when hovering over submenus
+    if (!sidebarOpen) {
+      setSidebarOpen(true);
+    }
+  };
+
+  const handleSubmenuMouseLeave = () => {
+    // Set a delay before closing submenus
+    submenuTimeoutRef.current = setTimeout(() => {
+      if (!sidebarOpen) {
+        setExpandedMenus([]);
+      }
+    }, 300); // Increased to 300ms for better UX
+  };
+
+  // Close submenus when sidebar closes
+  useEffect(() => {
+    if (!sidebarOpen) {
+      setExpandedMenus([]);
+    }
+  }, [sidebarOpen]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (sidebarTimeoutRef.current) {
+        clearTimeout(sidebarTimeoutRef.current);
+      }
+      if (submenuTimeoutRef.current) {
+        clearTimeout(submenuTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
       {/* Sidebar */}
       <div 
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-white/95 via-blue-50/90 to-purple-50/95 dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-900/80 shadow-2xl transition-all duration-300 z-50 border-r border-purple-200/30 dark:border-purple-800/30 ${
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-white/95 via-blue-50/90 to-purple-50/95 dark:from-gray-900/95 dark:via-blue-800/90 dark:to-gray-900/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-900/80 shadow-2xl transition-all duration-300 z-50 border-r border-purple-200/30 dark:border-purple-800/30 ${
           sidebarOpen ? 'w-64' : 'w-16'
         }`}
-        onMouseEnter={() => setSidebarOpen(true)}
-        onMouseLeave={() => setSidebarOpen(false)}
+        onMouseEnter={handleSidebarMouseEnter}
+        onMouseLeave={handleSidebarMouseLeave}
       >
         {/* Logo */}
         <div className="p-4 border-b border-gradient-to-r from-pink-200/30 via-blue-200/30 to-purple-200/30 dark:from-pink-800/30 dark:via-blue-800/30 dark:to-purple-800/30">
@@ -365,7 +398,11 @@ const OnboardingLayout = () => {
 
               {/* Sub Menu Items */}
               {sidebarOpen && item.subItems && expandedMenus.includes(item.id) && (
-                <div className="ml-8 space-y-1 animate-fade-in">
+                <div 
+                  className="ml-8 space-y-1 animate-fade-in"
+                  onMouseEnter={handleSubmenuMouseEnter}
+                  onMouseLeave={handleSubmenuMouseLeave}
+                >
                   {item.subItems.map((subItem) => (
                     <button
                       key={subItem.id}
@@ -402,7 +439,16 @@ const OnboardingLayout = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <div 
+        className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}
+        onClick={() => {
+          // Close sidebar and submenus when clicking on main content
+          if (sidebarOpen) {
+            setSidebarOpen(false);
+            setExpandedMenus([]);
+          }
+        }}
+      >
         {/* Header */}
         <AppHeader />
         {/* Main Content Area */}
@@ -411,15 +457,12 @@ const OnboardingLayout = () => {
         </div>
       </div>
 
-
-
       {/* Click outside to close dropdowns */}
-      {(showProfileDropdown || showSettingsDropdown) && (
+      {showSettingsDropdown && (
         <div 
           className="fixed inset-0 z-50"
           onClick={(e) => {
             e.stopPropagation();
-            setShowProfileDropdown(false);
             setShowSettingsDropdown(false);
           }}
         />

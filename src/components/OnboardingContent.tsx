@@ -1,20 +1,18 @@
 import React from 'react';
-import { Package, Shield, Eye, Calculator } from 'lucide-react';
-import OrdersPage from './OrdersPage';
-import ShipmentPage from './ShipmentPage';
+import { Package, Shield, Truck, CreditCard, FileText, MessageSquare, BarChart3, Settings, Building, RefreshCw, Star } from 'lucide-react';
 import KYCVerification from './KYCVerification';
 import ViewOrder from './ViewOrder';
+import OrdersPage from './OrdersPage';
+import ShipmentPage from './ShipmentPage';
 import CODRemittance from './CODRemittance';
 import WalletTransaction from './WalletTransaction';
 import EarlyCODPlans from './EarlyCODPlans';
-import InvoiceManagement from './InvoiceManagement';
 import ReturnPro from './ReturnPro';
 import Billing from './Billing';
-import TrackingPage from './TrackingPage';
+import ShippingLabelSettings from './ShippingLabelSettings';
 import WarehouseScreen from './WarehouseScreen';
 import SupportDashboard from './SupportDashboard';
 import CreateTicket from './CreateTicket';
-import ShippingLabelSettings from './ShippingLabelSettings';
 import { SupportTicket } from '@/types/support';
 
 interface OnboardingContentProps {
@@ -94,17 +92,15 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       case 'early-cod':
         return <EarlyCODPlans />;
       case 'invoice':
-        return <InvoiceManagement />;
+        return <Billing />;
 
       case 'return-pro':
         return <ReturnPro />;
 
       case 'billing':
         return <Billing />;
-      case 'invoice-settings':
-        return <InvoiceManagement />;
       case 'tracking-page':
-        return <TrackingPage />;
+        return <ShippingLabelSettings />;
       case 'warehouse-location':
         return <WarehouseScreen />;
 

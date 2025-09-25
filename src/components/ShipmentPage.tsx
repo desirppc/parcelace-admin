@@ -44,9 +44,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO } from 'date-fns';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
@@ -146,8 +155,20 @@ const ShipmentPage = () => {
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showBulkCancelConfirm, setShowBulkCancelConfirm] = useState(false);
+  const [selectedShipmentForCancel, setSelectedShipmentForCancel] = useState<ShipmentItem | null>(null);
+  const [cancellingShipment, setCancellingShipment] = useState(false);
+  const [cancellingBulk, setCancellingBulk] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const pageSizeOptions = [10, 20, 50, 100, 200, 500];
+  
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Determine current page type based on URL
   const getCurrentPageType = () => {
@@ -232,6 +253,7 @@ const ShipmentPage = () => {
         setShipments(shipmentsWithAWB);
         // Apply page type filtering
         filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
+        resetPagination(); // Reset pagination when new data is fetched
         setLastFetchTime(new Date());
       } else {
         console.log('API Error:', data);
@@ -461,6 +483,88 @@ const ShipmentPage = () => {
     }
   };
 
+  const handleDownloadShippingLabels = async (awbNumbers: string[]) => {
+    try {
+      if (awbNumbers.length === 0) {
+        toast({
+          title: "No AWB Selected",
+          description: "Please select at least one shipment to download labels.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Show loading state
+      toast({
+        title: "Downloading Labels",
+        description: "Please wait while we prepare your shipping labels...",
+      });
+
+      const result = await shipmentService.downloadShippingLabels(awbNumbers);
+      
+      if (result.success) {
+        toast({
+          title: "Download Successful",
+          description: "Shipping labels downloaded successfully!",
+        });
+      } else {
+        toast({
+          title: "Download Failed",
+          description: result.error || "Failed to download shipping labels. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadInvoice = async (awbNumbers: string[]) => {
+    try {
+      if (awbNumbers.length === 0) {
+        toast({
+          title: "No AWB Selected",
+          description: "Please select at least one shipment to download invoice.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Show loading state
+      toast({
+        title: "Downloading Invoice",
+        description: "Please wait while we prepare your invoice...",
+      });
+
+      const result = await shipmentService.downloadInvoice(awbNumbers);
+      
+      if (result.success) {
+        toast({
+          title: "Download Successful",
+          description: "Invoice downloaded successfully!",
+        });
+      } else {
+        toast({
+          title: "Download Failed",
+          description: result.error || "Failed to download invoice. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Download invoice error:', error);
+      toast({
+        title: "Download Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSelectShipment = (shipmentId: number, isChecked: boolean) => {
     if (isChecked) {
       setSelectedShipments(prev => [...prev, shipmentId]);
@@ -494,6 +598,31 @@ const ShipmentPage = () => {
     // For 'all' page type, show all shipments
     
     setFilteredShipments(filtered);
+    resetPagination(); // Reset pagination when filtering
+  };
+
+  // Pagination functions
+  const getPaginatedShipments = () => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredShipments.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    return Math.ceil(filteredShipments.length / pageSize);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  const resetPagination = () => {
+    setCurrentPage(1);
   };
 
   // Enhanced filter function (copied from OrdersPage)
@@ -546,6 +675,7 @@ const ShipmentPage = () => {
 
     setFilteredShipments(filtered);
     setShowFilter(false);
+    resetPagination(); // Reset pagination when filters are applied
   };
 
   const resetFilters = () => {
@@ -553,10 +683,144 @@ const ShipmentPage = () => {
     setDateFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
-    setOrderTypes({ prepaid: false, cod: false, all: true });
+    setOrderTypes({
+      prepaid: false,
+      cod: false,
+      all: true
+    });
     setShipmentStatus([]);
-    // Reset to page type filtered shipments
-    filterShipmentsByPageType(shipments, currentPageType);
+    setActiveTab('all');
+    setFilteredShipments(shipments);
+    resetPagination(); // Reset pagination when filters are reset
+  };
+
+  const handleCancelShipment = (shipment: ShipmentItem) => {
+    setSelectedShipmentForCancel(shipment);
+    setShowCancelConfirm(true);
+  };
+
+  const confirmCancelShipment = async () => {
+    if (!selectedShipmentForCancel) return;
+    
+    try {
+      setCancellingShipment(true);
+      const result = await shipmentService.cancelShipment(selectedShipmentForCancel.awb);
+      
+      if (result.success) {
+        toast({
+          title: "Shipment Cancelled",
+          description: result.message || `Shipment ${selectedShipmentForCancel.awb} has been cancelled successfully.`,
+        });
+        
+        // Update the shipment status in local state
+        setShipments(prev => prev.map(shipment => 
+          shipment.id === selectedShipmentForCancel.id 
+            ? { ...shipment, shipment_status: 'cancelled' }
+            : shipment
+        ));
+        
+        setFilteredShipments(prev => prev.map(shipment => 
+          shipment.id === selectedShipmentForCancel.id 
+            ? { ...shipment, shipment_status: 'cancelled' }
+            : shipment
+        ));
+        
+        setShowCancelConfirm(false);
+        setSelectedShipmentForCancel(null);
+      } else {
+        toast({
+          title: "Failed to Cancel Shipment",
+          description: result.message || "An error occurred while cancelling the shipment.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error cancelling shipment:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while cancelling the shipment.",
+        variant: "destructive"
+      });
+    } finally {
+      setCancellingShipment(false);
+    }
+  };
+
+  const handleBulkCancel = () => {
+    if (selectedShipments.length === 0) {
+      toast({
+        title: "No Shipments Selected",
+        description: "Please select at least one shipment to cancel.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowBulkCancelConfirm(true);
+  };
+
+  const confirmBulkCancel = async () => {
+    if (selectedShipments.length === 0) return;
+    
+    try {
+      setCancellingBulk(true);
+      
+      // Get AWB numbers for selected shipments
+      const selectedAwbs = filteredShipments
+        .filter(shipment => selectedShipments.includes(shipment.id))
+        .map(shipment => shipment.awb)
+        .filter(awb => awb); // Filter out any null/undefined AWBs
+      
+      if (selectedAwbs.length === 0) {
+        toast({
+          title: "No Valid AWBs",
+          description: "Selected shipments do not have valid AWB numbers.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const result = await shipmentService.cancelBulkShipments(selectedAwbs);
+      
+      if (result.success) {
+        toast({
+          title: "Bulk Cancellation Successful",
+          description: result.message || `${selectedAwbs.length} shipments have been cancelled successfully.`,
+        });
+        
+        // Update shipment statuses in local state
+        const cancelledIds = selectedShipments;
+        setShipments(prev => prev.map(shipment => 
+          cancelledIds.includes(shipment.id) 
+            ? { ...shipment, shipment_status: 'cancelled' }
+            : shipment
+        ));
+        
+        setFilteredShipments(prev => prev.map(shipment => 
+          cancelledIds.includes(shipment.id) 
+            ? { ...shipment, shipment_status: 'cancelled' }
+            : shipment
+        ));
+        
+        // Clear selections
+        setSelectedShipments([]);
+        setShowBulkCancelConfirm(false);
+      } else {
+        toast({
+          title: "Bulk Cancellation Failed",
+          description: result.message || "An error occurred while cancelling the shipments.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error cancelling bulk shipments:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while cancelling the shipments.",
+        variant: "destructive"
+      });
+    } finally {
+      setCancellingBulk(false);
+    }
   };
 
   const hasSelectedShipments = selectedShipments.length > 0;
@@ -602,6 +866,7 @@ const ShipmentPage = () => {
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
+
           <Button variant="outline" onClick={handleExport} disabled={exportLoading}>
             {exportLoading ? (
               <>
@@ -631,12 +896,18 @@ const ShipmentPage = () => {
                   <Input 
                     placeholder="Search shipments..." 
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      resetPagination(); // Reset pagination when search changes
+                    }}
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Date Filter</label>
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <Select value={dateFilter} onValueChange={(value) => {
+                    setDateFilter(value);
+                    resetPagination(); // Reset pagination when date filter changes
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select date range" />
                     </SelectTrigger>
@@ -684,6 +955,7 @@ const ShipmentPage = () => {
                                 } else {
                                   setShipmentStatus(prev => prev.filter(s => s !== status.value));
                                 }
+                                resetPagination(); // Reset pagination when status changes
                               }}
                             />
                             <label htmlFor={status.value} className="text-sm cursor-pointer flex-1">
@@ -710,7 +982,10 @@ const ShipmentPage = () => {
                         <CalendarComponent
                           mode="single"
                           selected={dateFrom}
-                          onSelect={setDateFrom}
+                          onSelect={(date) => {
+                            setDateFrom(date);
+                            resetPagination(); // Reset pagination when date changes
+                          }}
                           className="pointer-events-auto"
                         />
                       </PopoverContent>
@@ -729,7 +1004,10 @@ const ShipmentPage = () => {
                         <CalendarComponent
                           mode="single"
                           selected={dateTo}
-                          onSelect={setDateTo}
+                          onSelect={(date) => {
+                            setDateTo(date);
+                            resetPagination(); // Reset pagination when date changes
+                          }}
                           className="pointer-events-auto"
                         />
                       </PopoverContent>
@@ -745,9 +1023,10 @@ const ShipmentPage = () => {
                   <Checkbox 
                     id="prepaid" 
                     checked={orderTypes.prepaid}
-                    onCheckedChange={(checked) => 
-                      setOrderTypes(prev => ({ ...prev, prepaid: !!checked, all: false }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setOrderTypes(prev => ({ ...prev, prepaid: !!checked, all: false }));
+                      resetPagination(); // Reset pagination when order type changes
+                    }}
                   />
                   <label htmlFor="prepaid" className="text-sm">Prepaid</label>
                 </div>
@@ -755,9 +1034,10 @@ const ShipmentPage = () => {
                   <Checkbox 
                     id="cod" 
                     checked={orderTypes.cod}
-                    onCheckedChange={(checked) => 
-                      setOrderTypes(prev => ({ ...prev, cod: !!checked, all: false }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setOrderTypes(prev => ({ ...prev, cod: !!checked, all: false }));
+                      resetPagination(); // Reset pagination when order type changes
+                    }}
                   />
                   <label htmlFor="cod" className="text-sm">COD</label>
                 </div>
@@ -765,9 +1045,10 @@ const ShipmentPage = () => {
                   <Checkbox 
                     id="all" 
                     checked={orderTypes.all}
-                    onCheckedChange={(checked) => 
-                      setOrderTypes(prev => ({ ...prev, all: !!checked, prepaid: false, cod: false }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setOrderTypes(prev => ({ ...prev, all: !!checked, prepaid: false, cod: false }));
+                      resetPagination(); // Reset pagination when order type changes
+                    }}
                   />
                   <label htmlFor="all" className="text-sm">All</label>
                 </div>
@@ -786,8 +1067,12 @@ const ShipmentPage = () => {
         </Card>
       )}
 
-      {/* Enhanced Tabs */}
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+      {/* Enhanced Tabs - Hidden when multi-select is active */}
+      {selectedShipments.length === 0 && (
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          resetPagination(); // Reset pagination when tab changes
+        }}>
           <TabsList className="inline-flex py-1 text-xs" style={{ fontSize: '80%', padding: '0.25rem 0' }}>
             <TabsTrigger value="all">All Orders</TabsTrigger>
             <TabsTrigger value="pickup_failed">Pickup Failure</TabsTrigger>
@@ -799,13 +1084,119 @@ const ShipmentPage = () => {
             <TabsTrigger value="rto_delivered">RTO Delivered</TabsTrigger>
           </TabsList>
         </Tabs>
+      )}
 
       {/* Enhanced Shipments Table */}
       <Card>
         {selectedShipments.length > 0 && (
-          <CardHeader>
-            <CardTitle>Selected Shipments ({selectedShipments.length})</CardTitle>
-          </CardHeader>
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                  {selectedShipments.length} selected
+                </span>
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const selectedAwbs = filteredShipments
+                        .filter(shipment => selectedShipments.includes(shipment.id))
+                        .map(shipment => shipment.awb)
+                        .filter(awb => awb);
+                      
+                      console.log('Selected shipments:', selectedShipments);
+                      console.log('Selected AWBs:', selectedAwbs);
+                      console.log('Total AWBs to download:', selectedAwbs.length);
+                      
+                      if (selectedAwbs.length === 0) {
+                        toast({
+                          title: "No Valid AWBs",
+                          description: "Selected shipments don't have valid AWB numbers.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      handleDownloadShippingLabels(selectedAwbs);
+                    }}
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Bulk Label
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const selectedAwbs = filteredShipments
+                        .filter(shipment => selectedShipments.includes(shipment.id))
+                        .map(shipment => shipment.awb)
+                        .filter(awb => awb);
+                      
+                      console.log('Selected shipments for invoice:', selectedShipments);
+                      console.log('Selected AWBs for invoice:', selectedAwbs);
+                      console.log('Total AWBs to download invoice:', selectedAwbs.length);
+                      
+                      if (selectedAwbs.length === 0) {
+                        toast({
+                          title: "No Valid AWBs",
+                          description: "Selected shipments don't have valid AWB numbers.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      handleDownloadInvoice(selectedAwbs);
+                    }}
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Download Invoice
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // TODO: Implement Print Pick List functionality
+                      toast({
+                        title: "Print Pick List",
+                        description: "Print Pick List functionality coming soon!",
+                      });
+                    }}
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Print Pick List
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // TODO: Implement Pickup functionality
+                      toast({
+                        title: "Pickup",
+                        description: "Pickup functionality coming soon!",
+                      });
+                    }}
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Pickup
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkCancel}
+                    className="bg-white hover:bg-red-50 border-red-300 text-red-700 hover:text-red-800 dark:bg-red-900 dark:hover:bg-red-800 dark:border-blue-600 dark:text-red-300 dark:hover:text-red-200"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         
         {isLoading ? (
@@ -843,7 +1234,7 @@ const ShipmentPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredShipments.map((shipment) => (
+              {getPaginatedShipments().map((shipment) => (
                 <TableRow 
                   key={shipment.id}
                   className="relative"
@@ -915,15 +1306,15 @@ const ShipmentPage = () => {
                   <div className="space-y-1">
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {capitalizeWords(shipment.warehouse?.warehouse_name || '')} - {shipment.warehouse?.pincode || 'N/A'}
-                      </Badge>
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
-                        <span className="font-semibold bg-yellow-200 dark:bg-yellow-800 px-1 rounded">{shipment.customer_name}</span> - {shipment.pincode}
-                      </Badge>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="font-semibold">{shipment.customer_name}</span> - {shipment.pincode}
+                      </span>
                     </div>
                   </div>
                 </TableCell>
@@ -932,7 +1323,8 @@ const ShipmentPage = () => {
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      title="View Details"
+                      title={`View Details (ID: ${shipment.id})`}
+                      onClick={() => navigate(`/dashboard/shipments/${shipment.id}`)}
                       className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
                     >
                       <Eye className="w-3 h-3" />
@@ -941,9 +1333,19 @@ const ShipmentPage = () => {
                       size="sm" 
                       variant="outline" 
                       title="Download Label"
+                      onClick={() => handleDownloadShippingLabels([shipment.awb])}
                       className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-900 dark:hover:border-green-600 dark:hover:text-green-300 transition-colors duration-200"
                     >
                       <Download className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Download Invoice"
+                      onClick={() => handleDownloadInvoice([shipment.awb])}
+                      className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
+                    >
+                      <FileText className="w-3 h-3" />
                     </Button>
                     <Button 
                       size="sm" 
@@ -965,6 +1367,7 @@ const ShipmentPage = () => {
                       size="sm" 
                       variant="outline" 
                       title="Cancel Shipment"
+                      onClick={() => handleCancelShipment(shipment)}
                       className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-900 dark:hover:border-red-600 dark:hover:text-red-300 transition-colors duration-200"
                     >
                       <X className="w-3 h-3" />
@@ -975,6 +1378,83 @@ const ShipmentPage = () => {
               ))}
             </TableBody>
           </Table>
+        )}
+        
+        {/* Pagination Controls */}
+        {filteredShipments.length > 0 && (
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(Number(value))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map((size) => (
+                      <SelectItem key={size} value={size.toString()}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">entries</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredShipments.length)} of {filteredShipments.length} entries
+              </div>
+            </div>
+            
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: getTotalPages() }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current page
+                  if (
+                    page === 1 ||
+                    page === getTotalPages() ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={page === currentPage}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+                  return null;
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === getTotalPages() ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
       </Card>
 
@@ -988,7 +1468,10 @@ const ShipmentPage = () => {
             <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 p-4 animate-fade-in">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium text-purple-600 dark:text-purple-400">{shipment.awb}</div>
+                  <div className="font-medium text-purple-600 dark:text-purple-400">
+                    <div>ID: {shipment.id}</div>
+                    <div className="text-xs text-gray-500">AWB: {shipment.awb}</div>
+                  </div>
                   {getStatusBadge(shipment.shipment_status)}
                 </div>
                 <div className="space-y-2">
@@ -1022,6 +1505,88 @@ const ShipmentPage = () => {
           </div>
         );
       })()}
+
+      {/* Cancel Shipment Confirmation Dialog */}
+      <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Shipment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to cancel the shipment with AWB{" "}
+              <span className="font-semibold text-foreground">
+                {selectedShipmentForCancel?.awb}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancellingShipment}
+              >
+                No, Keep It
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelShipment}
+                disabled={cancellingShipment}
+              >
+                {cancellingShipment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel Shipment"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Cancel Shipments Confirmation Dialog */}
+      <Dialog open={showBulkCancelConfirm} onOpenChange={setShowBulkCancelConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Multiple Shipments</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to cancel{" "}
+              <span className="font-semibold text-foreground">
+                {selectedShipments.length}
+              </span>{" "}
+              selected shipments? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowBulkCancelConfirm(false)}
+                disabled={cancellingBulk}
+              >
+                No, Keep Them
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmBulkCancel}
+                disabled={cancellingBulk}
+              >
+                {cancellingBulk ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel Shipments"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
