@@ -1,0 +1,55 @@
+# CodeRabbit Configuration
+# This file configures how CodeRabbit reviews your code
+
+# Global settings
+global:
+  # Enable/disable CodeRabbit for this repository
+  enabled: true
+  
+  # Language preferences
+  languages:
+    - typescript
+    - javascript
+    - react
+    - css
+    - json
+
+# Review settings
+review:
+  # What to focus on during reviews
+  focus:
+    - code_quality
+    - security
+    - performance
+    - maintainability
+    - best_practices
+  
+  # Files to ignore during reviews
+  ignore:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "*.log"
+    - ".git/**"
+    - "backup_*/**"
+    - ".netlify/**"
+
+# Branch settings
+branches:
+  # Which branches to review
+  include:
+    - "main"
+    - "ready-to-live"
+    - "develop"
+  
+  # Which branches to ignore
+  exclude:
+    - "draft-*"
+    - "temp-*"
+
+# Notification settings
+notifications:
+  # Where to send notifications
+  channels:
+    - github_comments
+    - editor_suggestions
