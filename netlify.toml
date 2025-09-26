@@ -1,0 +1,49 @@
+# Netlify Configuration for ParcelAce
+# This file configures deployment settings for different environments
+
+[build]
+  publish = "dist"
+  command = "npm run build:production"
+
+# Production environment (main branch)
+[context.production]
+  command = "npm run build:production"
+  [context.production.environment]
+    VITE_API_URL = "https://parcelace.in/"
+    NODE_ENV = "production"
+
+# Staging environment (staging branch)
+[context.staging]
+  command = "npm run build:staging"
+  [context.staging.environment]
+    VITE_API_URL = "https://app.parcelace.io/"
+    NODE_ENV = "staging"
+
+# Branch deploys for staging
+[context.branch-deploy]
+  command = "npm run build:staging"
+  [context.branch-deploy.environment]
+    VITE_API_URL = "https://app.parcelace.io/"
+    NODE_ENV = "staging"
+
+# Deploy previews
+[context.deploy-preview]
+  command = "npm run build:staging"
+  [context.deploy-preview.environment]
+    VITE_API_URL = "https://app.parcelace.io/"
+    NODE_ENV = "staging"
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirects for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

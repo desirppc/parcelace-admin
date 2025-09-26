@@ -27,9 +27,19 @@ export const ENVIRONMENT = {
       return this.API_URLS.local;
     }
     
-    // Check if we're running on Netlify production domain
-    if (typeof window !== 'undefined' && window.location.hostname === 'parcelace.netlify.app') {
-      return this.API_URLS.production;
+    // Check if we're running on Netlify domains
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      
+      // Production domain
+      if (hostname === 'parcelace.netlify.app') {
+        return this.API_URLS.production;
+      }
+      
+      // Staging domain or branch deploys
+      if (hostname.includes('staging') || hostname.includes('--parcelace.netlify.app')) {
+        return this.API_URLS.staging;
+      }
     }
     
     const env = this.NODE_ENV;
