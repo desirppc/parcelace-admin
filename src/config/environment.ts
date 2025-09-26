@@ -84,7 +84,8 @@ export const ENVIRONMENT = {
   }
 };
 
-// Log environment info in development
-if (ENVIRONMENT.isDevelopment() || ENVIRONMENT.isLocal()) {
+// Log environment info in development and staging
+if (ENVIRONMENT.isDevelopment() || ENVIRONMENT.isLocal() || ENVIRONMENT.isStaging()) {
   console.log('🌍 Environment Configuration:', ENVIRONMENT.getInfo());
+  console.log('🚀 Staging Environment Active - Using app.parcelace.io');
 }
