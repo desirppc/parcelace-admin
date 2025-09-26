@@ -27,6 +27,11 @@ export const ENVIRONMENT = {
       return this.API_URLS.local;
     }
     
+    // Check if we're running on Netlify production domain
+    if (typeof window !== 'undefined' && window.location.hostname === 'parcelace.netlify.app') {
+      return this.API_URLS.production;
+    }
+    
     const env = this.NODE_ENV;
     return this.API_URLS[env] || this.API_URLS.production;
   },
