@@ -53,25 +53,35 @@ const BrandDetails = () => {
       }
 
       const result = await response.json();
-      
-      if (result.status && result.data && result.data.length > 0) {
-        const brandDetails = result.data[0].brand_details.brand_details[0];
-        
-        // Update brand data with API response
-        setBrandData(prev => ({
-          ...prev,
-          support_contact_number: brandDetails.support_contact_number || '',
-          support_email: brandDetails.support_email || '',
-          facebook_link: brandDetails.facebook_link || '',
-          twitter_link: brandDetails.twitter_link || '',
-          linkedin_link: brandDetails.linkedin_link || '',
-          brand_logo: brandDetails.brand_logo || ''
-        }));
 
-        // Set logo preview if brand logo exists
-        if (brandDetails.brand_logo) {
-          setLogoPreview(`${API_CONFIG.BASE_URL}${brandDetails.brand_logo}`);
+      if (result?.status && Array.isArray(result?.data) && result.data.length > 0) {
+        const bd =
+          result?.data?.[0]?.brand_details?.brand_details?.[0] ??
+          result?.data?.[0]?.brand_details?.[0] ??
+          result?.data?.[0]?.brand_details ??
+          null;
+
+        if (bd && typeof bd === 'object') {
+          setBrandData(prev => ({
+            ...prev,
+            support_contact_number: bd.support_contact_number ?? '',
+            support_email: bd.support_email ?? '',
+            facebook_link: bd.facebook_link ?? '',
+            twitter_link: bd.twitter_link ?? '',
+            linkedin_link: bd.linkedin_link ?? '',
+            instagram_link: bd.instagram_link ?? '',
+            youtube_link: bd.youtube_link ?? '',
+            brand_logo: bd.brand_logo ?? ''
+          }));
+
+          if (bd.brand_logo) {
+            setLogoPreview(`${API_CONFIG.BASE_URL}${bd.brand_logo}`);
+          }
+        } else {
+          console.warn('Brand details not found in response:', result);
         }
+      } else {
+        console.warn('Unexpected brand details API response shape:', result);
       }
     } catch (err) {
       console.error('Error fetching brand details:', err);
@@ -415,7 +425,7 @@ const BrandDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
