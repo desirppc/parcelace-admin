@@ -11,6 +11,7 @@ import { ArrowLeft, Package, User, MapPin, CreditCard, Truck, Calendar, Phone, M
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import API_CONFIG from '@/config/api';
 import pincodeMapping from '@/data/pincode-city-state.json';
+import { clearCacheByPrefix, CacheGroups } from '@/utils/cache';
 
 interface ProductItem {
   id: string;
@@ -207,6 +208,8 @@ const AddOrder = () => {
           title: "Success",
           description: "Order created successfully!",
         });
+        // Invalidate orders cache so Orders page fetches fresh data
+        clearCacheByPrefix(CacheGroups.orders);
         navigate('/dashboard');
       } else {
         toast({

@@ -15,6 +15,7 @@ import {
 } from "@/types/bulkShipping";
 import { shipmentService, createBulkShipments, BulkBookingPayload } from "@/services/shipmentService";
 import API_CONFIG, { getApiUrl } from "@/config/api";
+import { clearCacheByPrefix, CacheGroups } from '@/utils/cache';
 
 interface CourierChoiceHubProps {
   selectedOrders?: string[];
@@ -450,6 +451,10 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
         title: "Shipments Queued",
         description: createResult.message || `Queued ${bulkSelectedOrderIds.length} shipment(s)`,
       });
+
+      // Invalidate orders and shipments caches as data has changed
+      clearCacheByPrefix(CacheGroups.orders);
+      clearCacheByPrefix(CacheGroups.shipments);
 
       // Clear bulk selection
       setBulkSelectedOrderIds([]);

@@ -59,6 +59,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
+import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
 
 interface ShipmentItem {
   id: number;
@@ -164,6 +165,8 @@ const ShipmentPage = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [totalShipments, setTotalShipments] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const pageSizeOptions = [10, 20, 50, 100, 200, 500];
   
   const { toast } = useToast();
@@ -203,8 +206,25 @@ const ShipmentPage = () => {
     }
     
     try {
+      // Try cache first
+      const cached = getCache<any>(CacheKeys.shipments(currentPage, pageSize, currentPageType));
+      if (!isRefresh && cached && Array.isArray(cached.shipments)) {
+        setShipments(cached.shipments);
+        setFilteredShipments(cached.shipments);
+        setTotalShipments(cached.totalShipments || cached.shipments.length);
+        setTotalPages(cached.totalPages || 1);
+      }
+      
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
+      
+      // Build request body with pagination parameters
+      const requestBody = {
+        page: currentPage,
+        per_page: pageSize
+      };
+      
+      console.log('Fetching shipments with pagination:', requestBody);
       
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
         method: 'POST',
@@ -213,6 +233,7 @@ const ShipmentPage = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        body: JSON.stringify(requestBody),
       });
       
       const data = await response.json();
@@ -251,9 +272,25 @@ const ShipmentPage = () => {
         console.log('Shipments with AWB (sorted by latest):', shipmentsWithAWB);
         
         setShipments(shipmentsWithAWB);
+        // Cache for 5 minutes
+        setCache(
+          CacheKeys.shipments(currentPage, pageSize, currentPageType),
+          { shipments: shipmentsWithAWB, totalShipments: data.data.pagination?.total, totalPages: data.data.pagination?.last_page },
+          5 * 60 * 1000
+        );
+        
+        // Update pagination metadata if available
+        if (data.data.pagination) {
+          setTotalShipments(data.data.pagination.total || shipmentsWithAWB.length);
+          setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || shipmentsWithAWB.length) / pageSize));
+        } else {
+          // Fallback if no pagination metadata
+          setTotalShipments(shipmentsWithAWB.length);
+          setTotalPages(1);
+        }
+        
         // Apply page type filtering
         filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
-        resetPagination(); // Reset pagination when new data is fetched
         setLastFetchTime(new Date());
       } else {
         console.log('API Error:', data);
@@ -281,7 +318,7 @@ const ShipmentPage = () => {
 
   useEffect(() => {
     fetchShipments();
-  }, [currentPageType]);
+  }, [currentPageType, currentPage, pageSize]);
 
   // Helper function to capitalize first letter of each word
   const capitalizeWords = (str: string) => {
@@ -603,22 +640,24 @@ const ShipmentPage = () => {
 
   // Pagination functions
   const getPaginatedShipments = () => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredShipments.slice(startIndex, endIndex);
+    // Since we're using server-side pagination, return all filtered shipments
+    // The API already returns the correct page of data
+    return filteredShipments;
   };
 
   const getTotalPages = () => {
-    return Math.ceil(filteredShipments.length / pageSize);
+    return totalPages;
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // The useEffect will automatically trigger API call with new page
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setCurrentPage(1); // Reset to first page when changing page size
+    // The useEffect will automatically trigger API call with new page size
   };
 
   const resetPagination = () => {
@@ -853,7 +892,10 @@ const ShipmentPage = () => {
         <div className="flex items-center space-x-3">
           <Button 
             variant="outline" 
-            onClick={() => fetchShipments(true)}
+            onClick={() => {
+              clearCacheByPrefix(CacheGroups.shipments);
+              fetchShipments(true);
+            }}
             disabled={isRefreshing}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -1401,7 +1443,7 @@ const ShipmentPage = () => {
                 <span className="text-sm text-muted-foreground">entries</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredShipments.length)} of {filteredShipments.length} entries
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalShipments)} of {totalShipments} entries
               </div>
             </div>
             

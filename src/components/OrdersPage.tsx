@@ -42,6 +42,7 @@ import { orderService } from '@/services/orderService';
 import API_CONFIG from '@/config/api';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import { testImportAPI, testFileValidation } from '@/utils/testImportAPI';
+import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
 
 
 const OrdersPage = () => {
@@ -95,6 +96,8 @@ const OrdersPage = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const pageSizeOptions = [10, 20, 50, 100, 200, 500];
 
   // Determine current page type based on URL
@@ -112,11 +115,27 @@ const OrdersPage = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
+      // Try cache first for instant UI
+      const cached = getCache<any>(CacheKeys.orders(currentPage, pageSize, currentPageType));
+      if (cached && Array.isArray(cached.orders)) {
+        setOrders(cached.orders);
+        setTotalOrders(cached.totalOrders || cached.orders.length);
+        setTotalPages(cached.totalPages || 1);
+        filterOrdersByPageType(cached.orders, currentPageType);
+      }
       try {
         let authToken = sessionStorage.getItem('auth_token');
         if (!authToken) authToken = localStorage.getItem('auth_token');
         console.log('Using auth_token for API:', authToken);
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`, {
+        
+        // Build URL with pagination parameters
+        const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+        url.searchParams.set('per_page', pageSize.toString());
+        url.searchParams.set('page', currentPage.toString());
+        
+        console.log('Fetching orders with pagination:', { page: currentPage, per_page: pageSize });
+        
+        const response = await fetch(url.toString(), {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Accept': 'application/json',
@@ -131,9 +150,25 @@ const OrdersPage = () => {
             return dateB.getTime() - dateA.getTime();
           });
           setOrders(sortedOrders);
+          // Cache successful fetch for 5 minutes
+          setCache(
+            CacheKeys.orders(currentPage, pageSize, currentPageType),
+            { orders: sortedOrders, totalOrders: data.data.pagination?.total, totalPages: data.data.pagination?.last_page },
+            5 * 60 * 1000
+          );
+          
+          // Update pagination metadata if available
+          if (data.data.pagination) {
+            setTotalOrders(data.data.pagination.total || sortedOrders.length);
+            setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || sortedOrders.length) / pageSize));
+          } else {
+            // Fallback if no pagination metadata
+            setTotalOrders(sortedOrders.length);
+            setTotalPages(1);
+          }
+          
           // Filter based on current page type
           filterOrdersByPageType(sortedOrders, currentPageType);
-          resetPagination(); // Reset pagination when orders are fetched
         } else {
           toast({
             title: 'Error',
@@ -150,7 +185,7 @@ const OrdersPage = () => {
       }
     };
     fetchOrders();
-  }, [currentPageType]);
+  }, [currentPageType, currentPage, pageSize]);
 
   useEffect(() => {
     const fetchWarehouses = async () => {
@@ -788,7 +823,13 @@ const OrdersPage = () => {
       try {
         let authToken = sessionStorage.getItem('auth_token');
         if (!authToken) authToken = localStorage.getItem('auth_token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`, {
+        
+        // Build URL with pagination parameters
+        const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+        url.searchParams.set('per_page', pageSize.toString());
+        url.searchParams.set('page', currentPage.toString());
+        
+        const response = await fetch(url.toString(), {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Accept': 'application/json',
@@ -802,6 +843,17 @@ const OrdersPage = () => {
             return dateB.getTime() - dateA.getTime();
           });
           setOrders(sortedOrders);
+          
+          // Update pagination metadata if available
+          if (data.data.pagination) {
+            setTotalOrders(data.data.pagination.total || sortedOrders.length);
+            setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || sortedOrders.length) / pageSize));
+          } else {
+            // Fallback if no pagination metadata
+            setTotalOrders(sortedOrders.length);
+            setTotalPages(1);
+          }
+          
           filterOrdersByTab(sortedOrders, activeTab);
         }
       } catch (error) {
@@ -809,6 +861,8 @@ const OrdersPage = () => {
       }
     };
     resetPagination(); // Reset pagination when filters are reset
+    // Invalidate cache before refetch
+    clearCacheByPrefix(CacheGroups.orders);
     fetchOrders();
   };
 
@@ -1008,11 +1062,54 @@ const OrdersPage = () => {
     }
 
     setImportLoading(true);
+    
+    // Enhanced Debug Logging
+    console.log('🚀 Starting Import Process...');
+    console.log('📁 File Details:', {
+      name: importFile.name,
+      type: importFile.type,
+      size: importFile.size,
+      lastModified: new Date(importFile.lastModified).toISOString()
+    });
+    
+    // Use API config for the endpoint
+    const importUrl = getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT);
+    
     try {
+      // Check both auth_token and access_token
       let authToken = sessionStorage.getItem('auth_token');
+      let accessToken = sessionStorage.getItem('access_token');
+      
       if (!authToken) authToken = localStorage.getItem('auth_token');
+      if (!accessToken) accessToken = localStorage.getItem('access_token');
 
-      if (!authToken) {
+      console.log('🔐 Token Check:', {
+        authToken: {
+          hasSession: !!sessionStorage.getItem('auth_token'),
+          hasLocal: !!localStorage.getItem('auth_token'),
+          length: authToken ? authToken.length : 0,
+          preview: authToken ? authToken.substring(0, 20) + '...' : 'None'
+        },
+        accessToken: {
+          hasSession: !!sessionStorage.getItem('access_token'),
+          hasLocal: !!localStorage.getItem('access_token'),
+          length: accessToken ? accessToken.length : 0,
+          preview: accessToken ? accessToken.substring(0, 20) + '...' : 'None'
+        }
+      });
+
+      // Use access_token if available, otherwise fall back to auth_token
+      const tokenToUse = accessToken || authToken;
+      const tokenType = accessToken ? 'access_token' : 'auth_token';
+
+      console.log('🎯 Using Token:', {
+        type: tokenType,
+        token: tokenToUse ? tokenToUse.substring(0, 20) + '...' : 'None',
+        length: tokenToUse ? tokenToUse.length : 0
+      });
+
+      if (!tokenToUse) {
+        console.error('❌ No authentication token found (neither auth_token nor access_token)');
         toast({
           title: "Authentication Error",
           description: "Please log in again to continue.",
@@ -1020,37 +1117,48 @@ const OrdersPage = () => {
         });
         return;
       }
-
+      
       const formData = new FormData();
       formData.append('spreadsheet', importFile);
-
-      // Use API config for the endpoint
-      const importUrl = getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT);
       
-      console.log('Import API Debug:', {
-        url: importUrl,
-        file: importFile.name,
-        fileType: importFile.type,
-        fileSize: importFile.size,
-        formData: formData
+      console.log('🌐 Import API Configuration:', {
+        endpoint: API_CONFIG.ENDPOINTS.ORDER_IMPORT,
+        baseUrl: API_CONFIG.BASE_URL,
+        fullUrl: importUrl,
+        environment: import.meta.env.MODE,
+        viteApiUrl: import.meta.env.VITE_API_URL
       });
+
+      console.log('📤 FormData Details:', {
+        hasFile: formData.has('spreadsheet'),
+        fileInFormData: formData.get('spreadsheet'),
+        formDataEntries: Array.from(formData.entries())
+      });
+
+      console.log('🚀 Making API Request...');
+      const requestStartTime = Date.now();
 
       const response = await fetch(importUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${tokenToUse}`,
           // Don't set Content-Type for FormData, let browser set it with boundary
         },
         body: formData,
       });
 
+      const requestDuration = Date.now() - requestStartTime;
+      console.log('⏱️ Request Duration:', requestDuration + 'ms');
+
       const data = await response.json();
       
-      console.log('Import API Response:', {
+      console.log('📥 Import API Response:', {
         status: response.status,
+        statusText: response.statusText,
         ok: response.ok,
-        data: data,
-        headers: Object.fromEntries(response.headers.entries())
+        requestDuration: requestDuration + 'ms',
+        headers: Object.fromEntries(response.headers.entries()),
+        data: data
       });
 
       if (response.ok && data.status) {
@@ -1067,10 +1175,15 @@ const OrdersPage = () => {
           try {
             console.log('Starting to refresh orders after import...');
             let authToken = sessionStorage.getItem('auth_token');
+            let accessToken = sessionStorage.getItem('access_token');
             if (!authToken) authToken = localStorage.getItem('auth_token');
+            if (!accessToken) accessToken = localStorage.getItem('access_token');
+            
+            const tokenToUse = accessToken || authToken;
+            console.log('🔄 Refresh using token:', accessToken ? 'access_token' : 'auth_token');
             
             const refreshResponse = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.ORDERS), {
-              headers: getAuthHeaders(authToken),
+              headers: getAuthHeaders(tokenToUse),
             });
             
             console.log('Refresh response status:', refreshResponse.status);
@@ -1090,6 +1203,13 @@ const OrdersPage = () => {
               console.log('New orders:', sortedOrders.slice(0, 3)); // Log first 3 orders
               
               setOrders(sortedOrders);
+              // Invalidate and update cache after import
+              clearCacheByPrefix(CacheGroups.orders);
+              setCache(
+                CacheKeys.orders(1, pageSize, currentPageType),
+                { orders: sortedOrders, totalOrders: refreshData.data.pagination?.total, totalPages: refreshData.data.pagination?.last_page },
+                5 * 60 * 1000
+              );
               // Reapply current filters
               filterOrdersByPageType(sortedOrders, currentPageType);
               resetPagination();
@@ -1127,11 +1247,13 @@ const OrdersPage = () => {
         } else if (response.status === 415) {
           errorMessage = "Unsupported file type: Please use Excel (.xlsx, .xls) or CSV files.";
         } else if (response.status === 400) {
-          errorMessage = data.message || "Invalid file format or data. Please check your file and try again.";
+          errorMessage = data?.error?.message || data.message || "Invalid file format or data. Please check your file and try again.";
         } else if (response.status === 401) {
           errorMessage = "Authentication failed. Please log in again.";
         } else if (response.status === 403) {
           errorMessage = "Access denied. You don't have permission to import orders.";
+        } else if (data?.error?.message) {
+          errorMessage = data.error.message;
         } else if (data.message) {
           errorMessage = data.message;
         } else if (data.error?.message) {
@@ -1152,7 +1274,19 @@ const OrdersPage = () => {
         });
       }
     } catch (error) {
-      console.error('Import network error:', error);
+      console.error('💥 Import Network Error:', {
+        error: error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : 'No stack trace',
+        url: importUrl,
+        file: importFile ? {
+          name: importFile.name,
+          type: importFile.type,
+          size: importFile.size
+        } : 'No file',
+        timestamp: new Date().toISOString()
+      });
+      
       toast({
         title: "Network Error",
         description: "Please check your connection and try again.",
@@ -1160,6 +1294,7 @@ const OrdersPage = () => {
       });
     } finally {
       setImportLoading(false);
+      console.log('🏁 Import process completed');
     }
   };
 
@@ -1230,22 +1365,24 @@ const OrdersPage = () => {
 
   // Pagination functions
   const getPaginatedOrders = () => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredOrders.slice(startIndex, endIndex);
+    // Since we're using server-side pagination, return all filtered orders
+    // The API already returns the correct page of data
+    return filteredOrders;
   };
 
   const getTotalPages = () => {
-    return Math.ceil(filteredOrders.length / pageSize);
+    return totalPages;
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // The useEffect will automatically trigger API call with new page
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setCurrentPage(1); // Reset to first page when changing page size
+    // The useEffect will automatically trigger API call with new page size
   };
 
   const resetPagination = () => {
@@ -1259,6 +1396,13 @@ const OrdersPage = () => {
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
       
+      // Add pagination parameters to filter payload
+      const payloadWithPagination = {
+        ...filterPayload,
+        per_page: pageSize,
+        page: currentPage
+      };
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order/filter`, {
         method: 'POST',
         headers: {
@@ -1266,7 +1410,7 @@ const OrdersPage = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(filterPayload),
+        body: JSON.stringify(payloadWithPagination),
       });
 
       const data = await response.json();
@@ -1280,16 +1424,27 @@ const OrdersPage = () => {
         });
         
         setOrders(sortedOrders);
+        
+        // Update pagination metadata if available
+        if (data.data.pagination) {
+          setTotalOrders(data.data.pagination.total || sortedOrders.length);
+          setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || sortedOrders.length) / pageSize));
+        } else {
+          // Fallback if no pagination metadata
+          setTotalOrders(sortedOrders.length);
+          setTotalPages(1);
+        }
+        
         filterOrdersByTab(sortedOrders, activeTab);
         
         toast({
           title: 'Filter Applied',
-          description: `Found ${sortedOrders.length} orders matching your criteria.`,
+          description: `Found ${data.data.pagination?.total || sortedOrders.length} orders matching your criteria.`,
         });
       } else {
         toast({
           title: 'Filter Error',
-          description: data?.message || 'Failed to fetch filtered orders.',
+          description: data?.error?.message || data?.message || 'Failed to fetch filtered orders.',
           variant: 'destructive',
         });
       }
@@ -1325,6 +1480,15 @@ const OrdersPage = () => {
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Order
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                clearCacheByPrefix(CacheGroups.orders);
+                window.location.reload();
+              }}
+            >
+              Refresh Now
             </Button>
             <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
               <DialogTrigger asChild>
@@ -1395,6 +1559,86 @@ const OrdersPage = () => {
                         <p className="text-sm text-blue-800">
                           Supported formats: Excel (.xlsx, .xls) and CSV files
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Debug Panel - Only show in development */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-yellow-800">🔍 Import Debug Info</h3>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-3 text-xs"
+                          onClick={() => {
+                            const debugData = {
+                              file: importFile ? {
+                                name: importFile.name,
+                                type: importFile.type,
+                                size: importFile.size,
+                                lastModified: new Date(importFile.lastModified).toISOString()
+                              } : null,
+                              apiConfig: {
+                                endpoint: API_CONFIG.ENDPOINTS.ORDER_IMPORT,
+                                baseUrl: API_CONFIG.BASE_URL,
+                                fullUrl: getApiUrl(API_CONFIG.ENDPOINTS.ORDER_IMPORT)
+                              },
+                              auth: {
+                                authToken: {
+                                  hasSession: !!sessionStorage.getItem('auth_token'),
+                                  hasLocal: !!localStorage.getItem('auth_token'),
+                                  preview: sessionStorage.getItem('auth_token')?.substring(0, 20) + '...' || 'None'
+                                },
+                                accessToken: {
+                                  hasSession: !!sessionStorage.getItem('access_token'),
+                                  hasLocal: !!localStorage.getItem('access_token'),
+                                  preview: sessionStorage.getItem('access_token')?.substring(0, 20) + '...' || 'None'
+                                }
+                              },
+                              environment: {
+                                mode: import.meta.env.MODE,
+                                viteApiUrl: import.meta.env.VITE_API_URL
+                              }
+                            };
+                            navigator.clipboard.writeText(JSON.stringify(debugData, null, 2));
+                            toast({
+                              title: "Copied!",
+                              description: "Debug info copied to clipboard",
+                              variant: "default",
+                            });
+                          }}
+                        >
+                          📋 Copy Debug Info
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <div className="font-medium text-yellow-800 mb-1">File Info:</div>
+                          <div className="text-yellow-700">
+                            {importFile ? (
+                              <>
+                                <div>Name: {importFile.name}</div>
+                                <div>Type: {importFile.type}</div>
+                                <div>Size: {(importFile.size / 1024).toFixed(2)} KB</div>
+                                <div>Modified: {new Date(importFile.lastModified).toLocaleString()}</div>
+                              </>
+                            ) : (
+                              <div>No file selected</div>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-yellow-800 mb-1">API Config:</div>
+                          <div className="text-yellow-700">
+                            <div>Endpoint: {API_CONFIG.ENDPOINTS.ORDER_IMPORT}</div>
+                            <div>Base URL: {API_CONFIG.BASE_URL}</div>
+                            <div>Environment: {import.meta.env.MODE}</div>
+                            <div>Auth Token: {sessionStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</div>
+                            <div>Access Token: {sessionStorage.getItem('access_token') ? '✅ Present' : '❌ Missing'}</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1922,7 +2166,7 @@ const OrdersPage = () => {
                 <span className="text-sm text-muted-foreground">entries</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length} entries
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalOrders)} of {totalOrders} entries
               </div>
             </div>
             
