@@ -960,7 +960,7 @@ const OrderDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -1259,22 +1259,25 @@ const OrderDetails = () => {
                     </div>
                   </div>
                   
-                  {/* Row 2: Last Name, Address Line 1 */}
+                  {/* Row 2: Last Name (if available), Address Line 1 */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-gray-600">Last Name</Label>
-                      {isEditing ? (
-                        <Input
-                          value={customer_details.last_name || ''}
-                          onChange={(e) => updateCustomerDetails('last_name', e.target.value)}
-                          className="mt-1"
-                        />
-                      ) : (
-                        <p className="font-medium mt-1">{customer_details.last_name || 'N/A'}</p>
-                      )}
-                    </div>
+                    {customer_details.last_name && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Last Name</Label>
+                        {isEditing ? (
+                          <Input
+                            value={customer_details.last_name || ''}
+                            onChange={(e) => updateCustomerDetails('last_name', e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="font-medium mt-1">{customer_details.last_name}</p>
+                        )}
+                      </div>
+                    )}
                     
                     <div>
+                      <Label className="text-sm text-gray-600">Address</Label>
                       {isEditing ? (
                         <Input
                           value={customer_details.address1 || ''}
@@ -1290,19 +1293,22 @@ const OrderDetails = () => {
                     </div>
                   </div>
                   
-                  {/* Row 3: Address Line 2, Email */}
+                  {/* Row 3: Address Line 2 (if available), Email */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      {isEditing ? (
-                        <Input
-                          value={customer_details.address2 || ''}
-                          onChange={(e) => updateCustomerDetails('address2', e.target.value)}
-                          className="mt-1"
-                        />
-                      ) : (
-                        <p className="font-medium mt-1">{customer_details.address2 || 'N/A'}</p>
-                      )}
-                    </div>
+                    {customer_details.address2 && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Address Line 2</Label>
+                        {isEditing ? (
+                          <Input
+                            value={customer_details.address2 || ''}
+                            onChange={(e) => updateCustomerDetails('address2', e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="font-medium mt-1">{customer_details.address2}</p>
+                        )}
+                      </div>
+                    )}
                     
                     <div>
                       <Label className="text-sm text-gray-600">Email</Label>
