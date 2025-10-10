@@ -81,8 +81,8 @@ const ProfileTest = () => {
             <ul className="text-sm text-gray-600 space-y-1">
               <li>• Method: GET</li>
               <li>• Endpoint: /api/profile-dashboard</li>
-              <li>• Base URL: http://localhost:8084/</li>
-              <li>• Full URL: http://localhost:8084/api/profile-dashboard</li>
+              <li>• Base URL: {window.location.origin}/</li>
+              <li>• Full URL: {window.location.origin}/api/profile-dashboard</li>
             </ul>
           </div>
         </CardContent>

@@ -209,53 +209,13 @@ export const refreshSession = async (): Promise<boolean> => {
   }
 };
 
-// Setup automatic session refresh
+// Setup automatic session refresh - REMOVED
+// Sessions will only be checked when API calls are made
+// No automatic refresh or monitoring needed
 export const setupSessionRefresh = (): (() => void) => {
-  // Refresh session every 2 minutes to keep it alive (more aggressive than 5 minutes)
-  const refreshInterval = setInterval(async () => {
-    console.log('Session refresh check - session age:', getSessionAge(), 'minutes');
-    
-    // Always refresh if session is older than 2 minutes to prevent timeout
-    const sessionAge = getSessionAge();
-    if (sessionAge >= 2) {
-      console.log('Session older than 2 minutes, refreshing...');
-      const success = await refreshSession();
-      if (!success) {
-        console.log('Session refresh failed, but not logging out immediately');
-        // Don't log out immediately on refresh failure
-        // The session might still be valid, just the refresh failed
-        // We'll try again on the next interval
-      } else {
-        console.log('Session refreshed successfully');
-      }
-    }
-  }, 2 * 60 * 1000); // 2 minutes instead of 5 minutes
-
-  // Also set up a more frequent check for very short sessions (every 30 seconds)
-  const quickCheckInterval = setInterval(async () => {
-    const sessionAge = getSessionAge();
-    
-    // If session is very new (less than 1 minute), don't refresh yet
-    if (sessionAge < 1) {
-      return;
-    }
-    
-    // If session is getting close to 2 minutes, refresh proactively
-    if (sessionAge >= 1.5) {
-      console.log('Quick check: Session approaching 2 minutes, refreshing...');
-      const success = await refreshSession();
-      if (!success) {
-        console.log('Quick refresh failed, but not logging out immediately');
-        // Don't log out immediately on refresh failure
-        // We'll try again on the next interval
-      }
-    }
-  }, 30 * 1000); // 30 seconds
-
-  // Return cleanup function for both intervals
+  // Return empty cleanup function - no intervals to clean up
   return () => {
-    clearInterval(refreshInterval);
-    clearInterval(quickCheckInterval);
+    console.log('No session refresh intervals to clean up');
   };
 };
 
@@ -387,33 +347,12 @@ export const getSessionInfo = () => {
   };
 };
 
-// Setup user activity monitoring to extend sessions
+// Setup user activity monitoring - REMOVED
+// No automatic session management needed
 export const setupActivityMonitoring = (): (() => void) => {
-  let activityTimeout: NodeJS.Timeout;
-  
-  const resetTimer = () => {
-    clearTimeout(activityTimeout);
-    resetSessionTimer();
-    
-    // Set up next activity check
-    activityTimeout = setTimeout(() => {
-      console.log('No user activity detected, session may expire soon');
-    }, 5 * 60 * 1000); // 5 minutes of inactivity
-  };
-  
-  // Monitor various user activities
-  const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-  
-  events.forEach(event => {
-    document.addEventListener(event, resetTimer, true);
-  });
-  
-  // Return cleanup function
+  // Return empty cleanup function - no monitoring needed
   return () => {
-    clearTimeout(activityTimeout);
-    events.forEach(event => {
-      document.removeEventListener(event, resetTimer, true);
-    });
+    console.log('No activity monitoring to clean up');
   };
 };
 
@@ -453,26 +392,11 @@ export const shouldAttemptSessionRestore = (): boolean => {
   return !!(token && userData && sessionAge < 30);
 };
 
-// Setup page visibility monitoring to handle tab switches
+// Setup page visibility monitoring - REMOVED
+// No automatic session management needed
 export const setupPageVisibilityMonitoring = (): (() => void) => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      console.log('Page became visible, checking session status...');
-      // When page becomes visible, check if we need to refresh session
-      const sessionAge = getSessionAge();
-      if (sessionAge >= 2) {
-        console.log('Session may need refresh after tab switch');
-        // Don't refresh immediately, let the normal refresh interval handle it
-      }
-    } else {
-      console.log('Page became hidden');
-    }
-  };
-
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-
-  // Return cleanup function
+  // Return empty cleanup function - no monitoring needed
   return () => {
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    console.log('No page visibility monitoring to clean up');
   };
 };

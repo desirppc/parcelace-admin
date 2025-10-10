@@ -9,7 +9,7 @@ export const ENVIRONMENT = {
   
   // API URLs for different environments
   API_URLS: {
-    local: 'http://localhost:8084/',
+    local: `http://localhost:${typeof window !== 'undefined' ? window.location.port : '8084'}/`,
     development: 'https://app.parcelace.io/',
     staging: 'https://app.parcelace.io/',
     production: 'https://parcelace.in/',

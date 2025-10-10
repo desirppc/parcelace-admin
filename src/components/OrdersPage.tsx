@@ -1249,7 +1249,8 @@ const OrdersPage = () => {
         } else if (response.status === 400) {
           errorMessage = data?.error?.message || data.message || "Invalid file format or data. Please check your file and try again.";
         } else if (response.status === 401) {
-          errorMessage = "Authentication failed. Please log in again.";
+          // Authentication error - handled globally by apiRequest
+          errorMessage = "Session expired. Please log in again.";
         } else if (response.status === 403) {
           errorMessage = "Access denied. You don't have permission to import orders.";
         } else if (data?.error?.message) {

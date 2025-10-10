@@ -902,7 +902,7 @@ const OrderDetails = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50/50 p-4 md:p-6 lg:p-8">
+      <div className="min-h-screen p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
             <Button variant="outline" className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg" onClick={handleBack}>
@@ -925,7 +925,7 @@ const OrderDetails = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50/50 p-4 md:p-6 lg:p-8">
+      <div className="min-h-screen p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
             <Button variant="outline" className="bg-white hover:bg-gray-50 border-gray-200 rounded-lg" onClick={handleBack}>
