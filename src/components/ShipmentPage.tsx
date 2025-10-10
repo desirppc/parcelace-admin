@@ -890,9 +890,75 @@ const ShipmentPage = () => {
         <div className="flex items-center space-x-3">
           <Button 
             variant="outline" 
-            onClick={() => {
-              clearCacheByPrefix(CacheGroups.shipments);
-              fetchShipments(true);
+            onClick={async () => {
+              setIsRefreshing(true);
+              try {
+                const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
+                await SmartCache.forceRefresh(
+                  cacheKey,
+                  async () => {
+                    // Fetch function
+                    let authToken = sessionStorage.getItem('auth_token');
+                    if (!authToken) authToken = localStorage.getItem('auth_token');
+                    
+                    const requestBody = {
+                      page: currentPage,
+                      per_page: pageSize
+                    };
+                    
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                      },
+                      body: JSON.stringify(requestBody),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.status && data.data?.shipments_data) {
+                      const totalShipments = data.data.pagination?.total || data.data.shipments_data.length;
+                      const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
+                      
+                      return {
+                        shipments: data.data.shipments_data,
+                        totalShipments,
+                        totalPages,
+                        timestamp: Date.now()
+                      };
+                    } else {
+                      throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
+                    }
+                  },
+                  CacheStrategies.shipments,
+                  (data, isFromCache) => {
+                    if (data && data.shipments) {
+                      setShipments(data.shipments);
+                      setFilteredShipments(data.shipments);
+                      setTotalShipments(data.totalShipments);
+                      setTotalPages(data.totalPages);
+                      filterShipmentsByPageType(data.shipments, currentPageType);
+                      setLastFetchTime(new Date());
+                      
+                      toast({
+                        title: "Shipments Refreshed",
+                        description: `Shipments list updated successfully`,
+                      });
+                    }
+                  }
+                );
+              } catch (error) {
+                console.error('Error refreshing shipments:', error);
+                toast({
+                  title: "Refresh Failed",
+                  description: "Failed to refresh shipments list.",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsRefreshing(false);
+              }
             }}
             disabled={isRefreshing}
           >

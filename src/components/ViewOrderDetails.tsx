@@ -1048,37 +1048,7 @@ const OrderDetails = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-600">Order Status</p>
-                        <div className="mt-1">
-                          <Badge 
-                            className={`${getStatusColor(getOrderStatus())} border-0 font-medium`}
-                          >
-                            {getOrderStatusDisplay()}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
                     
-                    <div>
-                      <Label htmlFor="order-type" className="text-sm text-gray-600">Order Type</Label>
-                      {isEditing ? (
-                        <Select value={getOrderType()} onValueChange={(value) => updateOrderDetails('order_type', value)}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="prepaid">Prepaid</SelectItem>
-                            <SelectItem value="cod">COD</SelectItem>
-                            <SelectItem value="reverse">Reverse</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <p className="font-medium mt-1">{(getOrderType() || 'Unknown').charAt(0).toUpperCase() + (getOrderType() || 'Unknown').slice(1).toLowerCase()}</p>
-                      )}
-                    </div>
 
                     <div>
                       <Label htmlFor="parcel-type" className="text-sm text-gray-600">Parcel Type</Label>
@@ -1093,25 +1063,10 @@ const OrderDetails = () => {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <p className="font-medium mt-1">{order_details.parcel_type}</p>
+                        <p className="font-medium mt-1">{order_details.parcel_type ? order_details.parcel_type.charAt(0).toUpperCase() + order_details.parcel_type.slice(1) : 'N/A'}</p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <Weight className="h-4 w-4 text-gray-500" />
-                      <div className="flex-1">
-                        <Label className="text-sm text-gray-600">Weight (gm)</Label>
-                        {isEditing ? (
-                          <Input
-                            value={order_details.weight}
-                            onChange={(e) => updateOrderDetails('weight', e.target.value)}
-                            className="mt-1"
-                          />
-                        ) : (
-                          <p className="font-medium mt-1">{order_details.weight} gm</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                   
                   <div className="space-y-4">
@@ -1241,7 +1196,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.phone || 'N/A'}</p>
+                        <p className="text-sm mt-1">{customer_details.phone || 'N/A'}</p>
                       )}
                     </div>
                     
@@ -1254,7 +1209,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.first_name || 'N/A'}</p>
+                        <p className="text-sm mt-1">{customer_details.first_name || 'N/A'}</p>
                       )}
                     </div>
                   </div>
@@ -1271,7 +1226,7 @@ const OrderDetails = () => {
                             className="mt-1"
                           />
                         ) : (
-                          <p className="font-medium mt-1">{customer_details.last_name}</p>
+                          <p className="text-sm mt-1">{customer_details.last_name}</p>
                         )}
                       </div>
                     )}
@@ -1305,7 +1260,7 @@ const OrderDetails = () => {
                             className="mt-1"
                           />
                         ) : (
-                          <p className="font-medium mt-1">{customer_details.address2}</p>
+                          <p className="text-sm mt-1">{customer_details.address2}</p>
                         )}
                       </div>
                     )}
@@ -1319,7 +1274,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.email || 'N/A'}</p>
+                        <p className="text-sm mt-1">{customer_details.email || 'N/A'}</p>
                       )}
                     </div>
                   </div>
@@ -1335,7 +1290,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.zipcode}</p>
+                        <p className="text-sm mt-1">{customer_details.zipcode}</p>
                       )}
                     </div>
                     
@@ -1348,7 +1303,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.city || 'N/A'}</p>
+                        <p className="text-sm mt-1">{customer_details.city || 'N/A'}</p>
                       )}
                     </div>
                     
@@ -1361,7 +1316,7 @@ const OrderDetails = () => {
                           className="mt-1"
                         />
                       ) : (
-                        <p className="font-medium mt-1">{customer_details.state || 'N/A'}</p>
+                        <p className="text-sm mt-1">{customer_details.state || 'N/A'}</p>
                       )}
                     </div>
                   </div>
@@ -1491,7 +1446,7 @@ const OrderDetails = () => {
           <div className="space-y-6">
             <Card className="shadow-sm border-0 bg-white sticky top-6">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <CardTitle className="flex items-center gap-2 text-sm">
                   <CreditCard className="h-5 w-5 text-blue-600" />
                   Payment Summary
                 </CardTitle>
@@ -1500,7 +1455,7 @@ const OrderDetails = () => {
                 <div className="space-y-3">
                   {/* Shipping Charges */}
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Shipping Charges (₹)</span>
+                    <span className="text-sm text-gray-600">Shipping Charges (₹)</span>
                     {isEditing ? (
                       <Input
                         value={payment_details.shipping_tax || '0'}
@@ -1509,13 +1464,13 @@ const OrderDetails = () => {
                         placeholder="0"
                       />
                     ) : (
-                      <span className="font-medium">{formatCurrency(payment_details.shipping_tax || 0)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(payment_details.shipping_tax || 0)}</span>
                     )}
                   </div>
 
                   {/* Total Tax */}
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Tax (₹)</span>
+                    <span className="text-sm text-gray-600">Total Tax (₹)</span>
                     {isEditing ? (
                       <Input
                         value={payment_details.total_tax || '0'}
@@ -1524,13 +1479,13 @@ const OrderDetails = () => {
                         placeholder="0"
                       />
                     ) : (
-                      <span className="font-medium">{formatCurrency(payment_details.total_tax || 0)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(payment_details.total_tax || 0)}</span>
                     )}
                   </div>
 
                   {/* Discount */}
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Discount (₹)</span>
+                    <span className="text-sm text-gray-600">Discount (₹)</span>
                     {isEditing ? (
                       <Input
                         value={payment_details.discount || '0'}
@@ -1539,19 +1494,19 @@ const OrderDetails = () => {
                         placeholder="0"
                       />
                     ) : (
-                      <span className="font-medium">{formatCurrency(payment_details.discount || 0)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(payment_details.discount || 0)}</span>
                     )}
                   </div>
 
                   {/* Product Total */}
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Product Total (₹)</span>
-                    <span className="font-medium">{formatCurrency(payment_details.product_total || 0)}</span>
+                    <span className="text-sm text-gray-600">Product Total (₹)</span>
+                    <span className="text-sm font-medium">{formatCurrency(payment_details.product_total || 0)}</span>
                   </div>
 
                   {/* Order Total */}
-                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                    <span>Order Total (₹)</span>
+                  <div className="flex justify-between text-sm font-semibold border-t pt-2">
+                    <span className="text-sm">Order Total (₹)</span>
                     {isEditing ? (
                       <Input
                         value={payment_details.total}
@@ -1562,7 +1517,7 @@ const OrderDetails = () => {
                         className="w-32 h-8 text-right font-semibold text-blue-600"
                       />
                     ) : (
-                      <span className="text-blue-600">{formatCurrency(payment_details.total || 0)}</span>
+                      <span className="text-sm text-blue-600">{formatCurrency(payment_details.total || 0)}</span>
                     )}
                   </div>
 
@@ -1571,7 +1526,7 @@ const OrderDetails = () => {
                     <>
                       {/* COD Charges */}
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">COD Charges (₹)</span>
+                        <span className="text-sm text-gray-600">COD Charges (₹)</span>
                         {isEditing ? (
                           <Input
                             value={payment_details.cod_charges || '0'}
@@ -1580,13 +1535,13 @@ const OrderDetails = () => {
                             placeholder="0"
                           />
                         ) : (
-                          <span className="font-medium">{formatCurrency(payment_details.cod_charges || 0)}</span>
+                          <span className="text-sm font-medium">{formatCurrency(payment_details.cod_charges || 0)}</span>
                         )}
                       </div>
 
                       {/* Collectable Amount */}
-                      <div className="flex justify-between text-lg font-semibold text-orange-600 border-t pt-2">
-                        <span>Collectable Amount (₹)</span>
+                      <div className="flex justify-between text-sm font-semibold text-orange-600 border-t pt-2">
+                        <span className="text-sm">Collectable Amount (₹)</span>
                         {isEditing ? (
                           <Input
                             value={payment_details.collectable_amount}
@@ -1594,7 +1549,7 @@ const OrderDetails = () => {
                             className="w-32 h-8 text-right font-semibold text-orange-600"
                           />
                         ) : (
-                          <span>{formatCurrency(payment_details.collectable_amount || 0)}</span>
+                          <span className="text-sm">{formatCurrency(payment_details.collectable_amount || 0)}</span>
                         )}
                       </div>
                     </>

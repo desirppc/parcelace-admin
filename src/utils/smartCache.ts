@@ -25,6 +25,7 @@ export class SmartCache {
   private static lastActivityTime = Date.now();
   private static isUserActive = true;
   private static activityTimeout: NodeJS.Timeout | null = null;
+  private static pageLoadTime = Date.now();
 
   // Monitor user activity to reduce unnecessary API calls
   static {
@@ -51,6 +52,13 @@ export class SmartCache {
   }
 
   /**
+   * Check if this is a fresh page load (within 2 seconds of page load)
+   */
+  private static isFreshPageLoad(): boolean {
+    return Date.now() - this.pageLoadTime < 2000;
+  }
+
+  /**
    * Get data with smart caching strategy
    * 1. Return cached data immediately if available
    * 2. Fetch fresh data in background
@@ -63,6 +71,7 @@ export class SmartCache {
     onDataUpdate?: (data: T, isFromCache: boolean) => void
   ): Promise<T | null> {
     const { showCachedFirst, backgroundRefresh, ttlMs } = strategy;
+    const isFreshLoad = this.isFreshPageLoad();
 
     // 1. Try to get cached data first
     if (showCachedFirst) {
@@ -83,7 +92,13 @@ export class SmartCache {
         
         // Start background refresh if enabled
         if (backgroundRefresh) {
-          this.startBackgroundRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+          // If this is a fresh page load, trigger immediate refresh
+          if (isFreshLoad) {
+            console.log(`🔄 Fresh page load detected - triggering immediate refresh for ${cacheKey}`);
+            this.startImmediateRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+          } else {
+            this.startBackgroundRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+          }
         }
         
         return cached.data;
@@ -178,6 +193,54 @@ export class SmartCache {
   }
 
   /**
+   * Start immediate refresh for fresh page loads (no delay)
+   */
+  private static startImmediateRefresh<T>(
+    cacheKey: string,
+    fetchFunction: () => Promise<T>,
+    strategy: CacheStrategy,
+    onDataUpdate?: (data: T, isFromCache: boolean) => void
+  ): void {
+    // Clear existing timer if any
+    const existingTimer = this.backgroundRefreshTimers.get(cacheKey);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Start immediate refresh (no delay)
+    const timer = setTimeout(async () => {
+      try {
+        console.log(`🔄 Immediate refresh for ${cacheKey} (fresh page load)`);
+        const freshData = await fetchFunction();
+        
+        // Update cache with fresh data
+        const cachedData: CachedData<T> = {
+          data: freshData,
+          timestamp: Date.now(),
+          isStale: false
+        };
+        setCache(cacheKey, cachedData, strategy.ttlMs);
+        
+        // Call update callback with fresh data
+        if (onDataUpdate) {
+          onDataUpdate(freshData, false);
+        }
+        
+        console.log(`✅ Immediate refresh completed for ${cacheKey}`);
+        
+        // Schedule regular background refresh after immediate refresh
+        this.startBackgroundRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+      } catch (error) {
+        console.error(`❌ Immediate refresh failed for ${cacheKey}:`, error);
+        // Fall back to regular background refresh on error
+        this.startBackgroundRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+      }
+    }, 100); // Very short delay to ensure UI is rendered
+
+    this.backgroundRefreshTimers.set(cacheKey, timer);
+  }
+
+  /**
    * Clear all background refresh timers
    */
   static clearAllTimers(): void {
@@ -211,6 +274,51 @@ export class SmartCache {
    */
   static clearCacheGroup(group: string): void {
     clearCacheByPrefix(group);
+  }
+
+  /**
+   * Force immediate refresh for a specific cache key (for manual refresh buttons)
+   */
+  static async forceRefresh<T>(
+    cacheKey: string,
+    fetchFunction: () => Promise<T>,
+    strategy: CacheStrategy,
+    onDataUpdate?: (data: T, isFromCache: boolean) => void
+  ): Promise<T | null> {
+    console.log(`🔄 Force refresh requested for ${cacheKey}`);
+    
+    // Clear existing timers
+    const existingTimer = this.backgroundRefreshTimers.get(cacheKey);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+    
+    try {
+      const freshData = await fetchFunction();
+      
+      // Update cache with fresh data
+      const cachedData: CachedData<T> = {
+        data: freshData,
+        timestamp: Date.now(),
+        isStale: false
+      };
+      setCache(cacheKey, cachedData, strategy.ttlMs);
+      
+      // Call update callback with fresh data
+      if (onDataUpdate) {
+        onDataUpdate(freshData, false);
+      }
+      
+      console.log(`✅ Force refresh completed for ${cacheKey}`);
+      
+      // Schedule regular background refresh after force refresh
+      this.startBackgroundRefresh(cacheKey, fetchFunction, strategy, onDataUpdate);
+      
+      return freshData;
+    } catch (error) {
+      console.error(`❌ Force refresh failed for ${cacheKey}:`, error);
+      return null;
+    }
   }
 
   /**

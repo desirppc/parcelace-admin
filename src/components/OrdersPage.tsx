@@ -1464,12 +1464,89 @@ const OrdersPage = () => {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => {
-                clearCacheByPrefix(CacheGroups.orders);
-                window.location.reload();
+              onClick={async () => {
+                setRefreshLoading(true);
+                try {
+                  const cacheKey = EnhancedCacheKeys.orders(currentPage, pageSize, currentPageType);
+                  await SmartCache.forceRefresh(
+                    cacheKey,
+                    async () => {
+                      // Fetch function
+                      let authToken = sessionStorage.getItem('auth_token');
+                      if (!authToken) authToken = localStorage.getItem('auth_token');
+                      
+                      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/orders/list`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${authToken}`,
+                          'Content-Type': 'application/json',
+                          'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          page: currentPage,
+                          per_page: pageSize,
+                          order_type: currentPageType === 'all' ? null : currentPageType
+                        }),
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (response.ok && data.status && data.data?.orders_data) {
+                        const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
+                          const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
+                          const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
+                          return dateB.getTime() - dateA.getTime();
+                        });
+                        
+                        const totalOrders = data.data.pagination?.total || sortedOrders.length;
+                        const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
+                        
+                        return {
+                          orders: sortedOrders,
+                          totalOrders,
+                          totalPages,
+                          timestamp: Date.now()
+                        };
+                      } else {
+                        throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
+                      }
+                    },
+                    CacheStrategies.orders,
+                    (data, isFromCache) => {
+                      if (data && data.orders) {
+                        setOrders(data.orders);
+                        setTotalOrders(data.totalOrders);
+                        setTotalPages(data.totalPages);
+                        filterOrdersByPageType(data.orders, currentPageType);
+                        
+                        toast({
+                          title: "Orders Refreshed",
+                          description: `Orders list updated successfully`,
+                        });
+                      }
+                    }
+                  );
+                } catch (error) {
+                  console.error('Error refreshing orders:', error);
+                  toast({
+                    title: "Refresh Failed",
+                    description: "Failed to refresh orders list.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setRefreshLoading(false);
+                }
               }}
+              disabled={refreshLoading}
             >
-              Refresh Now
+              {refreshLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                'Refresh Now'
+              )}
             </Button>
             <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
               <DialogTrigger asChild>
