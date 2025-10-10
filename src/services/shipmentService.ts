@@ -75,20 +75,8 @@ class ShipmentService {
       const result = await response.json();
       console.log('📊 Shipments response data:', result);
       
-      // Handle authentication errors
-      if (response.status === 401) {
-        console.warn('⚠️ Authentication failed');
-        // Clear invalid tokens
-        localStorage.removeItem('auth_token');
-        sessionStorage.removeItem('auth_token');
-        
-        return {
-          shipments: [],
-          total: 0,
-          current_page: page,
-          total_pages: 0
-        };
-      }
+      // Handle authentication errors - now handled globally in apiRequest
+      // The global handler will automatically logout and redirect to login
       
       if (response.ok && result.data && result.data.shipment_data) {
         // Transform API response to match component expectations
@@ -186,10 +174,8 @@ class ShipmentService {
         }
       });
 
-      if (response.status === 401) {
-        console.warn('⚠️ Authentication failed');
-        return null;
-      }
+      // Handle authentication errors - now handled globally in apiRequest
+      // The global handler will automatically logout and redirect to login
 
       const result = await response.json();
       

@@ -186,6 +186,39 @@ export const apiRequest = async (
       });
     }
     
+    // Handle session expired (401 Unauthorized) globally
+    if (response.status === 401) {
+      console.log('🔒 Session expired - auto-logging out user');
+      
+      // Clear all authentication data
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('user');
+      localStorage.removeItem('walletBalance');
+      
+      sessionStorage.clear();
+      
+      // Clear any other potential cached data
+      localStorage.removeItem('parcelace_user');
+      localStorage.removeItem('parcelace_token');
+      
+      // Show session expired notification
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        // Only redirect if not already on login page
+        console.log('🔄 Redirecting to login page due to session expiry');
+        window.location.href = '/login';
+      }
+      
+      return {
+        success: false,
+        data: null,
+        message: 'Session expired. Please login again.',
+        status: 401,
+        error: 'Session expired'
+      };
+    }
+    
     return {
       success: response.ok,
       data: result.data,
