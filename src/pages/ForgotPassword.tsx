@@ -46,7 +46,7 @@ const ForgotPassword = () => {
       const data = await response.json();
       console.log('Response data:', data);
 
-      if (response.ok) {
+      if (response.ok && data.status) {
         toast({
           title: "Reset Code Sent",
           description: "We've sent a reset code to your email address",
@@ -57,7 +57,7 @@ const ForgotPassword = () => {
         console.error('API Error:', data);
         toast({
           title: "Error",
-          description: data.message || data.error || "Failed to send reset code. Please try again.",
+          description: data?.error?.message || data?.message || "Failed to send reset code. Please try again.",
           variant: "destructive"
         });
       }

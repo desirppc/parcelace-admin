@@ -107,12 +107,7 @@ const OrdersPage = () => {
 
   // Determine current page type based on URL
   const getCurrentPageType = () => {
-    const pathname = location.pathname;
-    if (pathname.includes('/dashboard/orders/reverse')) {
-      return 'reverse';
-    } else if (pathname.includes('/dashboard/orders/prepaid')) {
-      return 'prepaid';
-    }
+    // Always return 'all' to show all order types
     return 'all';
   };
 
@@ -236,17 +231,7 @@ const OrdersPage = () => {
   const filterOrdersByTab = (ordersData: any[], tab: string) => {
     let filtered = ordersData;
     
-    // First apply page type filtering
-    if (currentPageType === 'reverse') {
-      filtered = ordersData.filter((order: any) => 
-        (order.order_type || '').toLowerCase() === 'reverse'
-      );
-    } else if (currentPageType === 'prepaid') {
-      filtered = ordersData.filter((order: any) => {
-        const orderType = (order.order_type || '').toLowerCase();
-        return orderType === 'prepaid' || orderType === 'cod';
-      });
-    }
+    // No page type filtering - show all orders
     
     // Then apply tab filtering
     if (tab === 'pending') {
@@ -338,12 +323,7 @@ const OrdersPage = () => {
         order_type?: string[];
       } = {};
 
-      // Add order types based on current page
-      if (currentPageType === 'reverse') {
-        exportFilters.order_type = ['reverse'];
-      } else if (currentPageType === 'prepaid') {
-        exportFilters.order_type = ['prepaid', 'cod'];
-      }
+      // No order type filtering - export all orders
 
       // Add search term if available
       if (searchTerm) {
@@ -1471,12 +1451,8 @@ const OrdersPage = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
-              {currentPageType === 'reverse' ? 'Reverse Orders' : 
-               'Orders Management'}
+              Orders Management
             </h1>
-            {currentPageType === 'reverse' && (
-              <p className="text-muted-foreground mt-1">Showing only reverse orders</p>
-            )}
           </div>
           <div className="flex items-center space-x-3">
             <Button 

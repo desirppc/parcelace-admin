@@ -38,7 +38,7 @@ const ForgotPasswordScreen = ({ onNavigateBack, onNavigateToOTP }: {
       } else {
         toast({
           title: 'Error',
-          description: data?.message || 'Failed to send OTP. Please try again.',
+          description: data?.error?.message || data?.message || 'Failed to send OTP. Please try again.',
           variant: 'destructive',
         });
       }

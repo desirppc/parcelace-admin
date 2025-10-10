@@ -99,10 +99,7 @@ const OnboardingLayout = () => {
       id: 'orders',
       title: 'Orders',
       icon: Package,
-      subItems: [
-        { id: 'prepaid-orders', title: 'Prepaid Orders', icon: Package },
-        { id: 'reverse-orders', title: 'Reverse Orders', icon: Package }
-      ]
+      route: '/dashboard/orders'
     },
     {
       id: 'shipments',
@@ -174,8 +171,7 @@ const OnboardingLayout = () => {
     'pan-verification': '/dashboard/kyc',
     'bank-verification': '/dashboard/kyc',
     'gst-verification': '/dashboard/kyc',
-    'prepaid-orders': '/dashboard/orders/prepaid',
-    'reverse-orders': '/dashboard/orders/reverse',
+    'prepaid-orders': '/dashboard/orders',
     'prepaid-shipments': '/dashboard/shipments/prepaid',
     'reverse-shipments': '/dashboard/shipments/reverse',
     'courier-priority-rules': '/dashboard/settings/courier-priority-rules',

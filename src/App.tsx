@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import MobileOTPVerification from "./pages/MobileOTPVerification";
 import AddOrder from "./components/AddOrder";
 import ShipmentPage from "./components/ShipmentPage";
@@ -27,7 +28,6 @@ import OnboardingLayout from './components/OnboardingLayout';
 import OnboardingChecklist from './pages/OnboardingChecklist';
 import OnboardingReturnPro from './pages/OnboardingReturnPro';
 import OnboardingPrepaidOrders from './pages/OnboardingPrepaidOrders';
-import OnboardingReverseOrders from './pages/OnboardingReverseOrders';
 import OnboardingKYC from './pages/OnboardingKYC';
 import OnboardingPrepaidShipments from './pages/OnboardingPrepaidShipments';
 import OnboardingReverseShipments from './pages/OnboardingReverseShipments';
@@ -93,6 +93,7 @@ const App = () => {
               {/* Public Routes - No Authentication Required */}
               <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
               <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
               <Route path="/mobile-otp-verification" element={<PublicRoute><MobileOTPVerification /></PublicRoute>} />
               <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
               <Route path="/otp-verification" element={<PublicRoute><OTPVerification /></PublicRoute>} />
@@ -112,7 +113,7 @@ const App = () => {
               
               {/* Redirect Routes */}
               <Route path="/orders" element={<Navigate to="/dashboard/orders" replace />} />
-              <Route path="/dashboard" element={<Navigate to="/dashboard/orders/prepaid" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/orders" replace />} />
               
               {/* Protected Routes - Require Authentication */}
               <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
@@ -139,7 +140,6 @@ const App = () => {
                 
                 {/* Onboarding Routes - Require both authentication and onboarding completion */}
                 <Route path="/dashboard/orders/prepaid" element={<OnboardingRoute><OnboardingPrepaidOrders /></OnboardingRoute>} />
-                <Route path="/dashboard/orders/reverse" element={<OnboardingRoute><OnboardingReverseOrders /></OnboardingRoute>} />
                 
                 {/* Shipment Management */}
                 <Route path="/dashboard/shipments/prepaid" element={<OnboardingRoute><OnboardingPrepaidShipments /></OnboardingRoute>} />
@@ -183,7 +183,6 @@ const App = () => {
                 <Route path="/dashboard/postship/nps" element={<OnboardingRoute><NPS /></OnboardingRoute>} />
                 <Route path="/dashboard/postship/customise-tracking" element={<RouteGuard><CustomiseTrackingPage /></RouteGuard>} />
                 <Route path="/onboarding/orders/prepaid-orders" element={<OnboardingRoute><OnboardingPrepaidOrders /></OnboardingRoute>} />
-                <Route path="/onboarding/orders/reverse-orders" element={<OnboardingRoute><OnboardingReverseOrders /></OnboardingRoute>} />
                 <Route path="/onboarding/kyc" element={<OnboardingRoute><OnboardingKYC /></OnboardingRoute>} />
                 <Route path="/onboarding/shipments/prepaid-shipments" element={<OnboardingRoute><OnboardingPrepaidShipments /></OnboardingRoute>} />
                 <Route path="/onboarding/shipments/reverse-shipments" element={<OnboardingRoute><OnboardingReverseShipments /></OnboardingRoute>} />

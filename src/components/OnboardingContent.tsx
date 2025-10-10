@@ -75,7 +75,6 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       case 'orders':
       case 'add-order':
       case 'prepaid-orders':
-      case 'reverse-orders':
         return <OrdersPage />;
 
       case 'shipments':

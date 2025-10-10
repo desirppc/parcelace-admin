@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Package, Phone } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +25,17 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Password validation
+  const validations = {
+    minLength: formData.password.length >= 8,
+    hasUppercase: /[A-Z]/.test(formData.password),
+    hasLowercase: /[a-z]/.test(formData.password),
+    hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password),
+  };
+
+  const allValidationsPassed = Object.values(validations).every(Boolean);
+  const passwordsMatch = formData.password === formData.password_confirmation && formData.password !== '';
   const { toast } = useToast();
   const { setUser } = useUser();
 
@@ -46,19 +57,20 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
       return false;
     }
 
-    if (formData.password !== formData.password_confirmation) {
+
+    if (!allValidationsPassed) {
       toast({
-        title: "Passwords Don't Match",
-        description: "Please make sure both passwords are identical",
+        title: "Password Requirements Not Met",
+        description: "Please ensure your password meets all requirements",
         variant: "destructive"
       });
       return false;
     }
 
-    if (formData.password.length < 8) {
+    if (!passwordsMatch) {
       toast({
-        title: "Password Too Short",
-        description: "Password must be at least 8 characters long",
+        title: "Passwords Don't Match",
+        description: "Please make sure both passwords are identical",
         variant: "destructive"
       });
       return false;
@@ -75,6 +87,19 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
 
     return true;
   };
+
+  const ValidationItem = ({ isValid, text }: { isValid: boolean; text: string }) => (
+    <div className={`flex items-center space-x-2 text-sm transition-colors duration-200 ${
+      isValid ? 'text-green-600' : 'text-gray-500'
+    }`}>
+      {isValid ? (
+        <Check className="w-4 h-4 text-green-500" />
+      ) : (
+        <X className="w-4 h-4 text-gray-400" />
+      )}
+      <span>{text}</span>
+    </div>
+  );
 
   const handleSignUp = async () => {
     if (!validateForm()) return;
@@ -127,7 +152,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
       } else {
         toast({
           title: "Registration Failed",
-          description: data?.message || "Failed to create account. Please try again.",
+          description: data?.error?.message || data?.message || "Failed to create account. Please try again.",
           variant: "destructive"
         });
       }
@@ -199,10 +224,10 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            Start Shipping Today
+            Create Account
           </h1>
-          <p className="text-gray-600 text-center mb-8">
-            Join thousands of D2C brands using our platform
+          <p className="text-gray-600 text-center mb-6">
+            Get started with ParcelAce in minutes
           </p>
 
           {/* Sign Up Form */}
@@ -282,6 +307,19 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              
+              {/* Password Requirements */}
+              {formData.password && (
+                <div className="mt-3 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-100">
+                  <div className="text-xs font-medium text-gray-700 mb-2">Password Requirements:</div>
+                  <div className="space-y-1">
+                    <ValidationItem isValid={validations.minLength} text="Minimum 8 characters" />
+                    <ValidationItem isValid={validations.hasUppercase} text="At least 1 uppercase letter" />
+                    <ValidationItem isValid={validations.hasLowercase} text="At least 1 lowercase letter" />
+                    <ValidationItem isValid={validations.hasSpecialChar} text="At least 1 special character" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password Input */}
@@ -306,6 +344,18 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {formData.password_confirmation && (
+                <div className={`mt-2 text-sm flex items-center space-x-2 ${
+                  passwordsMatch ? 'text-green-600' : 'text-red-500'
+                }`}>
+                  {passwordsMatch ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <X className="w-4 h-4" />
+                  )}
+                  <span>{passwordsMatch ? 'Passwords match' : 'Passwords do not match'}</span>
+                </div>
+              )}
             </div>
 
             {/* Terms and Conditions */}
@@ -331,7 +381,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
             {/* Sign Up Button */}
             <Button 
               type="submit"
-              disabled={!agreeToTerms || isLoading}
+              disabled={!agreeToTerms || !allValidationsPassed || !passwordsMatch || isLoading}
               className="w-full h-12 bg-gradient-to-r from-pink-500 via-blue-500 to-indigo-600 hover:from-pink-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isLoading ? (
@@ -340,31 +390,14 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
                   Creating Account...
                 </div>
               ) : (
-                'Start Shipping'
+                'Create Account'
               )}
             </Button>
           </form>
 
-          {/* Benefits */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-blue-50 rounded-xl border border-pink-100">
-            <div className="text-xs font-medium mb-2 text-transparent bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text">What you get:</div>
-            <div className="text-xs text-gray-700 space-y-1">
-              <div>• Shopify integration in 2 minutes</div>
-              <div>• 40% cheaper than competitors</div>
-              <div>• Real-time tracking for customers</div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center my-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-            <span className="px-4 text-sm text-gray-500">or</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-          </div>
-
           {/* Sign In Link */}
-          <div className="text-center">
-            <span className="text-gray-600">Already shipping with us? </span>
+          <div className="text-center mt-6">
+            <span className="text-gray-600">Already have an account? </span>
             <button
               onClick={onNavigateToLogin}
               className="text-transparent bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text font-medium hover:from-pink-600 hover:to-blue-700 transition-all duration-200"
@@ -378,7 +411,7 @@ const SignUpScreen = ({ onNavigateToLogin, onNavigateBack, onNavigateToOnboardin
         <div className="flex items-center justify-center mt-6 px-4">
           <div className="flex items-center text-xs text-gray-500">
             <Lock className="w-3 h-3 mr-1" />
-            SOC 2 compliant • 99.9% uptime
+            Trusted by 1,000+ D2C brands
           </div>
         </div>
       </div>

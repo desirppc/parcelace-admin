@@ -188,7 +188,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
         <div className="flex items-center justify-center mt-6 px-4">
           <div className="flex items-center text-xs text-gray-500">
             <Lock className="w-3 h-3 mr-1" />
-            Trusted by 10,000+ D2C brands
+            Trusted by 1,000+ D2C brands
           </div>
         </div>
       </div>
