@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 // Removed session monitoring imports - no automatic session management needed
+import { useEffect } from "react";
+import SmartCache from "@/utils/smartCache";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -70,6 +72,13 @@ const queryClient = new QueryClient();
 const App = () => {
   // Removed session monitoring setup - sessions only checked on API calls
   // No automatic refresh or monitoring needed
+  
+  // Cleanup background refresh timers on app unmount
+  useEffect(() => {
+    return () => {
+      SmartCache.clearAllTimers();
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

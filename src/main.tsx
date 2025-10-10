@@ -8,4 +8,7 @@ import './utils/testTrackingIntegration'
 // Import session expiry test utilities for development
 import './utils/testSessionExpiry'
 
+// Import smart caching test utilities for development
+import './utils/testSmartCaching'
+
 createRoot(document.getElementById("root")!).render(<App />);

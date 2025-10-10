@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import OnboardingLayout from './OnboardingLayout';
 import WarehouseForm, { WarehouseFormValues } from './WarehouseForm';
+import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 interface WarehouseData {
   id: number;
@@ -102,6 +103,10 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 
 const WarehouseScreen = () => {
   console.log('WarehouseScreen component rendered');
+  
+  // Set page meta tags
+  usePageMeta(PageMetaConfigs.warehouse);
+  
   const { toast } = useToast();
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   

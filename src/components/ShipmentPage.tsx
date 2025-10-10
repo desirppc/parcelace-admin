@@ -60,6 +60,8 @@ import OnboardingLayout from './OnboardingLayout';
 import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
 import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
+import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
+import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 interface ShipmentItem {
   id: number;
@@ -136,6 +138,9 @@ interface ShipmentItem {
 }
 
 const ShipmentPage = () => {
+  // Set page meta tags
+  usePageMeta(PageMetaConfigs.shipments);
+  
   const [shipments, setShipments] = useState<ShipmentItem[]>([]);
   const [filteredShipments, setFilteredShipments] = useState<ShipmentItem[]>([]);
   const [activeTab, setActiveTab] = useState('all');
@@ -205,114 +210,107 @@ const ShipmentPage = () => {
       setIsLoading(true);
     }
     
-    try {
-      // Try cache first
-      const cached = getCache<any>(CacheKeys.shipments(currentPage, pageSize, currentPageType));
-      if (!isRefresh && cached && Array.isArray(cached.shipments)) {
-        setShipments(cached.shipments);
-        setFilteredShipments(cached.shipments);
-        setTotalShipments(cached.totalShipments || cached.shipments.length);
-        setTotalPages(cached.totalPages || 1);
-      }
-      
-      let authToken = sessionStorage.getItem('auth_token');
-      if (!authToken) authToken = localStorage.getItem('auth_token');
-      
-      // Build request body with pagination parameters
-      const requestBody = {
-        page: currentPage,
-        per_page: pageSize
-      };
-      
-      console.log('Fetching shipments with pagination:', requestBody);
-      
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-      
-      const data = await response.json();
-      
-      console.log('API Response:', data);
-      
-      if (response.ok && data.status) {
-        // Handle different possible response structures
-        let shipmentsData = [];
+    const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
+    
+    // Use smart caching strategy - shows cached data immediately, fetches fresh data in background
+    await SmartCache.getData(
+      cacheKey,
+      async () => {
+        // Fetch function
+        let authToken = sessionStorage.getItem('auth_token');
+        if (!authToken) authToken = localStorage.getItem('auth_token');
         
-        if (Array.isArray(data.data)) {
-          shipmentsData = data.data;
-        } else if (data.data && Array.isArray(data.data.shipment_data)) {
-          shipmentsData = data.data.shipment_data;
-        } else if (data.data && Array.isArray(data.data.shipments)) {
-          shipmentsData = data.data.shipments;
-        } else if (data.data && Array.isArray(data.data.data)) {
-          shipmentsData = data.data.data;
-        } else if (data.shipments && Array.isArray(data.shipments)) {
-          shipmentsData = data.shipments;
-        } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
-          shipmentsData = data.shipment_data;
-        }
+        // Build request body with pagination parameters
+        const requestBody = {
+          page: currentPage,
+          per_page: pageSize
+        };
         
-        console.log('Processed shipments data:', shipmentsData);
+        console.log('Fetching shipments with pagination:', requestBody);
         
-        // Filter out shipments where AWB is null and sort by latest first
-        const shipmentsWithAWB = shipmentsData
-          .filter(shipment => shipment.awb !== null && shipment.awb !== '')
-          .sort((a, b) => {
-            // Sort by order_date descending (latest first)
-            const dateA = new Date(a.order_date || a.store_order?.sync_date || 0);
-            const dateB = new Date(b.order_date || b.store_order?.sync_date || 0);
-            return dateB.getTime() - dateA.getTime();
-          });
-        console.log('Shipments with AWB (sorted by latest):', shipmentsWithAWB);
-        
-        setShipments(shipmentsWithAWB);
-        // Cache for 5 minutes
-        setCache(
-          CacheKeys.shipments(currentPage, pageSize, currentPageType),
-          { shipments: shipmentsWithAWB, totalShipments: data.data.pagination?.total, totalPages: data.data.pagination?.last_page },
-          5 * 60 * 1000
-        );
-        
-        // Update pagination metadata if available
-        if (data.data.pagination) {
-          setTotalShipments(data.data.pagination.total || shipmentsWithAWB.length);
-          setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || shipmentsWithAWB.length) / pageSize));
-        } else {
-          // Fallback if no pagination metadata
-          setTotalShipments(shipmentsWithAWB.length);
-          setTotalPages(1);
-        }
-        
-        // Apply page type filtering
-        filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
-        setLastFetchTime(new Date());
-      } else {
-        console.log('API Error:', data);
-        toast({
-          title: 'Error',
-          description: data?.error?.message || data?.message || 'Failed to fetch shipments.',
-          variant: 'destructive',
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
         });
+        
+        const data = await response.json();
+        
+        console.log('API Response:', data);
+        
+        if (response.ok && data.status) {
+          // Handle different possible response structures
+          let shipmentsData = [];
+          
+          if (Array.isArray(data.data)) {
+            shipmentsData = data.data;
+          } else if (data.data && Array.isArray(data.data.shipment_data)) {
+            shipmentsData = data.data.shipment_data;
+          } else if (data.data && Array.isArray(data.data.shipments)) {
+            shipmentsData = data.data.shipments;
+          } else if (data.data && Array.isArray(data.data.data)) {
+            shipmentsData = data.data.data;
+          } else if (data.shipments && Array.isArray(data.shipments)) {
+            shipmentsData = data.shipments;
+          } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
+            shipmentsData = data.shipment_data;
+          }
+          
+          console.log('Processed shipments data:', shipmentsData);
+          
+          // Filter out shipments where AWB is null and sort by latest first
+          const shipmentsWithAWB = shipmentsData
+            .filter(shipment => shipment.awb !== null && shipment.awb !== '')
+            .sort((a, b) => {
+              // Sort by order_date descending (latest first)
+              const dateA = new Date(a.order_date || a.store_order?.sync_date || 0);
+              const dateB = new Date(b.order_date || b.store_order?.sync_date || 0);
+              return dateB.getTime() - dateA.getTime();
+            });
+          
+          console.log('Shipments with AWB (sorted by latest):', shipmentsWithAWB);
+          
+          const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
+          const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
+          
+          return {
+            shipments: shipmentsWithAWB,
+            totalShipments,
+            totalPages,
+            timestamp: Date.now()
+          };
+        } else {
+          throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
+        }
+      },
+      CacheStrategies.shipments,
+      (data, isFromCache) => {
+        // Update UI callback
+        if (data && data.shipments) {
+          setShipments(data.shipments);
+          setFilteredShipments(data.shipments);
+          setTotalShipments(data.totalShipments);
+          setTotalPages(data.totalPages);
+          filterShipmentsByPageType(data.shipments, currentPageType);
+          setLastFetchTime(new Date());
+          
+          if (isFromCache) {
+            console.log('📦 Shipments loaded from cache - instant UI');
+          } else {
+            console.log('🔄 Shipments refreshed with fresh data');
+          }
+        }
       }
-    } catch (error) {
-      console.log('Network Error:', error);
-      toast({
-        title: 'Network Error',
-        description: 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      if (isRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
+    );
+    
+    if (isRefresh) {
+      setIsRefreshing(false);
+    } else {
+      setIsLoading(false);
     }
   };
 

@@ -12,3 +12,19 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://app.parcelace.io/sitemap.xml
+
+# Disallow admin and private areas
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /signup
+Allow: /tracking
+Allow: /forgot-password

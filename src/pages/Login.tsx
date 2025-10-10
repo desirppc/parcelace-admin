@@ -6,8 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import API_CONFIG from '@/config/api';
+import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 const Login = () => {
+  // Set page meta tags
+  usePageMeta(PageMetaConfigs.login);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -224,12 +228,12 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
-          {/* Logo/Icon */}
-          <div className="flex justify-center mb-8">
+          {/* Logo/Icon - Removed */}
+          {/* <div className="flex justify-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-pink-400 via-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Truck className="w-8 h-8 text-white" />
             </div>
-          </div>
+          </div> */}
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">

@@ -86,12 +86,12 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
 
         {/* Main Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
-          {/* Logo/Icon */}
-          <div className="flex justify-center mb-8">
+          {/* Logo/Icon - Removed */}
+          {/* <div className="flex justify-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-pink-400 via-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Truck className="w-8 h-8 text-white" />
             </div>
-          </div>
+          </div> */}
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">

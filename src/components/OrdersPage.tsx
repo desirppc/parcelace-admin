@@ -43,9 +43,14 @@ import API_CONFIG from '@/config/api';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import { testImportAPI, testFileValidation } from '@/utils/testImportAPI';
 import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
+import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
+import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 
 const OrdersPage = () => {
+  // Set page meta tags
+  usePageMeta(PageMetaConfigs.orders);
+  
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
@@ -115,75 +120,74 @@ const OrdersPage = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      // Try cache first for instant UI
-      const cached = getCache<any>(CacheKeys.orders(currentPage, pageSize, currentPageType));
-      if (cached && Array.isArray(cached.orders)) {
-        setOrders(cached.orders);
-        setTotalOrders(cached.totalOrders || cached.orders.length);
-        setTotalPages(cached.totalPages || 1);
-        filterOrdersByPageType(cached.orders, currentPageType);
-      }
-      try {
-        let authToken = sessionStorage.getItem('auth_token');
-        if (!authToken) authToken = localStorage.getItem('auth_token');
-        console.log('Using auth_token for API:', authToken);
-        
-        // Build URL with pagination parameters
-        const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
-        url.searchParams.set('per_page', pageSize.toString());
-        url.searchParams.set('page', currentPage.toString());
-        
-        console.log('Fetching orders with pagination:', { page: currentPage, per_page: pageSize });
-        
-        const response = await fetch(url.toString(), {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Accept': 'application/json',
-          },
-        });
-        const data = await response.json();
-        if (response.ok && data.status && data.data?.orders_data) {
-          // Sort orders by latest first (by order_date or created_at)
-          const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
-            const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
-            const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
-            return dateB.getTime() - dateA.getTime();
-          });
-          setOrders(sortedOrders);
-          // Cache successful fetch for 5 minutes
-          setCache(
-            CacheKeys.orders(currentPage, pageSize, currentPageType),
-            { orders: sortedOrders, totalOrders: data.data.pagination?.total, totalPages: data.data.pagination?.last_page },
-            5 * 60 * 1000
-          );
+      const cacheKey = EnhancedCacheKeys.orders(currentPage, pageSize, currentPageType);
+      
+      // Use smart caching strategy - shows cached data immediately, fetches fresh data in background
+      await SmartCache.getData(
+        cacheKey,
+        async () => {
+          // Fetch function
+          let authToken = sessionStorage.getItem('auth_token');
+          if (!authToken) authToken = localStorage.getItem('auth_token');
+          console.log('Using auth_token for API:', authToken);
           
-          // Update pagination metadata if available
-          if (data.data.pagination) {
-            setTotalOrders(data.data.pagination.total || sortedOrders.length);
-            setTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || sortedOrders.length) / pageSize));
+          // Build URL with pagination parameters
+          const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+          url.searchParams.set('per_page', pageSize.toString());
+          url.searchParams.set('page', currentPage.toString());
+          
+          console.log('Fetching orders with pagination:', { page: currentPage, per_page: pageSize });
+          
+          const response = await fetch(url.toString(), {
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Accept': 'application/json',
+            },
+          });
+          const data = await response.json();
+          
+          if (response.ok && data.status && data.data?.orders_data) {
+            // Sort orders by latest first (by order_date or created_at)
+            const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
+              const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
+              const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
+              return dateB.getTime() - dateA.getTime();
+            });
+            
+            const totalOrders = data.data.pagination?.total || sortedOrders.length;
+            const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
+            
+            return {
+              orders: sortedOrders,
+              totalOrders,
+              totalPages,
+              timestamp: Date.now()
+            };
           } else {
-            // Fallback if no pagination metadata
-            setTotalOrders(sortedOrders.length);
-            setTotalPages(1);
+            throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
           }
-          
-          // Filter based on current page type
-          filterOrdersByPageType(sortedOrders, currentPageType);
-        } else {
-          toast({
-            title: 'Error',
-            description: data?.error?.message || data?.message || 'Failed to fetch orders.',
-            variant: 'destructive',
-          });
+        },
+        CacheStrategies.orders,
+        (data, isFromCache) => {
+          // Update UI callback
+          if (data && data.orders) {
+            setOrders(data.orders);
+            setTotalOrders(data.totalOrders);
+            setTotalPages(data.totalPages);
+            filterOrdersByPageType(data.orders, currentPageType);
+            
+            if (isFromCache) {
+              console.log('📦 Orders loaded from cache - instant UI');
+            } else {
+              console.log('🔄 Orders refreshed with fresh data');
+            }
+          }
         }
-      } catch (error) {
-        toast({
-          title: 'Network Error',
-          description: 'Please try again.',
-          variant: 'destructive',
-        });
-      }
+      );
+      
+      setLoading(false);
     };
+
     fetchOrders();
   }, [currentPageType, currentPage, pageSize]);
 
