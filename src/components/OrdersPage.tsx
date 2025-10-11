@@ -244,13 +244,13 @@ const OrdersPage = () => {
     // For 'all' tab, keep the page type filtering
     
     setFilteredOrders(filtered);
-    resetPagination(); // Reset pagination when tab filtering changes
+    // Don't reset pagination here as it interferes with user navigation
   };
 
   // Update filtered orders when tab changes or page type changes
   useEffect(() => {
     filterOrdersByTab(orders, activeTab);
-    resetPagination(); // Reset pagination when orders or tabs change
+    // Don't reset pagination here as it interferes with user navigation
   }, [activeTab, orders, currentPageType]);
 
   // Clean up unselectable orders when orders change

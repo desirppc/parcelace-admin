@@ -633,7 +633,7 @@ const ShipmentPage = () => {
     // For 'all' page type, show all shipments
     
     setFilteredShipments(filtered);
-    resetPagination(); // Reset pagination when filtering
+    // Don't reset pagination here as it interferes with user navigation
   };
 
   // Pagination functions
@@ -1032,7 +1032,7 @@ const ShipmentPage = () => {
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
-                      resetPagination(); // Reset pagination when search changes
+                      // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
                 </div>
@@ -1040,7 +1040,7 @@ const ShipmentPage = () => {
                   <label className="text-sm font-medium mb-2 block">Date Filter</label>
                   <Select value={dateFilter} onValueChange={(value) => {
                     setDateFilter(value);
-                    resetPagination(); // Reset pagination when date filter changes
+                    // Don't reset pagination here as it interferes with user navigation
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select date range" />
@@ -1089,7 +1089,7 @@ const ShipmentPage = () => {
                                 } else {
                                   setShipmentStatus(prev => prev.filter(s => s !== status.value));
                                 }
-                                resetPagination(); // Reset pagination when status changes
+                                // Don't reset pagination here as it interferes with user navigation
                               }}
                             />
                             <label htmlFor={status.value} className="text-sm cursor-pointer flex-1">
@@ -1118,7 +1118,7 @@ const ShipmentPage = () => {
                           selected={dateFrom}
                           onSelect={(date) => {
                             setDateFrom(date);
-                            resetPagination(); // Reset pagination when date changes
+                            // Don't reset pagination here as it interferes with user navigation
                           }}
                           className="pointer-events-auto"
                         />
@@ -1140,7 +1140,7 @@ const ShipmentPage = () => {
                           selected={dateTo}
                           onSelect={(date) => {
                             setDateTo(date);
-                            resetPagination(); // Reset pagination when date changes
+                            // Don't reset pagination here as it interferes with user navigation
                           }}
                           className="pointer-events-auto"
                         />
@@ -1159,7 +1159,7 @@ const ShipmentPage = () => {
                     checked={orderTypes.prepaid}
                     onCheckedChange={(checked) => {
                       setOrderTypes(prev => ({ ...prev, prepaid: !!checked, all: false }));
-                      resetPagination(); // Reset pagination when order type changes
+                      // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
                   <label htmlFor="prepaid" className="text-sm">Prepaid</label>
@@ -1170,7 +1170,7 @@ const ShipmentPage = () => {
                     checked={orderTypes.cod}
                     onCheckedChange={(checked) => {
                       setOrderTypes(prev => ({ ...prev, cod: !!checked, all: false }));
-                      resetPagination(); // Reset pagination when order type changes
+                      // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
                   <label htmlFor="cod" className="text-sm">COD</label>
@@ -1181,7 +1181,7 @@ const ShipmentPage = () => {
                     checked={orderTypes.all}
                     onCheckedChange={(checked) => {
                       setOrderTypes(prev => ({ ...prev, all: !!checked, prepaid: false, cod: false }));
-                      resetPagination(); // Reset pagination when order type changes
+                      // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
                   <label htmlFor="all" className="text-sm">All</label>
@@ -1205,7 +1205,7 @@ const ShipmentPage = () => {
       {selectedShipments.length === 0 && (
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
-          resetPagination(); // Reset pagination when tab changes
+          // Don't reset pagination here as it interferes with user navigation
         }}>
           <TabsList className="inline-flex py-1 text-xs" style={{ fontSize: '80%', padding: '0.25rem 0' }}>
             <TabsTrigger value="all">All Orders</TabsTrigger>
