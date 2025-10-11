@@ -127,11 +127,14 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
         });
       });
       
+      console.log('🔍 Debug - Courier Options Generated:', Array.from(uniqueCouriers.values()));
+      
       if (uniqueCouriers.size > 0) {
         return Array.from(uniqueCouriers.values());
       }
     }
     
+    console.log('🔍 Debug - No courier options available, courierRates:', courierRates);
     // No mock data fallback - return empty array
     return [];
   };
@@ -279,14 +282,32 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
         throw new Error(ratesResult.message || 'Failed to fetch courier rates');
       }
 
-      // Adapt to API shape: data.orderData.orders[*].courier_partner_rates
+      // Adapt to API shape: data.orderData.orders[orderId].courier_partner_rates
       const apiPayload = ratesResult.data;
       const orderData = apiPayload?.orderData || apiPayload;
+      
+      console.log('🔍 Debug - API Response Structure:', {
+        apiPayload,
+        orderData,
+        ordersType: typeof orderData?.orders,
+        ordersIsArray: Array.isArray(orderData?.orders),
+        ordersKeys: orderData?.orders ? Object.keys(orderData.orders) : 'N/A'
+      });
 
       const processedRates: Record<string, CourierPartnerRate[]> = {};
 
-      const ordersArray: any[] = Array.isArray(orderData?.orders) ? orderData.orders : [];
-      ordersArray.forEach((orderItem: any) => {
+      // Handle both array and object formats for orders
+      let ordersToProcess: any[] = [];
+      
+      if (Array.isArray(orderData?.orders)) {
+        // If orders is an array
+        ordersToProcess = orderData.orders;
+      } else if (orderData?.orders && typeof orderData.orders === 'object') {
+        // If orders is an object with order IDs as keys
+        ordersToProcess = Object.values(orderData.orders);
+      }
+
+      ordersToProcess.forEach((orderItem: any) => {
         const orderId = (orderItem?.id ?? orderItem?.order_id)?.toString();
         if (!orderId) return;
 
@@ -295,26 +316,33 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
         const mappedRates: CourierPartnerRate[] = rawRates
           .filter((r: any) => r && typeof r === 'object' && !Array.isArray(r))
           .map((r: any) => {
-            const rateArray = Array.isArray(r.rate) ? r.rate : [];
-            const mappedRateArray = rateArray.map((rr: any) => ({
-              freightCharges: rr?.freightCharges ?? 0,
-              parcelAceProfitAmount: rr?.parcelAceProfitAmount ?? 0,
-              insuranceCharges: rr?.insuranceCharges ?? 0,
-              codCharges: rr?.codCharges ?? 0,
-              earlyCodCharges: rr?.earlyCodCharges ?? 0,
-              gstAmount: rr?.gstAmount ?? 0,
-              grossAmount: rr?.grossAmount ?? 0,
-              totalPayable: rr?.totalPayable ?? 0,
-              id: (rr?.id ?? '').toString(),
-              name: rr?.name ?? r?.name ?? ''
-            }));
+            // Handle both array and single object formats for rate
+            let rateData: any = null;
+            if (Array.isArray(r.rate)) {
+              rateData = r.rate[0]; // Take first rate if array
+            } else if (r.rate && typeof r.rate === 'object') {
+              rateData = r.rate; // Use single rate object
+            }
+
+            const mappedRateArray = rateData ? [{
+              freightCharges: rateData?.freightCharges ?? 0,
+              parcelAceProfitAmount: rateData?.parcelAceProfitAmount ?? 0,
+              insuranceCharges: rateData?.insuranceCharges ?? 0,
+              codCharges: rateData?.codCharges ?? 0,
+              earlyCodCharges: rateData?.earlyCodCharges ?? 0,
+              gstAmount: rateData?.gstAmount ?? 0,
+              grossAmount: rateData?.grossAmount ?? 0,
+              totalPayable: rateData?.totalPayable ?? 0,
+              id: (rateData?.id ?? '').toString(),
+              name: rateData?.name ?? r?.name ?? ''
+            }] : [];
 
             const mapped: CourierPartnerRate = {
               estimated_pickup: r?.estimated_pickup ?? '',
               estimated_delivery: r?.estimated_delivery ?? '',
               rate: mappedRateArray,
-              name: r?.name ?? '',
-              courier_partner_id: r?.courier_partner_id ?? 0,
+              name: rateData?.name ?? r?.name ?? '',
+              courier_partner_id: rateData?.id ?? r?.courier_partner_id ?? 0,
               mode: r?.mode ?? '',
               weight: r?.weight ?? 0,
               destination: r?.destination ?? '',
@@ -330,7 +358,31 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
         processedRates[orderId] = mappedRates;
       });
 
+      console.log('🔍 Debug - Processed Rates:', processedRates);
+      console.log('🔍 Debug - Orders to Process:', ordersToProcess);
+      
       setCourierRates(processedRates);
+
+      // Also update the orders state with real order data from API
+      const ordersFromApi = ordersToProcess.map((orderItem: any) => ({
+        id: orderItem.id?.toString() || orderItem.order_id?.toString(),
+        order_no: orderItem.order_no || orderItem.order_number || orderItem.id?.toString(),
+        status: "Pending",
+        courier: "Not Assigned",
+        pickup: orderItem.estimated_pickup || new Date().toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: '2-digit', 
+          year: 'numeric' 
+        }),
+        delivery: orderItem.estimated_delivery || new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: '2-digit', 
+          year: 'numeric' 
+        }),
+        price: "₹0"
+      }));
+      
+      setOrders(ordersFromApi);
 
       toast({
         title: "Courier Rates Retrieved Successfully",
@@ -1232,7 +1284,7 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                             onCheckedChange={(checked) => handleBulkOrderSelection(order.id, checked as boolean)}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="font-medium">{order.order_no || order.id}</TableCell>
                         <TableCell>
                           <Select 
                             key={`${order.id}-${orderRates.length}-${selectedCouriers[order.id]?.courierId || 'none'}`}

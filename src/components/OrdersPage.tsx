@@ -43,7 +43,7 @@ import API_CONFIG from '@/config/api';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import { testImportAPI, testFileValidation } from '@/utils/testImportAPI';
 import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
-import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
+import { EnhancedCacheKeys } from '@/utils/smartCache';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 
@@ -53,6 +53,7 @@ const OrdersPage = () => {
   
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
   const [showShipModal, setShowShipModal] = useState(false);
@@ -117,70 +118,71 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
       const cacheKey = EnhancedCacheKeys.orders(currentPage, pageSize, currentPageType);
       
-      // Use smart caching strategy - shows cached data immediately, fetches fresh data in background
-      await SmartCache.getData(
-        cacheKey,
-        async () => {
-          // Fetch function
-          let authToken = sessionStorage.getItem('auth_token');
-          if (!authToken) authToken = localStorage.getItem('auth_token');
-          console.log('Using auth_token for API:', authToken);
-          
-          // Build URL with pagination parameters
-          const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
-          url.searchParams.set('per_page', pageSize.toString());
-          url.searchParams.set('page', currentPage.toString());
-          
-          console.log('Fetching orders with pagination:', { page: currentPage, per_page: pageSize });
-          
-          const response = await fetch(url.toString(), {
-            headers: {
-              'Authorization': `Bearer ${authToken}`,
-              'Accept': 'application/json',
-            },
-          });
-          const data = await response.json();
-          
-          if (response.ok && data.status && data.data?.orders_data) {
-            // Sort orders by latest first (by order_date or created_at)
-            const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
-              const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
-              const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
-              return dateB.getTime() - dateA.getTime();
-            });
-            
-            const totalOrders = data.data.pagination?.total || sortedOrders.length;
-            const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
-            
-            return {
-              orders: sortedOrders,
-              totalOrders,
-              totalPages,
-              timestamp: Date.now()
-            };
-          } else {
-            throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
-          }
-        },
-        CacheStrategies.orders,
-        (data, isFromCache) => {
-          // Update UI callback
-          if (data && data.orders) {
-            setOrders(data.orders);
-            setTotalOrders(data.totalOrders);
-            setTotalPages(data.totalPages);
-            filterOrdersByPageType(data.orders, currentPageType);
-            
-            if (isFromCache) {
-              console.log('📦 Orders loaded from cache - instant UI');
-            } else {
-              console.log('🔄 Orders refreshed with fresh data');
-            }
-          }
-        }
-      );
+      // Clear any existing cache for orders to ensure fresh data
+      clearCacheByPrefix(CacheGroups.orders);
       
-      setLoading(false);
+      // Fetch fresh data directly without showing cached data first
+      setLoading(true);
+      try {
+        let authToken = sessionStorage.getItem('auth_token');
+        if (!authToken) authToken = localStorage.getItem('auth_token');
+        console.log('Using auth_token for API:', authToken);
+        
+        // Build URL with pagination parameters
+        const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+        url.searchParams.set('per_page', pageSize.toString());
+        url.searchParams.set('page', currentPage.toString());
+        
+        console.log('Fetching fresh orders with pagination:', { page: currentPage, per_page: pageSize });
+        
+        const response = await fetch(url.toString(), {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'application/json',
+          },
+        });
+        const data = await response.json();
+        
+        if (response.ok && data.status && data.data?.orders_data) {
+          // Sort orders by latest first (by order_date or created_at)
+          const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
+            const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
+            const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          
+          const totalOrders = data.data.pagination?.total || sortedOrders.length;
+          const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
+          
+          // Update state with fresh data
+          setOrders(sortedOrders);
+          setTotalOrders(totalOrders);
+          setTotalPages(totalPages);
+          filterOrdersByPageType(sortedOrders, currentPageType);
+          
+          // Cache the fresh data for future use
+          const cacheData = {
+            orders: sortedOrders,
+            totalOrders,
+            totalPages,
+            timestamp: Date.now()
+          };
+          setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
+          
+          console.log('✅ Fresh orders data loaded and cached');
+        } else {
+          throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast({
+          title: "Error Loading Orders",
+          description: "Failed to fetch orders. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchOrders();
@@ -1158,16 +1160,24 @@ const OrdersPage = () => {
           setRefreshLoading(true);
           try {
             console.log('Starting to refresh orders after import...');
+            
+            // Clear all order cache to ensure fresh data
+            clearCacheByPrefix(CacheGroups.orders);
+            
             let authToken = sessionStorage.getItem('auth_token');
-            let accessToken = sessionStorage.getItem('access_token');
             if (!authToken) authToken = localStorage.getItem('auth_token');
-            if (!accessToken) accessToken = localStorage.getItem('access_token');
             
-            const tokenToUse = accessToken || authToken;
-            console.log('🔄 Refresh using token:', accessToken ? 'access_token' : 'auth_token');
+            const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+            url.searchParams.set('per_page', pageSize.toString());
+            url.searchParams.set('page', '1'); // Always refresh to page 1 after import
             
-            const refreshResponse = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.ORDERS), {
-              headers: getAuthHeaders(tokenToUse),
+            console.log('🔄 Post-import refresh - fetching fresh orders');
+            
+            const refreshResponse = await fetch(url.toString(), {
+              headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Accept': 'application/json',
+              },
             });
             
             console.log('Refresh response status:', refreshResponse.status);
@@ -1186,14 +1196,24 @@ const OrdersPage = () => {
               console.log('New orders count:', sortedOrders.length);
               console.log('New orders:', sortedOrders.slice(0, 3)); // Log first 3 orders
               
+              const totalOrders = refreshData.data.pagination?.total || sortedOrders.length;
+              const totalPages = refreshData.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
+              
+              // Update state with fresh data
               setOrders(sortedOrders);
-              // Invalidate and update cache after import
-              clearCacheByPrefix(CacheGroups.orders);
-              setCache(
-                CacheKeys.orders(1, pageSize, currentPageType),
-                { orders: sortedOrders, totalOrders: refreshData.data.pagination?.total, totalPages: refreshData.data.pagination?.last_page },
-                5 * 60 * 1000
-              );
+              setTotalOrders(totalOrders);
+              setTotalPages(totalPages);
+              
+              // Cache the fresh data
+              const cacheKey = EnhancedCacheKeys.orders(1, pageSize, currentPageType);
+              const cacheData = {
+                orders: sortedOrders,
+                totalOrders,
+                totalPages,
+                timestamp: Date.now()
+              };
+              setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
+              
               // Reapply current filters
               filterOrdersByPageType(sortedOrders, currentPageType);
               resetPagination();
@@ -1202,6 +1222,8 @@ const OrdersPage = () => {
                 title: "Orders Refreshed",
                 description: `Orders list updated: ${orders.length} → ${sortedOrders.length} orders`,
               });
+              
+              console.log('✅ Post-import refresh completed with fresh data');
             } else {
               console.error('Refresh failed:', refreshData);
               toast({
@@ -1305,7 +1327,17 @@ const OrdersPage = () => {
       // Booking was successful, close modal and refresh orders
       setShowCourierSelection(false);
       setSelectedOrderForShipping(null);
-      window.location.reload();
+      
+      // Clear cache and refresh orders instead of reloading the page
+      clearCacheByPrefix(CacheGroups.orders);
+      
+      // Trigger a fresh fetch by updating the page
+      setCurrentPage(1);
+      
+      toast({
+        title: "Order Booked Successfully",
+        description: "Order has been booked and orders list will refresh shortly.",
+      });
     }
   };
 
@@ -1467,65 +1499,62 @@ const OrdersPage = () => {
               onClick={async () => {
                 setRefreshLoading(true);
                 try {
-                  const cacheKey = EnhancedCacheKeys.orders(currentPage, pageSize, currentPageType);
-                  await SmartCache.forceRefresh(
-                    cacheKey,
-                    async () => {
-                      // Fetch function
-                      let authToken = sessionStorage.getItem('auth_token');
-                      if (!authToken) authToken = localStorage.getItem('auth_token');
-                      
-                      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/orders/list`, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': `Bearer ${authToken}`,
-                          'Content-Type': 'application/json',
-                          'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          page: currentPage,
-                          per_page: pageSize,
-                          order_type: currentPageType === 'all' ? null : currentPageType
-                        }),
-                      });
-                      
-                      const data = await response.json();
-                      
-                      if (response.ok && data.status && data.data?.orders_data) {
-                        const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
-                          const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
-                          const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
-                          return dateB.getTime() - dateA.getTime();
-                        });
-                        
-                        const totalOrders = data.data.pagination?.total || sortedOrders.length;
-                        const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
-                        
-                        return {
-                          orders: sortedOrders,
-                          totalOrders,
-                          totalPages,
-                          timestamp: Date.now()
-                        };
-                      } else {
-                        throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
-                      }
+                  // Clear all order cache to ensure fresh data
+                  clearCacheByPrefix(CacheGroups.orders);
+                  
+                  // Fetch fresh data directly
+                  let authToken = sessionStorage.getItem('auth_token');
+                  if (!authToken) authToken = localStorage.getItem('auth_token');
+                  
+                  const url = new URL(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/order`);
+                  url.searchParams.set('per_page', pageSize.toString());
+                  url.searchParams.set('page', currentPage.toString());
+                  
+                  console.log('🔄 Manual refresh - fetching fresh orders');
+                  
+                  const response = await fetch(url.toString(), {
+                    headers: {
+                      'Authorization': `Bearer ${authToken}`,
+                      'Accept': 'application/json',
                     },
-                    CacheStrategies.orders,
-                    (data, isFromCache) => {
-                      if (data && data.orders) {
-                        setOrders(data.orders);
-                        setTotalOrders(data.totalOrders);
-                        setTotalPages(data.totalPages);
-                        filterOrdersByPageType(data.orders, currentPageType);
-                        
-                        toast({
-                          title: "Orders Refreshed",
-                          description: `Orders list updated successfully`,
-                        });
-                      }
-                    }
-                  );
+                  });
+                  const data = await response.json();
+                  
+                  if (response.ok && data.status && data.data?.orders_data) {
+                    const sortedOrders = data.data.orders_data.sort((a: any, b: any) => {
+                      const dateA = new Date(a.order_date || a.created_at || a.sync_date || 0);
+                      const dateB = new Date(b.order_date || b.created_at || b.sync_date || 0);
+                      return dateB.getTime() - dateA.getTime();
+                    });
+                    
+                    const totalOrders = data.data.pagination?.total || sortedOrders.length;
+                    const totalPages = data.data.pagination?.last_page || Math.ceil(totalOrders / pageSize);
+                    
+                    // Update state with fresh data
+                    setOrders(sortedOrders);
+                    setTotalOrders(totalOrders);
+                    setTotalPages(totalPages);
+                    filterOrdersByPageType(sortedOrders, currentPageType);
+                    
+                    // Cache the fresh data
+                    const cacheKey = EnhancedCacheKeys.orders(currentPage, pageSize, currentPageType);
+                    const cacheData = {
+                      orders: sortedOrders,
+                      totalOrders,
+                      totalPages,
+                      timestamp: Date.now()
+                    };
+                    setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
+                    
+                    toast({
+                      title: "Orders Refreshed",
+                      description: `Orders list updated successfully with fresh data`,
+                    });
+                    
+                    console.log('✅ Manual refresh completed with fresh data');
+                  } else {
+                    throw new Error(data?.error?.message || data?.message || 'Failed to fetch orders');
+                  }
                 } catch (error) {
                   console.error('Error refreshing orders:', error);
                   toast({
@@ -2010,7 +2039,26 @@ const OrdersPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getPaginatedOrders().map((order) => (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          <span>Loading orders...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : getPaginatedOrders().length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8">
+                        <div className="text-gray-500">
+                          <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+                          <p>No orders found</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    getPaginatedOrders().map((order) => (
                     <TableRow 
                       key={order.id}
                       className="relative"
@@ -2080,7 +2128,8 @@ const OrdersPage = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </Card>
@@ -2122,7 +2171,26 @@ const OrdersPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getPaginatedOrders().map((order) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span>Loading orders...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : getPaginatedOrders().length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      <div className="text-gray-500">
+                        <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+                        <p>No orders found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  getPaginatedOrders().map((order) => (
                   <TableRow 
                     key={order.id}
                     className="relative"
@@ -2192,7 +2260,8 @@ const OrdersPage = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </Card>

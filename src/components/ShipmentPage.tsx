@@ -60,7 +60,7 @@ import OnboardingLayout from './OnboardingLayout';
 import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
 import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
-import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
+import { EnhancedCacheKeys } from '@/utils/smartCache';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 interface ShipmentItem {
@@ -212,105 +212,105 @@ const ShipmentPage = () => {
     
     const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
     
-    // Use smart caching strategy - shows cached data immediately, fetches fresh data in background
-    await SmartCache.getData(
-      cacheKey,
-      async () => {
-        // Fetch function
-        let authToken = sessionStorage.getItem('auth_token');
-        if (!authToken) authToken = localStorage.getItem('auth_token');
-        
-        // Build request body with pagination parameters
-        const requestBody = {
-          page: currentPage,
-          per_page: pageSize
-        };
-        
-        console.log('Fetching shipments with pagination:', requestBody);
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-        
-        const data = await response.json();
-        
-        console.log('API Response:', data);
-        
-        if (response.ok && data.status) {
-          // Handle different possible response structures
-          let shipmentsData = [];
-          
-          if (Array.isArray(data.data)) {
-            shipmentsData = data.data;
-          } else if (data.data && Array.isArray(data.data.shipment_data)) {
-            shipmentsData = data.data.shipment_data;
-          } else if (data.data && Array.isArray(data.data.shipments)) {
-            shipmentsData = data.data.shipments;
-          } else if (data.data && Array.isArray(data.data.data)) {
-            shipmentsData = data.data.data;
-          } else if (data.shipments && Array.isArray(data.shipments)) {
-            shipmentsData = data.shipments;
-          } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
-            shipmentsData = data.shipment_data;
-          }
-          
-          console.log('Processed shipments data:', shipmentsData);
-          
-          // Filter out shipments where AWB is null and sort by latest first
-          const shipmentsWithAWB = shipmentsData
-            .filter(shipment => shipment.awb !== null && shipment.awb !== '')
-            .sort((a, b) => {
-              // Sort by order_date descending (latest first)
-              const dateA = new Date(a.order_date || a.store_order?.sync_date || 0);
-              const dateB = new Date(b.order_date || b.store_order?.sync_date || 0);
-              return dateB.getTime() - dateA.getTime();
-            });
-          
-          console.log('Shipments with AWB (sorted by latest):', shipmentsWithAWB);
-          
-          const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
-          const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
-          
-          return {
-            shipments: shipmentsWithAWB,
-            totalShipments,
-            totalPages,
-            timestamp: Date.now()
-          };
-        } else {
-          throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
-        }
-      },
-      CacheStrategies.shipments,
-      (data, isFromCache) => {
-        // Update UI callback
-        if (data && data.shipments) {
-          setShipments(data.shipments);
-          setFilteredShipments(data.shipments);
-          setTotalShipments(data.totalShipments);
-          setTotalPages(data.totalPages);
-          filterShipmentsByPageType(data.shipments, currentPageType);
-          setLastFetchTime(new Date());
-          
-          if (isFromCache) {
-            console.log('📦 Shipments loaded from cache - instant UI');
-          } else {
-            console.log('🔄 Shipments refreshed with fresh data');
-          }
-        }
-      }
-    );
+    // Clear any existing cache for shipments to ensure fresh data
+    clearCacheByPrefix(CacheGroups.shipments);
     
-    if (isRefresh) {
-      setIsRefreshing(false);
-    } else {
-      setIsLoading(false);
+    // Fetch fresh data directly without showing cached data first
+    try {
+      let authToken = sessionStorage.getItem('auth_token');
+      if (!authToken) authToken = localStorage.getItem('auth_token');
+      
+      // Build request body with pagination parameters
+      const requestBody = {
+        page: currentPage,
+        per_page: pageSize
+      };
+      
+      console.log('Fetching fresh shipments with pagination:', requestBody);
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      const data = await response.json();
+      
+      console.log('API Response:', data);
+      
+      if (response.ok && data.status) {
+        // Handle different possible response structures
+        let shipmentsData = [];
+        
+        if (Array.isArray(data.data)) {
+          shipmentsData = data.data;
+        } else if (data.data && Array.isArray(data.data.shipment_data)) {
+          shipmentsData = data.data.shipment_data;
+        } else if (data.data && Array.isArray(data.data.shipments)) {
+          shipmentsData = data.data.shipments;
+        } else if (data.data && Array.isArray(data.data.data)) {
+          shipmentsData = data.data.data;
+        } else if (data.shipments && Array.isArray(data.shipments)) {
+          shipmentsData = data.shipments;
+        } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
+          shipmentsData = data.shipment_data;
+        }
+        
+        console.log('Processed shipments data:', shipmentsData);
+        
+        // Filter out shipments where AWB is null and sort by latest first
+        const shipmentsWithAWB = shipmentsData
+          .filter(shipment => shipment.awb !== null && shipment.awb !== '')
+          .sort((a, b) => {
+            // Sort by created_at descending (latest first)
+            const dateA = new Date(a.created_at || a.order_date || a.store_order?.sync_date || 0);
+            const dateB = new Date(b.created_at || b.order_date || b.store_order?.sync_date || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
+        
+        console.log('Shipments with AWB (sorted by created_at latest):', shipmentsWithAWB);
+        
+        const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
+        const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
+        
+        // Update state with fresh data
+        setShipments(shipmentsWithAWB);
+        setFilteredShipments(shipmentsWithAWB);
+        setTotalShipments(totalShipments);
+        setTotalPages(totalPages);
+        filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
+        setLastFetchTime(new Date());
+        
+        // Cache the fresh data for future use
+        const cacheData = {
+          shipments: shipmentsWithAWB,
+          totalShipments,
+          totalPages,
+          timestamp: Date.now()
+        };
+        setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
+        
+        console.log('✅ Fresh shipments data loaded and cached');
+      } else {
+        throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
+      }
+    } catch (error) {
+      console.error('Error fetching shipments:', error);
+      toast({
+        title: "Error Loading Shipments",
+        description: "Failed to fetch shipments. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -893,62 +893,90 @@ const ShipmentPage = () => {
             onClick={async () => {
               setIsRefreshing(true);
               try {
-                const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
-                await SmartCache.forceRefresh(
-                  cacheKey,
-                  async () => {
-                    // Fetch function
-                    let authToken = sessionStorage.getItem('auth_token');
-                    if (!authToken) authToken = localStorage.getItem('auth_token');
-                    
-                    const requestBody = {
-                      page: currentPage,
-                      per_page: pageSize
-                    };
-                    
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                      },
-                      body: JSON.stringify(requestBody),
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok && data.status && data.data?.shipments_data) {
-                      const totalShipments = data.data.pagination?.total || data.data.shipments_data.length;
-                      const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
-                      
-                      return {
-                        shipments: data.data.shipments_data,
-                        totalShipments,
-                        totalPages,
-                        timestamp: Date.now()
-                      };
-                    } else {
-                      throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
-                    }
+                // Clear all shipment cache to ensure fresh data
+                clearCacheByPrefix(CacheGroups.shipments);
+                
+                // Fetch fresh data directly
+                let authToken = sessionStorage.getItem('auth_token');
+                if (!authToken) authToken = localStorage.getItem('auth_token');
+                
+                const requestBody = {
+                  page: currentPage,
+                  per_page: pageSize
+                };
+                
+                console.log('🔄 Manual refresh - fetching fresh shipments');
+                
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                   },
-                  CacheStrategies.shipments,
-                  (data, isFromCache) => {
-                    if (data && data.shipments) {
-                      setShipments(data.shipments);
-                      setFilteredShipments(data.shipments);
-                      setTotalShipments(data.totalShipments);
-                      setTotalPages(data.totalPages);
-                      filterShipmentsByPageType(data.shipments, currentPageType);
-                      setLastFetchTime(new Date());
-                      
-                      toast({
-                        title: "Shipments Refreshed",
-                        description: `Shipments list updated successfully`,
-                      });
-                    }
+                  body: JSON.stringify(requestBody),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.status) {
+                  // Handle different possible response structures
+                  let shipmentsData = [];
+                  
+                  if (Array.isArray(data.data)) {
+                    shipmentsData = data.data;
+                  } else if (data.data && Array.isArray(data.data.shipment_data)) {
+                    shipmentsData = data.data.shipment_data;
+                  } else if (data.data && Array.isArray(data.data.shipments)) {
+                    shipmentsData = data.data.shipments;
+                  } else if (data.data && Array.isArray(data.data.data)) {
+                    shipmentsData = data.data.data;
+                  } else if (data.shipments && Array.isArray(data.shipments)) {
+                    shipmentsData = data.shipments;
+                  } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
+                    shipmentsData = data.shipment_data;
                   }
-                );
+                  
+                  // Filter out shipments where AWB is null and sort by latest first
+                  const shipmentsWithAWB = shipmentsData
+                    .filter(shipment => shipment.awb !== null && shipment.awb !== '')
+                    .sort((a, b) => {
+                      // Sort by created_at descending (latest first)
+                      const dateA = new Date(a.created_at || a.order_date || a.store_order?.sync_date || 0);
+                      const dateB = new Date(b.created_at || b.order_date || b.store_order?.sync_date || 0);
+                      return dateB.getTime() - dateA.getTime();
+                    });
+                  
+                  const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
+                  const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
+                  
+                  // Update state with fresh data
+                  setShipments(shipmentsWithAWB);
+                  setFilteredShipments(shipmentsWithAWB);
+                  setTotalShipments(totalShipments);
+                  setTotalPages(totalPages);
+                  filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
+                  setLastFetchTime(new Date());
+                  
+                  // Cache the fresh data
+                  const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
+                  const cacheData = {
+                    shipments: shipmentsWithAWB,
+                    totalShipments,
+                    totalPages,
+                    timestamp: Date.now()
+                  };
+                  setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
+                  
+                  toast({
+                    title: "Shipments Refreshed",
+                    description: `Shipments list updated successfully with fresh data`,
+                  });
+                  
+                  console.log('✅ Manual refresh completed with fresh data');
+                } else {
+                  throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
+                }
               } catch (error) {
                 console.error('Error refreshing shipments:', error);
                 toast({
@@ -1340,7 +1368,26 @@ const ShipmentPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {getPaginatedShipments().map((shipment) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8">
+                    <div className="flex items-center justify-center space-x-2">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span>Loading shipments...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : getPaginatedShipments().length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8">
+                    <div className="text-gray-500">
+                      <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+                      <p>No shipments found</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                getPaginatedShipments().map((shipment) => (
                 <TableRow 
                   key={shipment.id}
                   className="relative"
@@ -1363,7 +1410,7 @@ const ShipmentPage = () => {
                         {capitalizeWords(shipment.courier_partner?.name || '')}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatDateTime(shipment.order_date)}
+                        {formatDateTime(shipment.created_at || shipment.order_date)}
                       </div>
                     </div>
                   </TableCell>
@@ -1481,7 +1528,8 @@ const ShipmentPage = () => {
                   </div>
                 </TableCell>
                 </TableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         )}

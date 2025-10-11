@@ -95,6 +95,16 @@ const OrderDetails = () => {
   const getCustomerCity = () => customer_details.city || '';
   const getCustomerZipcode = () => customer_details.zipcode || '';
 
+  // Helper function to get state from pincode
+  const getStateFromPincode = () => {
+    const zipcode = getCustomerZipcode();
+    if (zipcode && zipcode.length === 6) {
+      const pincodeData = pincodeMapping[zipcode as keyof typeof pincodeMapping];
+      return pincodeData?.state || '';
+    }
+    return '';
+  };
+
   // Helper function to get order status display
   const getOrderStatusDisplay = () => {
     const status = getOrderStatus();
@@ -384,11 +394,11 @@ const OrderDetails = () => {
         customer_phone: getCustomerPhone() || "",
         customer_first_name: getCustomerName() || "",
         address: `${getCustomerAddress1()} ${getCustomerAddress2()}`.trim() || "",
-        landmark: "",
+        landmark: "", // Should come from form data - currently empty
         customer_email: getCustomerEmail() || "",
         pin_code: parseInt(getCustomerZipcode() || '0') || 0,
         city: getCustomerCity() || "",
-        state: "",
+        state: getStateFromPincode(), // Get state from pincode mapping
         products: product_details.map(product => ({
           name: product.name || "",
           total_price: parseFloat(product.total_price?.toString() || '0') || 0,
@@ -522,19 +532,19 @@ const OrderDetails = () => {
         return;
       }
 
-      // Prepare order data - using the exact structure you specified
+      // Prepare order data - using actual form values instead of hardcoded values
       const orderData = {
         order_type: getOrderType() || "prepaid",
         parcel_type: order_details.parcel_type || "parcel",
         store_customer_id: null,
         store_customer_address_id: null,
         order_id: isDuplicateMode ? order_details.order_id : null, // Can be nullable - using existing order ID for duplicate
-        shipping_charges: 21,
-        COD_charges: 0,
-        tax_amount: 12,
-        discount: 12,
-        order_total: 300,
-        collectable_amount: 0,
+        shipping_charges: parseFloat(payment_details.shipping_tax?.toString() || '0') || 0,
+        COD_charges: parseFloat(payment_details.cod_charges?.toString() || '0') || 0,
+        tax_amount: parseFloat(payment_details.total_tax?.toString() || '0') || 0,
+        discount: parseFloat(payment_details.discount?.toString() || '0') || 0,
+        order_total: parseFloat(payment_details.total?.toString() || '0') || 0,
+        collectable_amount: parseFloat(payment_details.collectable_amount?.toString() || '0') || 0,
         weight: parseFloat(order_details.weight?.toString() || '0') || 0,
         length: parseFloat(order_details.length?.toString() || '0') || 0,
         width: parseFloat(order_details.width?.toString() || '0') || 0,
@@ -542,19 +552,19 @@ const OrderDetails = () => {
         customer_phone: getCustomerPhone() || "",
         customer_first_name: getCustomerName() || "",
         address: `${getCustomerAddress1()} ${getCustomerAddress2()}`.trim() || "",
-        landmark: "landmark33",
+        landmark: "", // Remove hardcoded landmark - should come from form data
         customer_email: getCustomerEmail() || "",
         pin_code: parseInt(getCustomerZipcode() || '0') || 0,
         city: getCustomerCity() || "",
-        state: "jaipur",
+        state: getStateFromPincode(), // Get state from pincode mapping
         products: product_details.map(product => ({
-          name: product.name || "product one11",
-          total_price: 92.0,
-          quantity: 4,
-          sku: "",
-          price: 23.0,
-          tax_rate: 23.0,
-          hsn_code: 23.0
+          name: product.name || "",
+          total_price: parseFloat(product.total_price?.toString() || '0') || 0,
+          quantity: parseInt(product.quantity?.toString() || '0') || 0,
+          sku: product.sku || "",
+          price: parseFloat(product.price?.toString() || '0') || 0,
+          tax_rate: parseFloat(product.tax_rate?.toString() || '0') || 0,
+          hsn_code: product.hsn_code || ""
         }))
       };
 
@@ -688,6 +698,14 @@ const OrderDetails = () => {
         return sum + totalPrice;
       }, 0);
       
+      // Recalculate order total when product details change
+      const shippingTax = parseFloat(prev.data.payment_details.shipping_tax?.toString() || '0');
+      const codCharges = parseFloat(prev.data.payment_details.cod_charges?.toString() || '0');
+      const totalTax = parseFloat(prev.data.payment_details.total_tax?.toString() || '0');
+      const discount = parseFloat(prev.data.payment_details.discount?.toString() || '0');
+      
+      const total = newProductTotal + shippingTax + codCharges + totalTax - discount;
+      
       return {
         ...prev,
         data: {
@@ -695,7 +713,9 @@ const OrderDetails = () => {
           product_details: updatedProductDetails,
           payment_details: {
             ...prev.data.payment_details,
-            product_total: newProductTotal
+            product_total: newProductTotal,
+            total: total.toFixed(2),
+            collectable_amount: total.toFixed(2)
           }
         }
       };
@@ -722,6 +742,14 @@ const OrderDetails = () => {
         return sum + totalPrice;
       }, 0);
       
+      // Recalculate order total when adding product
+      const shippingTax = parseFloat(prev.data.payment_details.shipping_tax?.toString() || '0');
+      const codCharges = parseFloat(prev.data.payment_details.cod_charges?.toString() || '0');
+      const totalTax = parseFloat(prev.data.payment_details.total_tax?.toString() || '0');
+      const discount = parseFloat(prev.data.payment_details.discount?.toString() || '0');
+      
+      const total = newProductTotal + shippingTax + codCharges + totalTax - discount;
+      
       return {
         ...prev,
         data: {
@@ -729,7 +757,9 @@ const OrderDetails = () => {
           product_details: updatedProductDetails,
           payment_details: {
             ...prev.data.payment_details,
-            product_total: newProductTotal
+            product_total: newProductTotal,
+            total: total.toFixed(2),
+            collectable_amount: total.toFixed(2)
           }
         }
       };
@@ -747,6 +777,14 @@ const OrderDetails = () => {
           return sum + totalPrice;
         }, 0);
         
+        // Recalculate order total when removing product
+        const shippingTax = parseFloat(prev.data.payment_details.shipping_tax?.toString() || '0');
+        const codCharges = parseFloat(prev.data.payment_details.cod_charges?.toString() || '0');
+        const totalTax = parseFloat(prev.data.payment_details.total_tax?.toString() || '0');
+        const discount = parseFloat(prev.data.payment_details.discount?.toString() || '0');
+        
+        const total = newProductTotal + shippingTax + codCharges + totalTax - discount;
+        
         return {
           ...prev,
           data: {
@@ -754,7 +792,9 @@ const OrderDetails = () => {
             product_details: updatedProductDetails,
             payment_details: {
               ...prev.data.payment_details,
-              product_total: newProductTotal
+              product_total: newProductTotal,
+              total: total.toFixed(2),
+              collectable_amount: total.toFixed(2)
             }
           }
         };

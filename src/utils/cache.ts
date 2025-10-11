@@ -76,4 +76,39 @@ export const CacheGroups = {
   shipments: 'shipments:',
 };
 
+/**
+ * Clear all cache entries - useful for debugging or when user logs out
+ */
+export function clearAllCache(): void {
+  try {
+    const keysToDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(CACHE_PREFIX)) keysToDelete.push(k);
+    }
+    keysToDelete.forEach(k => localStorage.removeItem(k));
+    console.log(`🧹 Cleared ${keysToDelete.length} cache entries`);
+  } catch (_) {
+    // ignore
+  }
+}
+
+/**
+ * Get cache statistics for debugging
+ */
+export function getCacheStats(): { totalEntries: number; entries: string[] } {
+  try {
+    const entries: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(CACHE_PREFIX)) {
+        entries.push(k.replace(CACHE_PREFIX, ''));
+      }
+    }
+    return { totalEntries: entries.length, entries };
+  } catch (_) {
+    return { totalEntries: 0, entries: [] };
+  }
+}
+
 

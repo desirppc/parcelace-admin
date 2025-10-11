@@ -260,12 +260,12 @@ const ViewOrderContent = () => {
         store_customer_id: null,
         store_customer_address_id: null,
         order_id: null,
-        shipping_charges: 100, // You can make these editable or get from actual data
-        COD_charges: 0,
-        tax_amount: 100,
-        discount: 0,
-        order_total: 300,
-        collectable_amount: 300,
+        shipping_charges: mockOrder.charges.shipping,
+        COD_charges: mockOrder.charges.cod,
+        tax_amount: mockOrder.charges.tax,
+        discount: mockOrder.charges.discount,
+        order_total: mockOrder.charges.orderTotal,
+        collectable_amount: mockOrder.charges.collectableAmount,
         weight: mockOrder.dimensions.weight * 1000, // Convert to grams
         length: mockOrder.dimensions.length,
         width: mockOrder.dimensions.width,
@@ -346,12 +346,12 @@ const ViewOrderContent = () => {
         store_customer_id: null,
         store_customer_address_id: null,
         order_id: mockOrder.orderId, // Can be nullable - using existing order ID
-        shipping_charges: 21,
-        COD_charges: 0,
-        tax_amount: 12,
-        discount: 12,
-        order_total: 300,
-        collectable_amount: 0,
+        shipping_charges: mockOrder.charges.shipping,
+        COD_charges: mockOrder.charges.cod,
+        tax_amount: mockOrder.charges.tax,
+        discount: mockOrder.charges.discount,
+        order_total: mockOrder.charges.orderTotal,
+        collectable_amount: mockOrder.charges.collectableAmount,
         weight: mockOrder.dimensions.weight * 1000, // Convert to grams
         length: mockOrder.dimensions.length,
         width: mockOrder.dimensions.width,
@@ -366,12 +366,12 @@ const ViewOrderContent = () => {
         state: mockOrder.customer.state,
         products: mockOrder.products.map(product => ({
           name: product.name,
-          total_price: 92.0,
-          quantity: 4,
-          sku: "",
-          price: 23.0,
-          tax_rate: 23.0,
-          hsn_code: 23.0
+          total_price: product.totalPrice,
+          quantity: product.quantity,
+          sku: product.sku || "",
+          price: product.price,
+          tax_rate: product.taxRate,
+          hsn_code: product.hsnCode
         }))
       };
 

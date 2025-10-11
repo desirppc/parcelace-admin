@@ -129,18 +129,18 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Default order summary if not provided
+  // Default order summary if not provided - using generic fallback values
   const defaultOrderSummary: OrderSummary = {
-    orderId: 1,
-    warehouseId: 60,
-    rtoId: 60,
+    orderId: 0, // Use 0 as fallback instead of hardcoded 1
+    warehouseId: 0, // Use 0 as fallback instead of hardcoded 60
+    rtoId: 0, // Use 0 as fallback instead of hardcoded 60
     parcelType: 'parcel',
-    pickupLocation: "Mumbai, Maharashtra - 400001",
-    deliveryLocation: "Delhi, Delhi - 110001", 
+    pickupLocation: "Unknown Location", // Generic fallback
+    deliveryLocation: "Unknown Location", // Generic fallback
     orderType: "prepaid",
-    weight: 2.5,
-    volumetricWeight: 3.2,
-    dimensions: { length: 30, width: 25, height: 15 }
+    weight: 0, // Use 0 as fallback
+    volumetricWeight: 0, // Use 0 as fallback
+    dimensions: { length: 0, width: 0, height: 0 } // Use 0 as fallback
   };
 
   const currentOrderSummary = orderSummary || defaultOrderSummary;
@@ -431,14 +431,18 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
         throw new Error('Authentication token not found');
       }
 
-      let userId = 30; // Default fallback
+      let userId = null; // Don't use hardcoded fallback - should be required
       if (userData) {
         try {
           const parsedUserData = JSON.parse(userData);
-          userId = parsedUserData.id || parsedUserData.user_id || 30;
+          userId = parsedUserData.id || parsedUserData.user_id || null;
         } catch (e) {
-          console.warn('Failed to parse user data, using default userId');
+          console.warn('Failed to parse user data');
         }
+      }
+      
+      if (!userId) {
+        throw new Error('User ID not found - please login again');
       }
 
       // Determine collectable amount based on order's payment mode, not courier's payment type
