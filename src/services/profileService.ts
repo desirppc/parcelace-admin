@@ -1,4 +1,4 @@
-import API_CONFIG, { getApiUrl, getAuthHeaders } from '@/config/api';
+import API_CONFIG, { getApiUrl, getAuthHeaders, handleSessionExpiry } from '@/config/api';
 
 export interface ProfileInfo {
   name: string;
@@ -76,11 +76,21 @@ class ProfileService {
         },
       });
 
+      const data: ProfileDashboardResponse = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in ProfileService.getProfileDashboard');
+        handleSessionExpiry();
+        throw new Error('Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data: ProfileDashboardResponse = await response.json();
       
       if (process.env.NODE_ENV === 'development') {
         console.log('Profile dashboard API response:', data);
@@ -113,11 +123,21 @@ class ProfileService {
         body: JSON.stringify(profileData),
       });
 
+      const data: ProfileDashboardResponse = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in ProfileService.updateProfile');
+        handleSessionExpiry();
+        throw new Error('Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data: ProfileDashboardResponse = await response.json();
       
       if (process.env.NODE_ENV === 'development') {
         console.log('Profile update API response:', data);
@@ -150,11 +170,21 @@ class ProfileService {
         body: JSON.stringify(businessData),
       });
 
+      const data: ProfileDashboardResponse = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in ProfileService.updateBusinessDetails');
+        handleSessionExpiry();
+        throw new Error('Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data: ProfileDashboardResponse = await response.json();
       
       if (process.env.NODE_ENV === 'development') {
         console.log('Business details update API response:', data);
@@ -187,11 +217,21 @@ class ProfileService {
         body: JSON.stringify(bankData),
       });
 
+      const data: ProfileDashboardResponse = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in ProfileService.updateBankDetails');
+        handleSessionExpiry();
+        throw new Error('Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data: ProfileDashboardResponse = await response.json();
       
       if (process.env.NODE_ENV === 'development') {
         console.log('Bank details update API response:', data);
@@ -224,11 +264,21 @@ class ProfileService {
         body: JSON.stringify(brandData),
       });
 
+      const data: ProfileDashboardResponse = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in ProfileService.updateBrandDetails');
+        handleSessionExpiry();
+        throw new Error('Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data: ProfileDashboardResponse = await response.json();
       
       if (process.env.NODE_ENV === 'development') {
         console.log('Brand details update API response:', data);

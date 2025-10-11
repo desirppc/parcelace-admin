@@ -153,6 +153,31 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
     return orderSummary?.pickupLocation || currentOrderSummary.pickupLocation;
   };
 
+  // Capitalize first character of order type
+  const capitalizeOrderType = (orderType: string) => {
+    if (!orderType) return orderType;
+    return orderType.charAt(0).toUpperCase() + orderType.slice(1);
+  };
+
+  // Get pickup and delivery locations based on order type
+  const getPickupLocation = () => {
+    const isReverse = (orderSummary?.orderType || currentOrderSummary.orderType)?.toLowerCase() === 'reverse';
+    if (isReverse) {
+      // For reverse orders, delivery location becomes pickup location
+      return orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation;
+    }
+    return getWarehouseLocation();
+  };
+
+  const getDeliveryLocation = () => {
+    const isReverse = (orderSummary?.orderType || currentOrderSummary.orderType)?.toLowerCase() === 'reverse';
+    if (isReverse) {
+      // For reverse orders, pickup location becomes delivery location
+      return getWarehouseLocation();
+    }
+    return orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation;
+  };
+
   // Fetch rates from API - only when component mounts or orderSummary changes meaningfully
   useEffect(() => {
     // If we have initialShipRates, use them instead of making an API call
@@ -220,13 +245,23 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
           console.log('Response status:', response.status);
           console.log('Response headers:', response.headers);
 
+          const data: RateAPIResponse = await response.json();
+          
+          // Check for session expiry
+          if (response.status === 401 || 
+              data.message === 'Session expired' || 
+              data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+              (data.status === 'false' && data.message === 'Session expired')) {
+            console.log('🔒 Session expired detected in CourierPartnerSelection');
+            window.dispatchEvent(new CustomEvent('sessionExpired'));
+            return;
+          }
+
           if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error Response:', errorText);
             throw new Error(`HTTP ${response.status}: ${errorText}`);
           }
-
-          const data: RateAPIResponse = await response.json();
           console.log('=== FULL API RESPONSE DEBUG ===');
           console.log('API Response:', data);
           console.log('API Response status:', data.status);
@@ -576,31 +611,31 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pickup Location</p>
-                  <p className="font-medium text-sm">{orderSummary?.pickupLocation || currentOrderSummary.pickupLocation}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pickup Location</p>
+                <p className="font-medium text-sm">{getPickupLocation()}</p>
               </div>
+            </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Delivery Location</p>
-                  <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-white" />
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Delivery Location</p>
+                <p className="font-medium text-sm">{getDeliveryLocation()}</p>
+              </div>
+            </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Order Type</p>
-                  <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-white" />
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Order Type</p>
+                <p className="font-medium text-sm">{capitalizeOrderType(orderSummary?.orderType || currentOrderSummary.orderType)}</p>
+              </div>
+            </div>
 
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -661,31 +696,31 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
                 <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pickup Location</p>
-                  <p className="font-medium text-sm">{getWarehouseLocation()}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pickup Location</p>
+                <p className="font-medium text-sm">{getPickupLocation()}</p>
               </div>
+            </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Delivery Location</p>
-                  <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-white" />
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Delivery Location</p>
+                <p className="font-medium text-sm">{getDeliveryLocation()}</p>
+              </div>
+            </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Order Type</p>
-                  <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-white" />
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Order Type</p>
+                <p className="font-medium text-sm">{capitalizeOrderType(orderSummary?.orderType || currentOrderSummary.orderType)}</p>
+              </div>
+            </div>
 
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -756,7 +791,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pickup Location</p>
-                <p className="font-medium text-sm">{getWarehouseLocation()}</p>
+                <p className="font-medium text-sm">{getPickupLocation()}</p>
               </div>
             </div>
 
@@ -766,7 +801,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Delivery Location</p>
-                <p className="font-medium text-sm">{orderSummary?.deliveryLocation || currentOrderSummary.deliveryLocation}</p>
+                <p className="font-medium text-sm">{getDeliveryLocation()}</p>
               </div>
             </div>
 
@@ -776,7 +811,7 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Order Type</p>
-                <p className="font-medium text-sm">{orderSummary?.orderType || currentOrderSummary.orderType}</p>
+                <p className="font-medium text-sm">{capitalizeOrderType(orderSummary?.orderType || currentOrderSummary.orderType)}</p>
               </div>
             </div>
 
@@ -1057,9 +1092,6 @@ const CourierPartnerSelection: React.FC<CourierPartnerSelectionProps> = ({
 
                 {/* Features */}
                 <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
-                        {courier.payment_type === 'prepaid' ? 'Prepaid' : 'COD'}
-                      </span>
                       <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
                         {courier.mode === 'S' ? 'Surface' : 'Air'}
                       </span>

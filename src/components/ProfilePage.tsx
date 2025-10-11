@@ -9,6 +9,7 @@ import { User, Mail, Phone, Shield, Store, ShoppingCart, CheckCircle, AlertCircl
 import { useUser } from '@/contexts/UserContext';
 import profileService, { ProfileDashboardData, ProfileInfo, BusinessDetails, BankDetails, LegalDetails, BrandDetails } from '@/services/profileService';
 import { useToast } from '@/hooks/use-toast';
+import SessionExpiryTest from './SessionExpiryTest';
 
 // Local state interfaces for form handling
 interface LocalProfileData {
@@ -928,6 +929,11 @@ const ProfilePage = () => {
               </Card>
             </div>
           </div>
+        </div>
+        
+        {/* Session Expiry Test Component - Remove this after testing */}
+        <div className="mt-8">
+          <SessionExpiryTest />
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import API_CONFIG from '../config/api';
+import API_CONFIG, { handleSessionExpiry } from '../config/api';
 
 interface UserData {
   id: number;
@@ -137,8 +137,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         },
       });
       
+      const data = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          data.message === 'Session expired' || 
+          data.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (data.status === false && data.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in UserContext.updateWalletBalance');
+        handleSessionExpiry();
+        return;
+      }
+      
       if (response.ok) {
-        const data = await response.json();
         console.log('Wallet balance API response:', data);
         
         if (data.status && data.data && data.data.balance !== undefined) {

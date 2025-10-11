@@ -1,5 +1,35 @@
 import { ENVIRONMENT } from './environment';
 
+// Centralized session expiry handler
+const handleSessionExpiry = () => {
+  console.log('🔒 Handling session expiry - clearing all data and redirecting');
+  
+  // Clear all authentication data
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('user_data');
+  localStorage.removeItem('user');
+  localStorage.removeItem('walletBalance');
+  
+  sessionStorage.clear();
+  
+  // Clear any other potential cached data
+  localStorage.removeItem('parcelace_user');
+  localStorage.removeItem('parcelace_token');
+  
+  // Dispatch a custom event to notify React components
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('sessionExpired'));
+  }
+  
+  // Show session expired notification
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    // Only redirect if not already on login page
+    console.log('🔄 Redirecting to login page due to session expiry');
+    window.location.href = '/login';
+  }
+};
+
 const API_CONFIG = {
   BASE_URL: ENVIRONMENT.getCurrentApiUrl(),
   ENDPOINTS: {
@@ -48,6 +78,7 @@ const API_CONFIG = {
     SHIPMENT_TRACKING: 'api/shipments/tracking',
     SHIPMENT_FEEDBACK: 'api/shipments/feedback-list',
     SHIPMENT_FEEDBACK_VIEW: 'api/shipments/feedback-view',
+    AWB_SEARCH: 'api/shipments/awb-search',
     
     // Bulk Booking
     BULK_BOOKING_REQUEST: 'api/shipments/bulk-booking-request',
@@ -188,27 +219,26 @@ export const apiRequest = async (
     
     // Handle session expired (401 Unauthorized) globally
     if (response.status === 401) {
-      console.log('🔒 Session expired - auto-logging out user');
+      console.log('🔒 Session expired - auto-logging out user (401 status)');
+      handleSessionExpiry();
       
-      // Clear all authentication data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('user');
-      localStorage.removeItem('walletBalance');
-      
-      sessionStorage.clear();
-      
-      // Clear any other potential cached data
-      localStorage.removeItem('parcelace_user');
-      localStorage.removeItem('parcelace_token');
-      
-      // Show session expired notification
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        // Only redirect if not already on login page
-        console.log('🔄 Redirecting to login page due to session expiry');
-        window.location.href = '/login';
-      }
+      return {
+        success: false,
+        data: null,
+        message: 'Session expired. Please login again.',
+        status: 401,
+        error: 'Session expired'
+      };
+    }
+
+    // Handle session expired message in response body (even with 200 status)
+    if (result && (
+      result.message === 'Session expired' || 
+      result.error?.message === 'Your session has expired. Please log in again to continue.' ||
+      (result.status === 'false' && result.message === 'Session expired')
+    )) {
+      console.log('🔒 Session expired - auto-logging out user (message in response)');
+      handleSessionExpiry();
       
       return {
         success: false,
@@ -235,5 +265,8 @@ export const apiRequest = async (
     };
   }
 };
+
+// Export the session expiry handler for use in direct fetch calls
+export { handleSessionExpiry };
 
 export default API_CONFIG; 

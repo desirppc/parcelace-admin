@@ -93,6 +93,20 @@ export const useAuth = () => {
     checkAuthStatus();
   }, [checkAuthStatus]);
 
+  // Listen for session expiry events
+  useEffect(() => {
+    const handleSessionExpiredEvent = () => {
+      console.log('🔒 useAuth: Received session expired event');
+      handleSessionExpiry();
+    };
+
+    window.addEventListener('sessionExpired', handleSessionExpiredEvent);
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpiredEvent);
+    };
+  }, []);
+
   // Update authentication state when UserContext changes
   useEffect(() => {
     // This will be handled by the UserContext directly
@@ -177,6 +191,24 @@ export const useAuth = () => {
     return false;
   };
 
+  // Handle session expiry - called by session expiry handlers
+  const handleSessionExpiry = () => {
+    console.log('🔒 useAuth: Session expiry detected, logging out user');
+    
+    // Clear UserContext data first
+    clearUserData();
+    
+    // Clear all auth data using utility function
+    clearAllAppData();
+    
+    // Reset local state
+    setUser(null);
+    setIsAuthenticated(false);
+    
+    // Navigate to login page
+    navigate('/login', { replace: true });
+  };
+
   return {
     isAuthenticated,
     user,
@@ -186,6 +218,7 @@ export const useAuth = () => {
     updateUser,
     refreshAuth,
     checkAuthStatus,
-    forceRefreshUserData
+    forceRefreshUserData,
+    handleSessionExpiry
   };
 }; 
