@@ -1,19 +1,28 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Package, Shield, Truck, CreditCard, FileText, MessageSquare, BarChart3, Settings, Building, RefreshCw, Star } from 'lucide-react';
-import KYCVerification from './KYCVerification';
-import ViewOrder from './ViewOrder';
-import OrdersPage from './OrdersPage';
-import ShipmentPage from './ShipmentPage';
-import CODRemittance from './CODRemittance';
-import WalletTransaction from './WalletTransaction';
-import EarlyCODPlans from './EarlyCODPlans';
-import ReturnPro from './ReturnPro';
-import Billing from './Billing';
-import ShippingLabelSettings from './ShippingLabelSettings';
-import WarehouseScreen from './WarehouseScreen';
-import SupportDashboard from './SupportDashboard';
-import CreateTicket from './CreateTicket';
 import { SupportTicket } from '@/types/support';
+
+// Lazy load all components to prevent them from loading when OnboardingContent loads
+const KYCVerification = lazy(() => import('./KYCVerification'));
+const ViewOrder = lazy(() => import('./ViewOrder'));
+const OrdersPage = lazy(() => import('./OrdersPage'));
+const ShipmentPage = lazy(() => import('./ShipmentPage'));
+const CODRemittance = lazy(() => import('./CODRemittance'));
+const WalletTransaction = lazy(() => import('./WalletTransaction'));
+const EarlyCODPlans = lazy(() => import('./EarlyCODPlans'));
+const ReturnPro = lazy(() => import('./ReturnPro'));
+const Billing = lazy(() => import('./Billing'));
+const ShippingLabelSettings = lazy(() => import('./ShippingLabelSettings'));
+const WarehouseScreen = lazy(() => import('./WarehouseScreen'));
+const SupportDashboard = lazy(() => import('./SupportDashboard'));
+const CreateTicket = lazy(() => import('./CreateTicket'));
+
+// Loading component for Suspense fallback
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 interface OnboardingContentProps {
   activeMenuItem: string;
@@ -67,49 +76,49 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
       case 'pan-verification':
       case 'bank-verification':
       case 'gst-verification':
-        return <KYCVerification />;
+        return <Suspense fallback={<ComponentLoader />}><KYCVerification /></Suspense>;
 
       case 'view-order':
-        return <ViewOrder />;
+        return <Suspense fallback={<ComponentLoader />}><ViewOrder /></Suspense>;
 
       case 'orders':
       case 'add-order':
       case 'prepaid-orders':
-        return <OrdersPage />;
+        return <Suspense fallback={<ComponentLoader />}><OrdersPage /></Suspense>;
 
       case 'shipments':
       case 'prepaid-shipments':
       case 'reverse-shipments':
       case 'tracking':
       case 'courier-selection':
-        return <ShipmentPage />;
+        return <Suspense fallback={<ComponentLoader />}><ShipmentPage /></Suspense>;
 
       case 'cod-remittance':
-        return <CODRemittance />;
+        return <Suspense fallback={<ComponentLoader />}><CODRemittance /></Suspense>;
       case 'wallet-transaction':
-        return <WalletTransaction />;
+        return <Suspense fallback={<ComponentLoader />}><WalletTransaction /></Suspense>;
       case 'early-cod':
-        return <EarlyCODPlans />;
+        return <Suspense fallback={<ComponentLoader />}><EarlyCODPlans /></Suspense>;
       case 'invoice':
-        return <Billing />;
+        return <Suspense fallback={<ComponentLoader />}><Billing /></Suspense>;
 
       case 'return-pro':
-        return <ReturnPro />;
+        return <Suspense fallback={<ComponentLoader />}><ReturnPro /></Suspense>;
 
       case 'billing':
-        return <Billing />;
+        return <Suspense fallback={<ComponentLoader />}><Billing /></Suspense>;
       case 'tracking-page':
-        return <ShippingLabelSettings />;
+        return <Suspense fallback={<ComponentLoader />}><ShippingLabelSettings /></Suspense>;
       case 'warehouse-location':
-        return <WarehouseScreen />;
+        return <Suspense fallback={<ComponentLoader />}><WarehouseScreen /></Suspense>;
 
       case 'support-dashboard':
-        return <SupportDashboard />;
+        return <Suspense fallback={<ComponentLoader />}><SupportDashboard /></Suspense>;
       case 'create-ticket':
-        return <CreateTicket />;
+        return <Suspense fallback={<ComponentLoader />}><CreateTicket /></Suspense>;
       case 'my-tickets':
       case 'ticket-history':
-        return <SupportDashboard />; // Redirect to support dashboard instead
+        return <Suspense fallback={<ComponentLoader />}><SupportDashboard /></Suspense>; // Redirect to support dashboard instead
 
       default:
         return (

@@ -1061,6 +1061,17 @@ const PublicTracking = () => {
   const { data } = trackingData;
   const { order_details, customer_details, product_details, trakings_details, tracking_page } = data;
 
+  // Check if user meta data is blank/empty
+  const hasUserMetaData = tracking_page && (
+    (tracking_page.header_section && tracking_page.header_section.length > 0 && tracking_page.header_section[0].show_logo) ||
+    (tracking_page.footer_section && tracking_page.footer_section.length > 0) ||
+    (tracking_page.nps_section && tracking_page.nps_section.length > 0) ||
+    (tracking_page.video_content && tracking_page.video_content.length > 0) ||
+    (tracking_page.product_showcase && tracking_page.product_showcase.length > 0) ||
+    (tracking_page.banner_campaigns && tracking_page.banner_campaigns.length > 0) ||
+    (tracking_page.rewards_promotions && tracking_page.rewards_promotions.length > 0)
+  );
+
   // Default reward for scratch card (since tracking_page doesn't have rewards_promotions)
   const defaultReward = {
     discount_code: "PARCEL20",
@@ -1158,37 +1169,29 @@ const PublicTracking = () => {
         </div>
       )}
 
-      {/* Header - Dynamic from API */}
+      {/* Header - Only Logo (No Navigation) */}
       <header className="bg-gradient-to-r from-white to-blue-50 shadow-sm border-b border-gray-200 text-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            {/* Navigation - Dynamic from API */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {tracking_page?.menu_top?.map((menu, index) => (
-                <a key={index} href={menu.url} className="hover:text-blue-600 transition-colors font-medium">
-                  {menu.label}
-                </a>
-              ))}
-            </nav>
-
-            {/* Logo */}
+          <div className="flex justify-center items-center py-4">
+            {/* Logo Only */}
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                <Truck className="w-6 h-6 text-white" />
-              </div>
-              <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                ParcelAce
-              </span>
+              <img 
+                src="/logo.png" 
+                alt="ParcelAce Logo" 
+                className="object-cover"
+                style={{ 
+                  height: '60px', 
+                  width: '300px',
+                  objectFit: 'cover',
+                  objectPosition: 'center',
+                  imageRendering: 'crisp-edges',
+                  imageRendering: '-webkit-optimize-contrast',
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden'
+                }}
+              />
             </div>
-
-            {/* Navigation Right - Dynamic from API */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {tracking_page?.header_section?.[0]?.menu_items?.map((menu, index) => (
-                <a key={index} href={menu.url} className="hover:text-blue-600 transition-colors font-medium">
-                  {menu.label}
-                </a>
-              ))}
-            </nav>
           </div>
         </div>
       </header>

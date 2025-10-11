@@ -1,21 +1,12 @@
 import { ENVIRONMENT } from './environment';
+import { clearAllDataExceptPasswords } from '@/utils/clearAllData';
 
 // Centralized session expiry handler
 const handleSessionExpiry = () => {
   console.log('🔒 Handling session expiry - clearing all data and redirecting');
   
-  // Clear all authentication data
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('user_data');
-  localStorage.removeItem('user');
-  localStorage.removeItem('walletBalance');
-  
-  sessionStorage.clear();
-  
-  // Clear any other potential cached data
-  localStorage.removeItem('parcelace_user');
-  localStorage.removeItem('parcelace_token');
+  // Clear all application data except password refills
+  clearAllDataExceptPasswords();
   
   // Dispatch a custom event to notify React components
   if (typeof window !== 'undefined') {

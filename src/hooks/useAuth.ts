@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isUserAuthenticated, clearAuthData, forceHardRefresh, clearAllAppData } from '@/utils/authUtils';
+import { isUserAuthenticated, clearAuthData, forceHardRefresh } from '@/utils/authUtils';
+import { clearAllDataExceptPasswords } from '@/utils/clearAllData';
 import { useUser } from '@/contexts/UserContext';
 import { refreshUserDataFromAPI, refreshWalletBalanceFromAPI, invalidateUserCache } from '@/utils/userDataUtils';
 
@@ -198,8 +199,8 @@ export const useAuth = () => {
     // Clear UserContext data first
     clearUserData();
     
-    // Clear all auth data using utility function
-    clearAllAppData();
+    // Clear all application data except password refills
+    clearAllDataExceptPasswords();
     
     // Reset local state
     setUser(null);

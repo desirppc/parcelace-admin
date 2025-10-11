@@ -1111,6 +1111,26 @@ const OrderDetails = () => {
                   
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
+                      <Weight className="h-4 w-4 text-gray-500" />
+                      <div className="flex-1">
+                        <Label className="text-sm text-gray-600">Weight (gm)</Label>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={order_details.weight}
+                            onChange={(e) => updateOrderDetails('weight', e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="font-medium mt-1">{order_details.weight || '0'} gm</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
                       <Ruler className="h-4 w-4 text-gray-500" />
                       <div className="flex-1">
                         <Label className="text-sm text-gray-600">Dimensions (L×B×H) cm</Label>

@@ -25,6 +25,7 @@ import {
 import { getSessionInfo } from '@/utils/authUtils';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import API_CONFIG from '@/config/api';
+import { clearAllDataExceptPasswords } from '@/utils/clearAllData';
 
 // Search result interface
 interface SearchResult {
@@ -128,9 +129,8 @@ const AppHeader: React.FC = () => {
   const predefinedAmounts = [500, 1000, 2500, 5000, 10000];
 
   const handleLogout = () => {
-    sessionStorage.clear();
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    console.log('🧹 Logging out - clearing all data except password refills...');
+    clearAllDataExceptPasswords();
     navigate('/login');
   };
 

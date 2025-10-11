@@ -524,6 +524,120 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
     }
   };
 
+  // Handle Book Now - Final booking step
+  const handleBookNow = async () => {
+    if (bulkSelectedOrderIds.length === 0) {
+      toast({
+        title: "No Orders Selected",
+        description: "Please select at least one order to book",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if all selected orders have couriers assigned
+    const ordersWithoutCouriers = bulkSelectedOrderIds.filter(id => !selectedCouriers[id]);
+    if (ordersWithoutCouriers.length > 0) {
+      toast({
+        title: "Courier Not Selected",
+        description: `Please select couriers for orders: ${ordersWithoutCouriers.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsApplyingBulkAction(true);
+
+    try {
+      // Build payload for bulk booking
+      const payload: BulkBookingPayload = {
+        warehouse_id: warehouseId,
+        rto_id: rtoId,
+        order_ids: {}
+      };
+
+      bulkSelectedOrderIds.forEach(orderId => {
+        const selection = selectedCouriers[orderId];
+        payload.order_ids[orderId] = {
+          rates: {
+            order_id: parseInt(orderId),
+            courier_partner_id: selection.courierId,
+            shippingRateData: selection.rateData
+          }
+        };
+      });
+
+      // Debug panel logging
+      const createUrl = getApiUrl(API_CONFIG.ENDPOINTS.BULK_BOOKING_CREATE);
+      pushDebugEvent({ step: 'Book Now - Request', method: 'POST', url: createUrl, request: payload });
+
+      console.log('🚀 Booking payload:', payload);
+
+      const createResult = await createBulkShipments({ ...payload, auto_pickup: 1 });
+      pushDebugEvent({ step: 'Book Now - Response', method: 'POST', url: createUrl, response: createResult });
+
+      console.log('📋 Booking result:', createResult);
+
+      if (!createResult.success) {
+        // Handle error response
+        const errorMessage = createResult.message || createResult.error || 'Booking failed';
+        
+        toast({
+          title: "Booking Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        
+        return;
+      }
+
+      // Handle success response
+      const successMessage = createResult.message || 'Booking completed successfully';
+      
+      // Check if the message indicates successful booking or AWB number
+      const isSuccessMessage = successMessage.toLowerCase().includes('success') || 
+                              successMessage.toLowerCase().includes('awb') ||
+                              successMessage.toLowerCase().includes('booked') ||
+                              successMessage.toLowerCase().includes('completed');
+
+      if (isSuccessMessage) {
+        toast({
+          title: "Booking Successful!",
+          description: successMessage,
+        });
+
+        // Clear bulk selection
+        setBulkSelectedOrderIds([]);
+        setBulkSelectedCourier("");
+        setBulkBookingUuid("");
+        setCourierRates({});
+        setSelectedCouriers({});
+
+        // Redirect to shipments page after a short delay
+        setTimeout(() => {
+          navigate('/dashboard/shipments/all');
+        }, 2000);
+
+      } else {
+        // Show the API response message even if it's not a clear success
+        toast({
+          title: "Booking Response",
+          description: successMessage,
+        });
+      }
+
+    } catch (error) {
+      console.error("❌ Error in booking:", error);
+      toast({
+        title: "Booking Error",
+        description: error instanceof Error ? error.message : "Failed to complete booking",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplyingBulkAction(false);
+    }
+  };
+
   // Handle individual courier selection
   const handleIndividualCourierSelection = (orderId: string, courierId: string) => {
     if (!orderId || !courierId) return;
@@ -655,7 +769,7 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
           ) : (
             <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
               <p className="text-sm text-blue-800">
-                💡 <strong>Bulk Selection Tip:</strong> Use the checkboxes to select multiple orders, then click "Get Courier Rates" to automatically create booking and fetch rates, and finally "Apply Bulk Action" to assign the same courier to all selected orders at once.
+                💡 <strong>3-Step Process:</strong> 1) Select orders and click "Get Courier Rates" 2) Choose couriers and click "Apply Bulk Action" 3) Click "Book Now" to complete the booking and redirect to shipments page.
               </p>
             </div>
           )}
@@ -1002,8 +1116,21 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
+                  <p className="text-sm font-medium text-gray-600">Ready to Book</p>
+                  <p className="text-2xl font-bold text-gray-900">{Object.keys(selectedCouriers).length}</p>
+                  <p className="text-xs text-gray-500">Orders with couriers</p>
+                </div>
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
                   <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{getTotalAmount() || 618}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{getTotalAmount() || 0}</p>
                   <p className="text-xs text-gray-500">Estimated cost</p>
                 </div>
                 <Package className="w-8 h-8 text-orange-600" />
@@ -1175,6 +1302,27 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                       </Button>
                     )}
 
+                    {/* Step 3: Book Now Button (only when all orders have couriers assigned) */}
+                    {bulkBookingUuid && bulkSelectedOrderIds.length > 0 && bulkSelectedOrderIds.every(id => !!selectedCouriers[id]) && (
+                      <Button
+                        onClick={handleBookNow}
+                        disabled={isApplyingBulkAction}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isApplyingBulkAction ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Booking...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Book Now
+                          </>
+                        )}
+                      </Button>
+                    )}
+
                     {/* Refresh Rates Button */}
                     {bulkBookingUuid && (
                       <Button
@@ -1234,6 +1382,7 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                   <div className="text-sm text-gray-600 italic">
                     💡 <strong>Step 1:</strong> Click "Get Courier Rates" to automatically create booking and fetch courier rates. 
                     <strong>Step 2:</strong> Select your preferred courier and click "Apply Bulk Action" to assign it to all selected orders.
+                    <strong>Step 3:</strong> Click "Book Now" to complete the booking and create shipments.
                   </div>
                 )}
                 
@@ -1265,6 +1414,7 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">Order Number</TableHead>
                     <TableHead className="font-semibold text-gray-700">Courier Name</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Status</TableHead>
                     <TableHead className="font-semibold text-gray-700">Pickup Date</TableHead>
                     <TableHead className="font-semibold text-gray-700">Delivery Date</TableHead>
                     <TableHead className="font-semibold text-gray-700">Price</TableHead>
@@ -1327,6 +1477,21 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                             </div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {hasCourierAssigned(order.id) ? (
+                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                              ✓ Ready to Book
+                            </Badge>
+                          ) : hasOptions ? (
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                              Select Courier
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                              No Rates
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-gray-600">{order.pickup}</TableCell>
                         <TableCell className="text-gray-600">{order.delivery}</TableCell>
                         <TableCell className="font-semibold text-gray-900">{selectedPrice ? `₹${selectedPrice}` : '—'}</TableCell>
@@ -1335,7 +1500,7 @@ const CourierChoiceHub: React.FC<CourierChoiceHubProps> = ({
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                         <div className="space-y-2">
                           <div className="text-lg font-medium">No orders available</div>
                           <div className="text-sm text-gray-400">

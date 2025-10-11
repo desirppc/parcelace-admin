@@ -1,14 +1,23 @@
 
-import React, { useState, useCallback } from 'react';
-import LoginScreen from './LoginScreen';
-import SignUpScreen from './SignUpScreen';
-import ForgotPasswordScreen from './ForgotPasswordScreen';
-import OTPPage from './OTPPage';
-import OTPVerificationScreen from './OTPVerificationScreen';
-import ResetPasswordScreen from './ResetPasswordScreen';
-import MobileOTPVerification from './MobileOTPVerification';
-import OnboardingWizard from './OnboardingWizard';
+import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+// Lazy load all auth components
+const LoginScreen = lazy(() => import('./LoginScreen'));
+const SignUpScreen = lazy(() => import('./SignUpScreen'));
+const ForgotPasswordScreen = lazy(() => import('./ForgotPasswordScreen'));
+const OTPPage = lazy(() => import('./OTPPage'));
+const OTPVerificationScreen = lazy(() => import('./OTPVerificationScreen'));
+const ResetPasswordScreen = lazy(() => import('./ResetPasswordScreen'));
+const MobileOTPVerification = lazy(() => import('./MobileOTPVerification'));
+const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
+
+// Loading component for Suspense fallback
+const AuthLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 // Add a new state for the OTP email and token
 
@@ -93,46 +102,56 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
   switch (currentScreen) {
     case 'signup':
       return (
-        <SignUpScreen 
-          onNavigateToLogin={handleNavigateToLogin}
-          onNavigateBack={handleNavigateBack}
-          onNavigateToOnboarding={handleSignUpSuccess}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <SignUpScreen 
+            onNavigateToLogin={handleNavigateToLogin}
+            onNavigateBack={handleNavigateBack}
+            onNavigateToOnboarding={handleSignUpSuccess}
+          />
+        </Suspense>
       );
     
     case 'forgot-password':
       return (
-        <ForgotPasswordScreen
-          onNavigateBack={handleNavigateBack}
-          onNavigateToOTP={handleNavigateToOTP}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <ForgotPasswordScreen
+            onNavigateBack={handleNavigateBack}
+            onNavigateToOTP={handleNavigateToOTP}
+          />
+        </Suspense>
       );
     
     case 'otp-verification':
       return (
-        <OTPPage
-          email={otpEmail}
-          onBack={handleNavigateBack}
-          onSuccess={handleNavigateToResetPassword}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <OTPPage
+            email={otpEmail}
+            onBack={handleNavigateBack}
+            onSuccess={handleNavigateToResetPassword}
+          />
+        </Suspense>
       );
     
     case 'mobile-otp-verification':
       return (
-        <MobileOTPVerification
-          onNavigateBack={handleNavigateBack}
-          onVerificationSuccess={handleMobileOTPSuccess}
-          phone={userPhone}
-          authToken={authToken}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <MobileOTPVerification
+            onNavigateBack={handleNavigateBack}
+            onVerificationSuccess={handleMobileOTPSuccess}
+            phone={userPhone}
+            authToken={authToken}
+          />
+        </Suspense>
       );
     
     case 'reset-password':
       return (
-        <ResetPasswordScreen
-          onNavigateBack={handleNavigateBack}
-          onPasswordReset={handlePasswordReset}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <ResetPasswordScreen
+            onNavigateBack={handleNavigateBack}
+            onPasswordReset={handlePasswordReset}
+          />
+        </Suspense>
       );
     
     case 'onboarding':
@@ -141,20 +160,24 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
         onNavigateBack: handleNavigateBack
       });
       return (
-        <OnboardingWizard
-          onComplete={handleOnboardingComplete}
-          onNavigateBack={handleNavigateBack}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <OnboardingWizard
+            onComplete={handleOnboardingComplete}
+            onNavigateBack={handleNavigateBack}
+          />
+        </Suspense>
       );
     
     default:
       return (
-        <LoginScreen 
-          onNavigateToSignUp={handleNavigateToSignUp}
-          onNavigateToForgotPassword={handleNavigateToForgotPassword}
-          onNavigateBack={handleNavigateBack}
-          onNavigateToOnboarding={handleNavigateToOnboarding}
-        />
+        <Suspense fallback={<AuthLoader />}>
+          <LoginScreen 
+            onNavigateToSignUp={handleNavigateToSignUp}
+            onNavigateToForgotPassword={handleNavigateToForgotPassword}
+            onNavigateBack={handleNavigateBack}
+            onNavigateToOnboarding={handleNavigateToOnboarding}
+          />
+        </Suspense>
       );
   }
 };

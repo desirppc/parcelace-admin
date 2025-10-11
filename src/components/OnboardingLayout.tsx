@@ -45,6 +45,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import API_CONFIG from '@/config/api';
 import AppHeader from './AppHeader';
+import { clearAllDataExceptPasswords } from '@/utils/clearAllData';
 
 
 interface MenuItem {
@@ -239,18 +240,17 @@ const OnboardingLayout = () => {
         });
 
         if (response.ok) {
-          console.log('Logout successful');
+          console.log('Logout API call successful');
         } else {
           console.error('Logout API failed:', response.status);
         }
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout API error:', error);
     } finally {
-      // Clear all session data
-      sessionStorage.clear();
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
+      // Clear all application data except password refills
+      console.log('🧹 Clearing all data except password refills...');
+      clearAllDataExceptPasswords();
       
       // Redirect to login
       navigate('/login');

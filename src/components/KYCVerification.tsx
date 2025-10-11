@@ -1,15 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, FileText, CreditCard, Building, Landmark, Edit2 } from 'lucide-react';
 import { EntityType, KYCType, KYCRequirement, KYCState } from '@/types/kyc';
-import AadharVerification from './AadharVerification';
-import PANVerification from './PANVerification';
-import GSTVerification from './GSTVerification';
-import BankVerification from './BankVerification';
+
+// Lazy load KYC verification components
+const AadharVerification = lazy(() => import('./AadharVerification'));
+const PANVerification = lazy(() => import('./PANVerification'));
+const GSTVerification = lazy(() => import('./GSTVerification'));
+const BankVerification = lazy(() => import('./BankVerification'));
+
+// Loading component for Suspense fallback
+const KYCLoader = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 const KYCVerification = () => {
   const [kycState, setKycState] = useState<KYCState>({
@@ -350,31 +359,39 @@ const KYCVerification = () => {
 
         {/* Verification Modals */}
         {kycState.currentVerification === 'aadhar' && (
-          <AadharVerification 
-            onComplete={(success, data) => handleVerificationComplete('aadhar', success, data)}
-            onClose={() => setKycState({...kycState, currentVerification: null})}
-          />
+          <Suspense fallback={<KYCLoader />}>
+            <AadharVerification 
+              onComplete={(success, data) => handleVerificationComplete('aadhar', success, data)}
+              onClose={() => setKycState({...kycState, currentVerification: null})}
+            />
+          </Suspense>
         )}
         
         {kycState.currentVerification === 'pan' && (
-          <PANVerification 
-            onComplete={(success, data) => handleVerificationComplete('pan', success, data)}
-            onClose={() => setKycState({...kycState, currentVerification: null})}
-          />
+          <Suspense fallback={<KYCLoader />}>
+            <PANVerification 
+              onComplete={(success, data) => handleVerificationComplete('pan', success, data)}
+              onClose={() => setKycState({...kycState, currentVerification: null})}
+            />
+          </Suspense>
         )}
         
         {kycState.currentVerification === 'gst' && (
-          <GSTVerification 
-            onComplete={(success, data) => handleVerificationComplete('gst', success, data)}
-            onClose={() => setKycState({...kycState, currentVerification: null})}
-          />
+          <Suspense fallback={<KYCLoader />}>
+            <GSTVerification 
+              onComplete={(success, data) => handleVerificationComplete('gst', success, data)}
+              onClose={() => setKycState({...kycState, currentVerification: null})}
+            />
+          </Suspense>
         )}
         
         {kycState.currentVerification === 'bank' && (
-          <BankVerification 
-            onComplete={(success, data) => handleVerificationComplete('bank', success, data)}
-            onClose={() => setKycState({...kycState, currentVerification: null})}
-          />
+          <Suspense fallback={<KYCLoader />}>
+            <BankVerification 
+              onComplete={(success, data) => handleVerificationComplete('bank', success, data)}
+              onClose={() => setKycState({...kycState, currentVerification: null})}
+            />
+          </Suspense>
         )}
       </div>
     </div>
