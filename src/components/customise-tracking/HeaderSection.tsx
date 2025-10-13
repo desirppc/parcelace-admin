@@ -7,14 +7,31 @@ import { Plus, Trash2, Layout, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HeaderSection as HeaderSectionType } from '@/services/trackingCustomizationService';
 
+// Interface for menu items from backend
+interface MenuItem {
+  [key: string]: string; // e.g., "left_menu_1": "Men", "url": "https://www.google.com/men"
+}
+
+// Extended interface to include menu_items
+interface HeaderSectionWithMenuItems extends HeaderSectionType {
+  menu_items?: MenuItem[];
+}
+
+// Local state interface for managing labels separately
+interface MenuItemState {
+  field: string;
+  label: string;
+  url: string;
+}
+
 interface HeaderSectionProps {
-  data?: HeaderSectionType[];
-  onDataChange?: (data: HeaderSectionType[]) => void;
+  data?: HeaderSectionWithMenuItems[];
+  onDataChange?: (data: HeaderSectionWithMenuItems[]) => void;
 }
 
 const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [localData, setLocalData] = useState<HeaderSectionType[]>([
+  const [localData, setLocalData] = useState<HeaderSectionWithMenuItems[]>([
     {
       show_logo: true,
       sticky_header: true,
@@ -23,24 +40,50 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => 
       button_link: "https://example.com",
       button_color: "#3832f6",
       show_support_email_phone: true,
-      left_menu_1: "https://www.google.com/men",
-      left_menu_2: "https://www.google.com/women",
-      left_menu_3: "https://www.google.com/about",
-      right_menu_4: "https://www.google.com/contact",
-      right_menu_5: "https://www.google.com/help",
-      right_menu_6: "https://www.google.com/support",
-      privacy_policy_url: "https://www.google.com/privacy"
+      left_menu_1: "",
+      left_menu_2: "",
+      left_menu_3: "",
+      right_menu_4: "",
+      right_menu_5: "",
+      right_menu_6: "",
+      privacy_policy_url: "https://www.google.com/privacy",
+      menu_items: []
     }
   ]);
+
+  // Local state for menu items
+  const [menuItems, setMenuItems] = useState<MenuItemState[]>([]);
 
   // Initialize with props data or default values
   useEffect(() => {
     if (data && data.length > 0) {
       setLocalData(data);
+      
+      // Parse menu_items from backend data
+      const currentData = data[0];
+      if (currentData?.menu_items && Array.isArray(currentData.menu_items)) {
+        const parsedMenuItems: MenuItemState[] = [];
+        
+        currentData.menu_items.forEach((item: MenuItem) => {
+          // Extract field name and label from the object
+          const fieldName = Object.keys(item).find(key => key.startsWith('left_menu_') || key.startsWith('right_menu_'));
+          const url = item.url;
+          
+          if (fieldName && url) {
+            parsedMenuItems.push({
+              field: fieldName,
+              label: item[fieldName],
+              url: url
+            });
+          }
+        });
+        
+        setMenuItems(parsedMenuItems);
+      }
     }
   }, [data]);
 
-  const handleDataChange = (field: keyof HeaderSectionType, value: any) => {
+  const handleDataChange = (field: keyof HeaderSectionWithMenuItems, value: any) => {
     const updatedData = localData.map((item, index) => 
       index === 0 ? { ...item, [field]: value } : item
     );
@@ -51,37 +94,83 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => 
     }
   };
 
-  const currentData = localData[0];
-
-  // Helper function to get menu label from URL
-  const getMenuLabel = (url: string): string => {
-    if (!url) return '';
-    try {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname;
-      if (path === '/') return 'Home';
-      return path.charAt(1).toUpperCase() + path.slice(2) || 'Menu';
-    } catch {
-      return url || 'Menu';
+  const handleMenuChange = (index: number, field: 'label' | 'url', value: string) => {
+    const updatedMenuItems = [...menuItems];
+    updatedMenuItems[index] = { ...updatedMenuItems[index], [field]: value };
+    setMenuItems(updatedMenuItems);
+    
+    // Update the localData with menu_items format
+    const menuItemsForBackend = updatedMenuItems.map(item => ({
+      [item.field]: item.label,
+      url: item.url
+    }));
+    
+    const updatedData = localData.map((item, idx) => 
+      idx === 0 ? { ...item, menu_items: menuItemsForBackend } : item
+    );
+    setLocalData(updatedData);
+    
+    if (onDataChange) {
+      onDataChange(updatedData);
     }
   };
 
+  const addMenuItem = (field: string) => {
+    const newMenuItem: MenuItemState = {
+      field: field,
+      label: '',
+      url: ''
+    };
+    
+    const updatedMenuItems = [...menuItems, newMenuItem];
+    setMenuItems(updatedMenuItems);
+    
+    // Update the localData with menu_items format
+    const menuItemsForBackend = updatedMenuItems.map(item => ({
+      [item.field]: item.label,
+      url: item.url
+    }));
+    
+    const updatedData = localData.map((item, idx) => 
+      idx === 0 ? { ...item, menu_items: menuItemsForBackend } : item
+    );
+    setLocalData(updatedData);
+    
+    if (onDataChange) {
+      onDataChange(updatedData);
+    }
+  };
+
+  const removeMenuItem = (index: number) => {
+    const updatedMenuItems = menuItems.filter((_, idx) => idx !== index);
+    setMenuItems(updatedMenuItems);
+    
+    // Update the localData with menu_items format
+    const menuItemsForBackend = updatedMenuItems.map(item => ({
+      [item.field]: item.label,
+      url: item.url
+    }));
+    
+    const updatedData = localData.map((item, idx) => 
+      idx === 0 ? { ...item, menu_items: menuItemsForBackend } : item
+    );
+    setLocalData(updatedData);
+    
+    if (onDataChange) {
+      onDataChange(updatedData);
+    }
+  };
+
+  const currentData = localData[0];
+
   // Helper function to get left menu items
-  const getLeftMenuItems = () => {
-    const items = [];
-    if (currentData?.left_menu_1) items.push({ field: 'left_menu_1', url: currentData.left_menu_1, label: getMenuLabel(currentData.left_menu_1) });
-    if (currentData?.left_menu_2) items.push({ field: 'left_menu_2', url: currentData.left_menu_2, label: getMenuLabel(currentData.left_menu_2) });
-    if (currentData?.left_menu_3) items.push({ field: 'left_menu_3', url: currentData.left_menu_3, label: getMenuLabel(currentData.left_menu_3) });
-    return items;
+  const getLeftMenuItems = (): MenuItemState[] => {
+    return menuItems.filter(item => item.field.startsWith('left_menu_'));
   };
 
   // Helper function to get right menu items
-  const getRightMenuItems = () => {
-    const items = [];
-    if (currentData?.right_menu_4) items.push({ field: 'right_menu_4', url: currentData.right_menu_4, label: getMenuLabel(currentData.right_menu_4) });
-    if (currentData?.right_menu_5) items.push({ field: 'right_menu_5', url: currentData.right_menu_5, label: getMenuLabel(currentData.right_menu_5) });
-    if (currentData?.right_menu_6) items.push({ field: 'right_menu_6', url: currentData.right_menu_6, label: getMenuLabel(currentData.right_menu_6) });
-    return items;
+  const getRightMenuItems = (): MenuItemState[] => {
+    return menuItems.filter(item => item.field.startsWith('right_menu_'));
   };
 
   const leftMenuItems = getLeftMenuItems();
@@ -126,6 +215,20 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-gray-700">Left Side Menu ({leftMenuItems.length}/3)</Label>
+                {leftMenuItems.length < 3 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const nextField = `left_menu_${leftMenuItems.length + 1}`;
+                      addMenuItem(nextField);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Menu Item
+                  </Button>
+                )}
               </div>
               
               {leftMenuItems.map((item, index) => (
@@ -133,91 +236,44 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => 
                   <Input
                     placeholder="Menu Label"
                     value={item.label}
-                    onChange={(e) => {
-                      // Update the label by modifying the URL to include the new label
-                      const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                      handleDataChange(item.field as keyof HeaderSectionType, newUrl);
-                    }}
+                    onChange={(e) => handleMenuChange(index, 'label', e.target.value)}
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                   <Input
                     placeholder="Menu URL"
                     value={item.url}
-                    onChange={(e) => handleDataChange(item.field as keyof HeaderSectionType, e.target.value)}
+                    onChange={(e) => handleMenuChange(index, 'url', e.target.value)}
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDataChange(item.field as keyof HeaderSectionType, '')}
+                    onClick={() => removeMenuItem(index)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
-
-              {/* Add new left menu items */}
-              {leftMenuItems.length < 3 && (
-                <div className="space-y-2">
-                  {!currentData?.left_menu_1 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('left_menu_1', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('left_menu_1', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-                  {!currentData?.left_menu_2 && currentData?.left_menu_1 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('left_menu_2', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('left_menu_2', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-                  {!currentData?.left_menu_3 && currentData?.left_menu_2 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('left_menu_3', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('left_menu_3', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Menu Items - Right Side */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-gray-700">Right Side Menu ({rightMenuItems.length}/3)</Label>
+                {rightMenuItems.length < 3 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const nextField = `right_menu_${rightMenuItems.length + 4}`;
+                      addMenuItem(nextField);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Menu Item
+                  </Button>
+                )}
               </div>
               
               {rightMenuItems.map((item, index) => (
@@ -225,85 +281,24 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({ data, onDataChange }) => 
                   <Input
                     placeholder="Menu Label"
                     value={item.label}
-                    onChange={(e) => {
-                      // Update the label by modifying the URL to include the new label
-                      const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                      handleDataChange(item.field as keyof HeaderSectionType, newUrl);
-                    }}
+                    onChange={(e) => handleMenuChange(index, 'label', e.target.value)}
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                   <Input
                     placeholder="Menu URL"
                     value={item.url}
-                    onChange={(e) => handleDataChange(item.field as keyof HeaderSectionType, e.target.value)}
+                    onChange={(e) => handleMenuChange(index, 'url', e.target.value)}
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDataChange(item.field as keyof HeaderSectionType, '')}
+                    onClick={() => removeMenuItem(index)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
-
-              {/* Add new right menu items */}
-              {rightMenuItems.length < 3 && (
-                <div className="space-y-2">
-                  {!currentData?.right_menu_4 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('right_menu_4', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('right_menu_4', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-                  {!currentData?.right_menu_5 && currentData?.right_menu_4 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('right_menu_5', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('right_menu_5', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-                  {!currentData?.right_menu_6 && currentData?.right_menu_5 && (
-                    <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-md">
-                      <Input
-                        placeholder="Menu Label"
-                        onChange={(e) => {
-                          const newUrl = e.target.value ? `https://example.com/${e.target.value.toLowerCase()}` : '';
-                          handleDataChange('right_menu_6', newUrl);
-                        }}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        placeholder="Menu URL"
-                        onChange={(e) => handleDataChange('right_menu_6', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-              )}
-                </div>
-              )}
             </div>
 
             {/* Sticky Header */}

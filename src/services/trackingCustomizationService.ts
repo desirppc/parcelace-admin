@@ -1,9 +1,13 @@
-import API_CONFIG from '@/config/api';
+import API_CONFIG, { handleSessionExpiry } from '@/config/api';
 
 // Types for tracking page customization
 export interface BrowserSettings {
   page_title: string;
   favicon_url: string;
+}
+
+export interface MenuItem {
+  [key: string]: string; // e.g., "left_menu_1": "Men", "url": "https://www.google.com/men"
 }
 
 export interface HeaderSection {
@@ -21,6 +25,7 @@ export interface HeaderSection {
   right_menu_5: string;
   right_menu_6: string;
   privacy_policy_url: string;
+  menu_items?: MenuItem[];
 }
 
 export interface NPSSection {
@@ -188,11 +193,21 @@ class TrackingCustomizationService {
         body: JSON.stringify(requestData)
       });
 
+      const result = await response.json();
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          result.message === 'Session expired' || 
+          result.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (result.status === 'false' && result.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in TrackingCustomizationService.fetchTrackingPageCustomization');
+        handleSessionExpiry();
+        throw new Error(result.error?.message || 'Session expired');
+      }
+
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
       }
-
-      const result = await response.json();
       
       if (result.status && result.data) {
         // Process and merge the data
@@ -270,19 +285,12 @@ class TrackingCustomizationService {
         throw new Error('Authentication token not found');
       }
 
+      console.log('🔍 Starting API update with data:', data);
       const requestData: UserMetaRequest[] = [];
-
-      // Add track ace status if provided
-      if (data.track_ace_status) {
-        requestData.push({
-          widget_type: "tracking_page",
-          meta_key: "track_ace_status",
-          meta_value: data.track_ace_status
-        });
-      }
 
       // Add browser settings if provided
       if (data.browser_settings) {
+        console.log('🔍 Processing browser_settings:', data.browser_settings);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "browser_settings",
@@ -292,15 +300,29 @@ class TrackingCustomizationService {
 
       // Add header section if provided
       if (data.header_section) {
+        console.log('🔍 Processing header_section:', data.header_section);
+        // Clean header data to match API structure exactly
+        const cleanedHeaderSection = data.header_section.map(item => ({
+          show_logo: item.show_logo,
+          menu_items: item.menu_items || [],
+          sticky_header: item.sticky_header,
+          sticky_header_text: item.sticky_header_text,
+          button_label: item.button_label,
+          button_link: item.button_link,
+          button_color: item.button_color,
+          show_support_email_phone: item.show_support_email_phone
+        }));
+        console.log('🔍 Cleaned header_section:', cleanedHeaderSection);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "header_section",
-          meta_value: data.header_section
+          meta_value: cleanedHeaderSection
         });
       }
 
       // Add NPS section if provided
       if (data.nps_section) {
+        console.log('🔍 Processing nps_section:', data.nps_section);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "nps_section",
@@ -310,55 +332,112 @@ class TrackingCustomizationService {
 
       // Add footer section if provided
       if (data.footer_section) {
+        console.log('🔍 Processing footer_section:', data.footer_section);
+        // Clean footer data to match API structure exactly
+        const cleanedFooterSection = data.footer_section.map(item => ({
+          show_support_email_phone: item.show_support_email_phone,
+          show_social_icons: item.show_social_icons,
+          sticky_footer: item.sticky_footer,
+          sticky_footer_text: item.sticky_footer_text,
+          button_label: item.button_label,
+          button_link: item.button_link,
+          button_color: item.button_color
+        }));
+        console.log('🔍 Cleaned footer_section:', cleanedFooterSection);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "footer_section",
-          meta_value: data.footer_section
+          meta_value: cleanedFooterSection
         });
       }
 
       // Add product showcase if provided
       if (data.product_showcase) {
+        console.log('🔍 Processing product_showcase:', data.product_showcase);
+        // Clean product data to match API structure exactly
+        const cleanedProductShowcase = data.product_showcase.map(item => ({
+          show_products: item.show_products,
+          products: item.products.map(product => ({
+            product_name: product.product_name,
+            price: product.price,
+            description: product.description,
+            button_text: product.button_text,
+            button_link: product.button_link,
+            image_url: product.image_url
+          }))
+        }));
+        console.log('🔍 Cleaned product_showcase:', cleanedProductShowcase);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "product_showcase",
-          meta_value: data.product_showcase
+          meta_value: cleanedProductShowcase
         });
       }
 
       // Add banner campaigns if provided
       if (data.banner_campaigns) {
+        console.log('🔍 Processing banner_campaigns:', data.banner_campaigns);
+        // Clean banner data to match API structure exactly
+        const cleanedBannerCampaigns = data.banner_campaigns.map(item => ({
+          show_banners: item.show_banners,
+          banners: item.banners.map(banner => ({
+            title: banner.title,
+            description: banner.description,
+            link_url: banner.link_url,
+            banner_image: banner.banner_image
+          }))
+        }));
+        console.log('🔍 Cleaned banner_campaigns:', cleanedBannerCampaigns);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "banner_campaigns",
-          meta_value: data.banner_campaigns
+          meta_value: cleanedBannerCampaigns
         });
       }
 
       // Add video content if provided
       if (data.video_content) {
+        console.log('🔍 Processing video_content:', data.video_content);
+        // Clean video data to match API structure exactly
+        const cleanedVideoContent = data.video_content.map(item => ({
+          show_video: item.show_video,
+          videos: item.videos.map(video => ({
+            title: video.title,
+            description: video.description,
+            youtube_url: video.youtube_url
+          }))
+        }));
+        console.log('🔍 Cleaned video_content:', cleanedVideoContent);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "video_content",
-          meta_value: data.video_content
+          meta_value: cleanedVideoContent
         });
       }
 
       // Add rewards promotions if provided
       if (data.rewards_promotions) {
+        console.log('🔍 Processing rewards_promotions:', data.rewards_promotions);
+        // Clean rewards data to match API structure exactly
+        const cleanedRewardsPromotions = data.rewards_promotions.map(item => ({
+          offers: item.offers.map(offer => ({
+            promo_code: offer.promo_code,
+            expiry_date: offer.expiry_date,
+            popup_title: offer.popup_title,
+            popup_subtitle: offer.popup_subtitle,
+            minimum_order_value: offer.minimum_order_value,
+            maximum_discount_value: offer.maximum_discount_value,
+            conditions_1: offer.conditions_1,
+            conditions_2: offer.conditions_2,
+            conditions_3: offer.conditions_3,
+            conditions_4: offer.conditions_4
+          }))
+        }));
+        console.log('🔍 Cleaned rewards_promotions:', cleanedRewardsPromotions);
         requestData.push({
           widget_type: "tracking_page",
           meta_key: "rewards_promotions",
-          meta_value: data.rewards_promotions
-        });
-      }
-
-      // Add support social if provided
-      if (data.support_social) {
-        requestData.push({
-          widget_type: "support_social",
-          meta_key: "support_links",
-          meta_value: data.support_social[0]?.support_links || []
+          meta_value: cleanedRewardsPromotions
         });
       }
 
@@ -366,20 +445,49 @@ class TrackingCustomizationService {
         throw new Error('No data provided for update');
       }
 
+      console.log('🔍 Final request data:', requestData);
+      console.log('🔍 Request data JSON:', JSON.stringify(requestData, null, 2));
+      console.log('🔍 API URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPDATE_USER_META}`);
+      console.log('🔍 Headers:', this.getHeaders());
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPDATE_USER_META}`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(requestData)
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
 
       const result = await response.json();
+      console.log('🔍 Response result:', result);
+      
+      // Check for session expiry
+      if (response.status === 401 || 
+          result.message === 'Session expired' || 
+          result.error?.message === 'Your session has expired. Please log in again to continue.' ||
+          (result.status === 'false' && result.message === 'Session expired')) {
+        console.log('🔒 Session expired detected in TrackingCustomizationService.updateTrackingPageCustomization');
+        handleSessionExpiry();
+        throw new Error(result.error?.message || 'Session expired');
+      }
+
+      if (!response.ok) {
+        console.error('❌ API request failed with status:', response.status);
+        console.error('❌ Response body:', result);
+        
+        if (response.status === 500) {
+          console.error('❌ Server Error (500) - Check server logs for details');
+          console.error('❌ Request that caused 500 error:', JSON.stringify(requestData, null, 2));
+        }
+        
+        throw new Error(`API request failed: ${response.status} - ${result.message || result.error?.message || 'Unknown error'}`);
+      }
+
+      console.log('✅ API request successful');
       return result.status === true;
     } catch (error) {
-      console.error('Error updating tracking page customization:', error);
+      console.error('❌ Error updating tracking page customization:', error);
       throw error;
     }
   }
@@ -402,13 +510,21 @@ class TrackingCustomizationService {
         button_link: "https://example.com",
         button_color: "#3832f6",
         show_support_email_phone: true,
-        left_menu_1: "https://www.google.com/men",
-        left_menu_2: "https://www.google.com/women",
-        left_menu_3: "https://www.google.com/about",
-        right_menu_4: "https://www.google.com/contact",
-        right_menu_5: "https://www.google.com/help",
-        right_menu_6: "https://www.google.com/support",
-        privacy_policy_url: "https://www.google.com/privacy"
+        left_menu_1: "",
+        left_menu_2: "",
+        left_menu_3: "",
+        right_menu_4: "",
+        right_menu_5: "",
+        right_menu_6: "",
+        privacy_policy_url: "https://www.google.com/privacy",
+        menu_items: [
+          {"left_menu_1": "Men", "url": "https://www.google.com/men"},
+          {"left_menu_2": "Women", "url": "https://www.google.com/women"},
+          {"left_menu_3": "About", "url": "https://www.google.com/about"},
+          {"right_menu_4": "Contact", "url": "https://www.google.com/contact"},
+          {"right_menu_5": "Help", "url": "https://www.google.com/help"},
+          {"right_menu_6": "Support", "url": "https://www.google.com/support"}
+        ]
       }],
       nps_section: [{
         show_nps_section: true,

@@ -10,6 +10,110 @@ import { useToast } from '@/hooks/use-toast';
 import { VideoContent, Video } from '@/services/trackingCustomizationService';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
+// Optimized YouTube Player Component
+const OptimizedYouTubePlayer = ({ videoUrl, title }: { videoUrl: string; title: string }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
+
+  // Extract video ID from YouTube URL
+  const extractVideoId = (url: string): string => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : '';
+  };
+
+  const videoId = extractVideoId(videoUrl);
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    setIsLoaded(true);
+  };
+
+  const handleThumbnailError = () => {
+    setThumbnailError(true);
+  };
+
+  if (!videoUrl || !videoId) {
+    return (
+      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden border border-gray-200">
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="text-center text-white">
+            <Play className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Video not available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden border border-gray-200 group">
+      {!isPlaying ? (
+        // Thumbnail with play button overlay
+        <div className="relative w-full h-full cursor-pointer" onClick={handlePlay}>
+          {/* Thumbnail Image */}
+          <div className="relative w-full h-full">
+            {!thumbnailError ? (
+              <img
+                src={thumbnailUrl}
+                alt={`${title} thumbnail`}
+                className="w-full h-full object-cover"
+                onError={handleThumbnailError}
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <Play className="h-16 w-16 text-white opacity-70" />
+              </div>
+            )}
+            
+            {/* Dark overlay for better play button visibility */}
+            <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-40 transition-opacity duration-300" />
+            
+            {/* Play Button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-300 group-hover:scale-110 group-hover:bg-red-700">
+                <Play className="h-6 w-6 text-white ml-1" />
+              </div>
+            </div>
+            
+            {/* YouTube Logo */}
+            <div className="absolute bottom-2 right-2">
+              <div className="flex items-center gap-1 bg-black bg-opacity-80 px-2 py-1 rounded text-xs">
+                <svg className="w-4 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span className="text-white text-xs font-medium">YouTube</span>
+              </div>
+            </div>
+            
+            {/* Click to play indicator */}
+            <div className="absolute top-2 left-2">
+              <div className="bg-black bg-opacity-80 px-2 py-1 rounded text-white text-xs font-medium">
+                Click to play
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Actual YouTube iframe (only loads when user clicks play)
+        <iframe
+          src={embedUrl}
+          title={title}
+          className="w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      )}
+    </div>
+  );
+};
+
 interface VideoSectionProps {
   data?: VideoContent[];
   onDataChange?: (data: VideoContent[]) => void;
@@ -192,39 +296,35 @@ const VideoSection: React.FC<VideoSectionProps> = ({ data, onDataChange }) => {
                       </div>
 
                       {/* Video Preview */}
-                      {videoId && (
+                      {video.youtube_url && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-gray-700">Video Preview</Label>
                           <div className="relative">
-                            <img
-                              src={thumbnailUrl}
-                              alt="Video thumbnail"
-                              className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                            <OptimizedYouTubePlayer 
+                              videoUrl={video.youtube_url}
+                              title={video.title || 'Video Preview'}
                             />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
-                                <Play className="w-8 h-8 text-white ml-1" />
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="absolute top-2 right-2 bg-white/90 hover:bg-white"
-                              onClick={() => window.open(video.youtube_url, '_blank')}
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Watch
-                            </Button>
                           </div>
                         </div>
                       )}
 
-                      {/* Video URL Validation */}
-                      {video.youtube_url && !videoId && (
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <p className="text-sm text-yellow-800">
-                            ⚠️ Please enter a valid YouTube URL to see the video preview
-                          </p>
+                      {/* Video URL Help */}
+                      {!video.youtube_url && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Play className="w-4 h-4 text-blue-600 mt-0.5" />
+                            <div>
+                              <p className="text-sm text-blue-800 font-medium">Add YouTube Video</p>
+                              <p className="text-xs text-blue-700 mt-1">
+                                Enter a YouTube URL to see the video preview. Supported formats:
+                              </p>
+                              <ul className="text-xs text-blue-700 mt-1 ml-4 list-disc">
+                                <li>https://www.youtube.com/watch?v=VIDEO_ID</li>
+                                <li>https://youtu.be/VIDEO_ID</li>
+                                <li>https://www.youtube.com/embed/VIDEO_ID</li>
+                              </ul>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

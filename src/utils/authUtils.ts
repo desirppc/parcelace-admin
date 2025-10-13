@@ -75,14 +75,14 @@ export const getStoredUserData = (): any => {
 // Check if session is about to expire (optional - for proactive refresh)
 export const isSessionExpiringSoon = (): boolean => {
   const sessionAge = getSessionAge();
-  // Consider session expiring soon if it's been more than 25 minutes (5 minutes before 30-minute timeout)
-  return sessionAge >= 25;
+  // Consider session expiring soon if it's been more than 8 hours (1 hour before 9-hour timeout)
+  return sessionAge >= 480; // 8 hours in minutes
 };
 
-// Check if session has actually expired (30 minutes)
+// Check if session has actually expired (9 hours - much longer timeout)
 export const isSessionExpired = (): boolean => {
   const sessionAge = getSessionAge();
-  return sessionAge >= 30;
+  return sessionAge >= 540; // 9 hours in minutes
 };
 
 // Enhanced token validation that checks for actual expiration
@@ -90,9 +90,10 @@ export const isTokenActuallyValid = async (token: string | null): Promise<boolea
   if (!token) return false;
   
   try {
-    // Check if session has expired based on time
-    if (isSessionExpired()) {
-      console.log('Session expired based on time (30 minutes)');
+    // Disable automatic session expiry based on time - let the backend handle this
+    // Only check if token exists and has basic validity
+    if (!isTokenValid(token)) {
+      console.log('Token failed basic validation');
       return false;
     }
     

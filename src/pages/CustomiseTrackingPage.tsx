@@ -39,11 +39,24 @@ const CustomiseTrackingPage = () => {
       }
     } catch (error) {
       console.error('Error loading tracking page data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tracking page customization data",
-        variant: "destructive"
-      });
+      
+      // Check if it's a session expiry error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('session has expired') || errorMessage.includes('Session expired')) {
+        toast({
+          title: "Session Expired",
+          description: "Your session has expired. Please log in again to continue.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load tracking page customization data",
+          variant: "destructive"
+        });
+      }
+      
       // Fallback to default values
       setTrackingPageData(TrackingCustomizationService.getDefaultValues());
     } finally {
@@ -76,11 +89,23 @@ const CustomiseTrackingPage = () => {
       }
     } catch (error) {
       console.error('Error saving tracking page customization:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save tracking page customization",
-        variant: "destructive"
-      });
+      
+      // Check if it's a session expiry error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('session has expired') || errorMessage.includes('Session expired')) {
+        toast({
+          title: "Session Expired",
+          description: "Your session has expired. Please log in again to continue.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage || "Failed to save tracking page customization",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -101,7 +126,7 @@ const CustomiseTrackingPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading tracking page customization...</p>
@@ -111,9 +136,9 @@ const CustomiseTrackingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-card/90 via-card/95 to-card/90 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+      <div className="border-b backdrop-blur-lg sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -150,7 +175,7 @@ const CustomiseTrackingPage = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} orientation="horizontal" className="flex gap-8">
           <div className="w-64 shrink-0">
-            <TabsList className="flex flex-col h-fit w-full p-2 bg-gradient-to-b from-card/50 to-muted/30 backdrop-blur-sm border shadow-lg">
+            <TabsList className="flex flex-col h-fit w-full p-2 backdrop-blur-sm border shadow-lg">
               <TabsTrigger 
                 value="primary" 
                 className="w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/10 data-[state=active]:to-primary/5 data-[state=active]:border-primary/20"
@@ -188,7 +213,7 @@ const CustomiseTrackingPage = () => {
               </div>
               
               <div className="grid gap-6">
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -210,7 +235,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -232,7 +257,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -254,7 +279,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -289,7 +314,7 @@ const CustomiseTrackingPage = () => {
               </div>
 
               <div className="grid gap-6">
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -311,7 +336,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -333,7 +358,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -355,7 +380,7 @@ const CustomiseTrackingPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-card/80 via-card/90 to-card/95 backdrop-blur-sm">
+                <Card className="border-0 shadow-lg backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

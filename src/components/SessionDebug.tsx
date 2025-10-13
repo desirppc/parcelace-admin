@@ -14,7 +14,7 @@ const SessionDebug: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setSessionInfo(getSessionInfo());
-    }, 1000);
+    }, 10000); // Changed from 1000ms to 10000ms (10 seconds)
 
     return () => clearInterval(interval);
   }, []);

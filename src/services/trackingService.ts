@@ -76,7 +76,12 @@ export interface TrackingDetails {
 }
 
 export interface TrackingPageMenu {
-  label: string;
+  left_menu_1?: string;
+  left_menu_2?: string;
+  left_menu_3?: string;
+  right_menu_1?: string;
+  right_menu_2?: string;
+  right_menu_3?: string;
   url: string;
 }
 
@@ -123,14 +128,39 @@ export interface TrackingPageYouTube {
   youtube_link: string;
 }
 
+export interface TrackingPageProduct {
+  product_name: string;
+  price: number;
+  description: string;
+  button_text: string;
+  button_link: string;
+  image_url: string;
+}
+
+export interface TrackingPageProductShowcase {
+  show_products: boolean;
+  products: TrackingPageProduct[];
+}
+
+export interface TrackingPageBanner {
+  title: string;
+  description: string;
+  link_url: string;
+  banner_image: string;
+}
+
+export interface TrackingPageBannerCampaigns {
+  show_banners: boolean;
+  banners: TrackingPageBanner[];
+}
+
+export interface TrackingPageRewardsPromotions {
+  offers: any[];
+}
+
 export interface TrackingPageConfig {
-  menu_top: TrackingPageMenu[];
-  header_top: Array<{
-    text: string;
-    position: string;
-    bg_color: string;
-    button_label: string;
-    button_url: string;
+  track_ace_status: Array<{
+    is_active: boolean;
   }>;
   browser_settings: Array<{
     page_title: string;
@@ -139,11 +169,10 @@ export interface TrackingPageConfig {
   header_section: TrackingPageHeader[];
   nps_section: TrackingPageNPSSection[];
   footer_section: TrackingPageFooter[];
+  product_showcase: TrackingPageProductShowcase[];
+  banner_campaigns: TrackingPageBannerCampaigns[];
   video_content: TrackingPageVideoContent[];
-  track_ace_status: Array<{
-    is_active: boolean;
-  }>;
-  youtube_section: TrackingPageYouTube[];
+  rewards_promotions: TrackingPageRewardsPromotions[];
 }
 
 export interface TrackingResponse {

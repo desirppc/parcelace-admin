@@ -39,9 +39,109 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TrackingService } from '@/services/trackingService';
+import { useParams } from 'react-router-dom';
 
-const TrackingV2 = () => {
+interface TrackingV2Props {
+  trackingData?: {
+    warehouse_details?: {
+      city: string;
+    };
+    customer_details?: {
+      shipping_city: string;
+    };
+  };
+}
+
+const TrackingV2: React.FC<TrackingV2Props> = ({ trackingData: propTrackingData }) => {
   const { toast } = useToast();
+  const { awbNumber } = useParams<{ awbNumber: string }>();
+  
+  // State for API tracking data
+  const [apiTrackingData, setApiTrackingData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use API data if available, otherwise use prop data
+  const trackingData = apiTrackingData || propTrackingData;
+  
+  // Fetch tracking data from API
+  useEffect(() => {
+    if (awbNumber) {
+      fetchTrackingData();
+    }
+  }, [awbNumber]);
+  
+  const fetchTrackingData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await TrackingService.getTrackingByAWB(awbNumber!);
+      
+      if (response.status && response.data) {
+        setApiTrackingData(response.data);
+        console.log('🔍 API Tracking Data:', response.data);
+        console.log('🏭 Warehouse City:', response.data.warehouse_details?.city);
+        console.log('🚚 Shipping City:', response.data.customer_details?.shipping_city);
+      } else {
+        setError(response.message || 'Failed to fetch tracking data');
+        toast({
+          title: "Error",
+          description: response.message || 'Failed to fetch tracking data',
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching tracking data:', err);
+      setError('Network error occurred');
+      toast({
+        title: "Error",
+        description: 'Network error occurred while fetching tracking data',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // City coordinates mapping
+  const getCityCoordinates = (cityName: string): [number, number] => {
+    const cityCoords: { [key: string]: [number, number] } = {
+      'Mumbai': [19.0760, 72.8777],
+      'Delhi': [28.6139, 77.2090],
+      'Bangalore': [12.9716, 77.5946],
+      'Hyderabad': [17.3850, 78.4867],
+      'Ahmedabad': [23.0225, 72.5714],
+      'Chennai': [13.0827, 80.2707],
+      'Kolkata': [22.5726, 88.3639],
+      'Pune': [18.5204, 73.8567],
+      'Jaipur': [26.9124, 75.7873],
+      'Lucknow': [26.8467, 80.9462],
+      'Kanpur': [26.4499, 80.3319],
+      'Nagpur': [21.1458, 79.0882],
+      'Indore': [22.7196, 75.8577],
+      'Thane': [19.2183, 72.9781],
+      'Bhopal': [23.2599, 77.4126],
+      'Visakhapatnam': [17.6868, 83.2185],
+      'Pimpri-Chinchwad': [18.6298, 73.7997],
+      'Patna': [25.5941, 85.1376],
+      'Vadodara': [22.3072, 73.1812],
+      'Gurgaon': [28.4595, 77.0266],
+      'Coimbatore': [11.0168, 76.9558],
+      'Rajkot': [22.3039, 70.8022],
+      'Meerut': [28.9845, 77.7064],
+      'Ranchi': [23.3441, 85.3096],
+      'Noida': [28.5355, 77.3910],
+      'Chandigarh': [30.7333, 76.7794],
+      'Ghaziabad': [28.6692, 77.4538],
+      'Faridabad': [28.4089, 77.3178],
+      'Dehradun': [30.3165, 78.0322],
+      'Mysore': [12.2958, 76.6394]
+    };
+    
+    return cityCoords[cityName] || [28.6139, 77.2090]; // Default to Delhi if city not found
+  };
   const [npsScore, setNpsScore] = useState<number | null>(null);
   const [deliveryRating, setDeliveryRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
@@ -121,58 +221,74 @@ const TrackingV2 = () => {
     };
   }, []);
 
+  // Re-initialize map when tracking data changes
+  useEffect(() => {
+    if (mapLoaded && trackingData) {
+      setTimeout(() => {
+        initializeMap();
+      }, 100);
+    }
+  }, [trackingData, mapLoaded]);
+
   const initializeMap = () => {
     // @ts-ignore
     if (typeof L !== 'undefined') {
+      // Clear existing map if it exists
+      const existingMap = document.getElementById('tracking-map');
+      if (existingMap) {
+        existingMap.innerHTML = '';
+      }
+      
+      // Get actual cities from tracking data or use defaults
+      const originCity = trackingData?.warehouse_details?.city || 'Delhi';
+      const destinationCity = trackingData?.customer_details?.shipping_city || 'Mumbai';
+      
+      console.log('🗺️ Map Initialization:', {
+        originCity,
+        destinationCity,
+        hasTrackingData: !!trackingData
+      });
+      
+      // Get coordinates for origin and destination
+      const originCoords = getCityCoordinates(originCity);
+      const destinationCoords = getCityCoordinates(destinationCity);
+      
+      // Calculate center point between origin and destination
+      const centerLat = (originCoords[0] + destinationCoords[0]) / 2;
+      const centerLng = (originCoords[1] + destinationCoords[1]) / 2;
+      
       // @ts-ignore
-      const map = L.map('tracking-map').setView([28.4595, 77.0266], 7); // Center between Delhi and Jaipur
+      const map = L.map('tracking-map').setView([centerLat, centerLng], 6);
       
       // @ts-ignore
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // Delhi (Warehouse)
-      const delhiCoords = [28.6139, 77.2090];
+      // Origin (Warehouse)
       // @ts-ignore
-      const delhiMarker = L.marker(delhiCoords).addTo(map);
-      delhiMarker.bindPopup('<b>Warehouse - Delhi</b><br>Order Picked Up').openPopup();
+      const originMarker = L.marker(originCoords).addTo(map);
+      originMarker.bindPopup(`<b>Origin - ${originCity}</b><br>Warehouse Location`).openPopup();
 
-      // Jaipur (Destination)
-      const jaipurCoords = [26.9124, 75.7873];
+      // Destination (Shipping City)
       // @ts-ignore
-      const jaipurMarker = L.marker(jaipurCoords).addTo(map);
-      jaipurMarker.bindPopup('<b>Destination - Jaipur</b><br>Delivery Address');
+      const destinationMarker = L.marker(destinationCoords).addTo(map);
+      destinationMarker.bindPopup(`<b>Destination - ${destinationCity}</b><br>Delivery Address`);
 
-      // Gurgaon (Current Location)
-      const gurgaonCoords = [28.4595, 77.0266];
+      // Route line from origin to destination
       // @ts-ignore
-      const currentIcon = L.divIcon({
-        className: 'current-location-marker',
-        html: '<div style="background: #3B82F6; border: 3px solid white; border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-      // @ts-ignore
-      const currentMarker = L.marker(gurgaonCoords, { icon: currentIcon }).addTo(map);
-      currentMarker.bindPopup('<b>Current Location - Gurgaon</b><br>In Transit');
-
-      // Route line
-      // @ts-ignore
-      const routeLine = L.polyline([delhiCoords, gurgaonCoords, jaipurCoords], {
+      const routeLine = L.polyline([originCoords, destinationCoords], {
         color: '#3B82F6',
         weight: 4,
         opacity: 0.8,
         dashArray: '10, 5'
       }).addTo(map);
-
-      // Completed route (Delhi to Gurgaon)
-      // @ts-ignore
-      const completedRoute = L.polyline([delhiCoords, gurgaonCoords], {
-        color: '#10B981',
-        weight: 6,
-        opacity: 0.9
-      }).addTo(map);
+      
+      console.log('✅ Map initialized with:', {
+        origin: `${originCity} (${originCoords})`,
+        destination: `${destinationCity} (${destinationCoords})`,
+        center: `[${centerLat}, ${centerLng}]`
+      });
     }
   };
 

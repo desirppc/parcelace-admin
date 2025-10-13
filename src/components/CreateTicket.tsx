@@ -31,7 +31,7 @@ const CreateTicket: React.FC<CreateTicketProps> = ({ hideHeader = false, onSucce
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<any>(null);
 
-  // Monitor session status
+  // Monitor session status - reduced frequency to prevent aggressive checking
   useEffect(() => {
     const updateSessionInfo = () => {
       const info = getSessionInfo();
@@ -41,8 +41,8 @@ const CreateTicket: React.FC<CreateTicketProps> = ({ hideHeader = false, onSucce
     // Update immediately
     updateSessionInfo();
 
-    // Update every 30 seconds
-    const interval = setInterval(updateSessionInfo, 30 * 1000);
+    // Update every 5 minutes instead of 30 seconds to reduce aggressive checking
+    const interval = setInterval(updateSessionInfo, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -66,7 +66,7 @@ const CreateTicket: React.FC<CreateTicketProps> = ({ hideHeader = false, onSucce
       return (
         <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-md mb-4">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <span className="text-sm text-orange-600 font-medium">Session expiring soon - {30 - sessionAgeMinutes} minutes remaining</span>
+          <span className="text-sm text-orange-600 font-medium">Session expiring soon - {540 - sessionAgeMinutes} minutes remaining</span>
         </div>
       );
     }
@@ -75,7 +75,7 @@ const CreateTicket: React.FC<CreateTicketProps> = ({ hideHeader = false, onSucce
       return (
         <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md mb-4">
           <Clock className="h-4 w-4 text-yellow-600" />
-          <span className="text-sm text-yellow-600 font-medium">Session active - {30 - sessionAgeMinutes} minutes remaining</span>
+          <span className="text-sm text-yellow-600 font-medium">Session active - {540 - sessionAgeMinutes} minutes remaining</span>
         </div>
       );
     }
@@ -83,7 +83,7 @@ const CreateTicket: React.FC<CreateTicketProps> = ({ hideHeader = false, onSucce
     return (
       <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md mb-4">
         <CheckCircle className="h-4 w-4 text-green-600" />
-        <span className="text-sm text-green-600 font-medium">Session active - {30 - sessionAgeMinutes} minutes remaining</span>
+        <span className="text-sm text-green-600 font-medium">Session active - {540 - sessionAgeMinutes} minutes remaining</span>
       </div>
     );
   };

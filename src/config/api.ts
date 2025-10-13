@@ -117,6 +117,8 @@ const API_CONFIG = {
     
     // NPS & Feedback
     NPS: 'dashboard/postship/nps',
+    FEEDBACK_RATE_US: 'api/feedback/rate-us',
+    FEEDBACK_NPS: 'api/feedback/nps',
     
     // Tracking
     TRACKING: 'api/tracking',

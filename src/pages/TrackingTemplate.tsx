@@ -11,17 +11,12 @@ import {
   CheckCircle, 
   Package, 
   ShoppingCart,
-  Truck,
-  Calendar,
   MapPin,
   Heart,
   Play,
   Loader2,
-  Clock,
-  Activity,
   MessageCircle,
   X,
-  Phone,
   Shield,
   Star,
   Gift,
@@ -438,33 +433,156 @@ const ScratchCard = ({
 
   return (
     <div className="relative w-full">
-      <canvas
-        ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        className="cursor-crosshair border-2 border-gray-300 rounded-lg shadow-lg w-full h-auto"
-        style={{ 
-          touchAction: 'none',
-          width: '100%',
-          height: 'auto',
-          minHeight: '200px'
-        }}
-      />
+      {/* Consistent Canvas */}
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          className="cursor-crosshair border border-gray-300 rounded-lg shadow-sm w-full h-auto hover:shadow-md transition-shadow duration-300"
+          style={{ 
+            touchAction: 'none',
+            width: '100%',
+            height: 'auto',
+            minHeight: '280px',
+            maxHeight: '320px'
+          }}
+        />
+        
+        {/* Subtle hint */}
+        {!isRevealed && scratchedPixels === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-gray-800/80 rounded-lg px-3 py-2">
+              <p className="text-white text-sm font-medium">👆 Start scratching here!</p>
+            </div>
+          </div>
+        )}
+      </div>
       
-      {/* Progress indicator */}
-      <div className="mt-3 text-center">
-        <div className="text-sm text-gray-600 mb-1">
-          Scratch progress: {Math.round((scratchedPixels / totalPixels) * 100)}%
+      {/* Consistent Progress indicator */}
+      <div className="mt-4 space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600 font-medium">Progress</span>
+          <span className="text-gray-800 font-semibold">{Math.round((scratchedPixels / totalPixels) * 100)}%</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
           <div 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+            className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${(scratchedPixels / totalPixels) * 100}%` }}
           />
         </div>
+        {Math.round((scratchedPixels / totalPixels) * 100) >= 60 && !isRevealed && (
+          <div className="text-center">
+            <p className="text-green-600 text-sm font-medium">🎉 Keep scratching to reveal your reward!</p>
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
+
+// Optimized YouTube Player Component
+const OptimizedYouTubePlayer = ({ videoUrl, title }: { videoUrl: string; title: string }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
+
+  // Extract video ID from YouTube URL
+  const extractVideoId = (url: string): string => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : '';
+  };
+
+  const videoId = extractVideoId(videoUrl);
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    setIsLoaded(true);
+  };
+
+  const handleThumbnailError = () => {
+    setThumbnailError(true);
+  };
+
+  if (!videoUrl || !videoId) {
+    return (
+      <div className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="text-center text-white">
+            <Play className="h-16 w-16 mx-auto mb-4 opacity-50" />
+            <p className="text-lg">Video not available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl group">
+      {!isPlaying ? (
+        // Thumbnail with play button overlay
+        <div className="relative w-full h-full cursor-pointer" onClick={handlePlay}>
+          {/* Thumbnail Image */}
+          <div className="relative w-full h-full">
+            {!thumbnailError ? (
+              <img
+                src={thumbnailUrl}
+                alt={`${title} thumbnail`}
+                className="w-full h-full object-cover"
+                onError={handleThumbnailError}
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <Play className="h-20 w-20 text-white opacity-70" />
+              </div>
+            )}
+            
+            {/* Dark overlay for better play button visibility */}
+            <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-40 transition-opacity duration-300" />
+            
+            {/* Play Button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-300 group-hover:scale-110 group-hover:bg-red-700">
+                <Play className="h-8 w-8 text-white ml-1" />
+              </div>
+            </div>
+            
+            {/* YouTube Logo */}
+            <div className="absolute bottom-4 right-4">
+              <div className="flex items-center gap-2 bg-black bg-opacity-80 px-3 py-1 rounded-full">
+                <svg className="w-6 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span className="text-white text-xs font-medium">YouTube</span>
+              </div>
+            </div>
+            
+            {/* Duration and other info can be added here */}
+            <div className="absolute top-4 left-4">
+              <div className="bg-black bg-opacity-80 px-2 py-1 rounded text-white text-xs font-medium">
+                Click to play
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Actual YouTube iframe (only loads when user clicks play)
+        <iframe
+          src={embedUrl}
+          title={title}
+          className="w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      )}
     </div>
   );
 };
@@ -594,11 +712,6 @@ const TrackingTemplate = () => {
   const [currentPromoCode, setCurrentPromoCode] = useState('');
   const [currentExpiryDate, setCurrentExpiryDate] = useState('');
 
-  // Get customer phone number for OTP
-  const getCustomerPhone = () => {
-    return trackingData?.data?.customer_details?.shipping_phone || '';
-  };
-
   // Handle section click - trigger OTP if not authenticated
   const handleSectionClick = (section: 'nps' | 'delivery' | 'unified') => {
     if (!isAuthenticated) {
@@ -619,8 +732,6 @@ const TrackingTemplate = () => {
     setTimeout(() => {
       // Mockup OTP verification - accept any 6-digit OTP
       if (otp.length === 6) {
-        console.log('Mockup OTP verification successful for AWB:', awbNumber);
-        
         // Generate a session token for this authenticated session
         const sessionToken = `tracking_auth_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
@@ -658,8 +769,6 @@ const TrackingTemplate = () => {
 
   // Handle resend OTP - Mockup version
   const handleResendOTP = async () => {
-    console.log('Mockup: Sending OTP for AWB:', awbNumber);
-    
     toast({
       title: "OTP Sent! 📱",
       description: "Mockup OTP sent successfully (any 6-digit code will work)",
@@ -675,8 +784,6 @@ const TrackingTemplate = () => {
     
     if (npsScore !== null) {
       // TODO: Submit to API with authToken
-      console.log('Submitting NPS with token:', authToken);
-      
       toast({
         title: "Thank you for your feedback! ⭐",
         description: "Your feedback helps us improve our service",
@@ -697,8 +804,6 @@ const TrackingTemplate = () => {
     
     if (deliveryRating !== null) {
       // TODO: Submit to API with authToken
-      console.log('Submitting delivery rating with token:', authToken);
-      
       toast({
         title: "Rating submitted! ⭐",
         description: "Thank you for rating your delivery experience",
@@ -720,13 +825,11 @@ const TrackingTemplate = () => {
     
     // Submit NPS if provided
     if (npsScore !== null) {
-      console.log('Submitting NPS with token:', authToken, 'Score:', npsScore);
       hasFeedback = true;
     }
     
     // Submit delivery rating if provided
     if (deliveryRating !== null) {
-      console.log('Submitting delivery rating with token:', authToken, 'Rating:', deliveryRating);
       hasFeedback = true;
     }
     
@@ -818,7 +921,7 @@ const TrackingTemplate = () => {
       linkElement.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
       document.head.appendChild(linkElement);
       
-      // Add custom CSS for map stretching
+      // Add custom CSS for map stretching and mobile touch handling
       const customCSS = document.createElement('style');
       customCSS.textContent = `
         #tracking-map {
@@ -826,20 +929,39 @@ const TrackingTemplate = () => {
           height: 100% !important;
           min-height: 400px !important;
           aspect-ratio: 4/3 !important;
+          touch-action: pan-x pan-y !important;
         }
         #tracking-map .leaflet-container {
           width: 100% !important;
           height: 100% !important;
           min-height: 400px !important;
           aspect-ratio: 4/3 !important;
+          touch-action: pan-x pan-y !important;
         }
         #tracking-map .leaflet-map-pane {
           width: 100% !important;
           height: 100% !important;
+          touch-action: pan-x pan-y !important;
         }
         #tracking-map .leaflet-pane {
           width: 100% !important;
           height: 100% !important;
+          touch-action: pan-x pan-y !important;
+        }
+        #tracking-map .leaflet-control-container {
+          touch-action: pan-x pan-y !important;
+        }
+        
+        /* Mobile-specific map fixes */
+        @media (max-width: 768px) {
+          #tracking-map {
+            touch-action: pan-x pan-y !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          #tracking-map .leaflet-container {
+            touch-action: pan-x pan-y !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
         }
         
         /* Scratch Card Stretching */
@@ -872,7 +994,6 @@ const TrackingTemplate = () => {
     // Check if Leaflet is loaded and data is available
     // @ts-ignore
     if (typeof L === 'undefined') {
-      console.error('Leaflet library not loaded');
       return;
     }
 
@@ -921,12 +1042,43 @@ const TrackingTemplate = () => {
       const centerCoords: [number, number] = [centerLat, centerLng];
       
       // @ts-ignore
-      const map = L.map('tracking-map').setView(centerCoords, 6);
+      const map = L.map('tracking-map', {
+        zoomControl: true,
+        scrollWheelZoom: false, // Disable scroll wheel zoom to prevent conflicts
+        doubleClickZoom: false, // Disable double-click zoom
+        touchZoom: true, // Allow touch zoom but with proper handling
+        boxZoom: false, // Disable box zoom
+        keyboard: false, // Disable keyboard navigation
+        dragging: true, // Allow dragging
+        attributionControl: true
+      }).setView(centerCoords, 6);
       
       // @ts-ignore
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
+
+      // Add mobile-specific touch handling
+      const mapContainer = map.getContainer();
+      if (mapContainer) {
+        mapContainer.style.touchAction = 'pan-x pan-y';
+        mapContainer.style.webkitOverflowScrolling = 'touch';
+        
+        // Prevent map from interfering with page scroll
+        mapContainer.addEventListener('touchstart', (e) => {
+          // Allow single touch for map interaction
+          if (e.touches.length === 1) {
+            e.stopPropagation();
+          }
+        }, { passive: true });
+        
+        mapContainer.addEventListener('touchmove', (e) => {
+          // Allow single touch for map interaction
+          if (e.touches.length === 1) {
+            e.stopPropagation();
+          }
+        }, { passive: true });
+      }
 
       // Force map to resize and fill container properly
       setTimeout(() => {
@@ -1034,7 +1186,7 @@ const TrackingTemplate = () => {
         opacity: 0.9
       }).addTo(map);
     } catch (error) {
-      console.error('Error initializing map:', error);
+      // Map initialization failed silently
     }
   };
 
@@ -1217,7 +1369,6 @@ const TrackingTemplate = () => {
                   width: '300px',
                   objectFit: 'cover',
                   objectPosition: 'center',
-                  imageRendering: 'crisp-edges',
                   imageRendering: '-webkit-optimize-contrast',
                   transform: 'translateZ(0)',
                   backfaceVisibility: 'hidden',
@@ -1537,7 +1688,7 @@ const TrackingTemplate = () => {
           </CardContent>
         </Card>
 
-        {/* Latest Product Launch Video Section */}
+        {/* Optimized YouTube Video Section */}
         {tracking_page?.video_content?.[0]?.show_video && tracking_page.video_content[0].videos && tracking_page.video_content[0].videos.length > 0 && (
           <Card className="mb-8 shadow-lg border-0" style={{ background: 'linear-gradient(to bottom right, #FEFEFE, #F8FAFC)' }}>
             <CardContent className="p-8">
@@ -1551,25 +1702,10 @@ const TrackingTemplate = () => {
                   </p>
                 </div>
                 <div className="relative max-w-2xl mx-auto">
-                  <div className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
-                    {tracking_page.video_content[0].videos[0].youtube_url ? (
-                      <iframe
-                        src={tracking_page.video_content[0].videos[0].youtube_url.replace('youtu.be/', 'youtube.com/embed/').replace('youtube.com/watch?v=', 'youtube.com/embed/')}
-                        title={tracking_page.video_content[0].videos[0].title || 'Product Launch Video'}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <Play className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                          <p className="text-lg">Video not available</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <OptimizedYouTubePlayer 
+                    videoUrl={tracking_page.video_content[0].videos[0].youtube_url}
+                    title={tracking_page.video_content[0].videos[0].title || 'Product Launch Video'}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -1774,38 +1910,62 @@ const TrackingTemplate = () => {
         )}
       </div>
 
-      {/* Scratch Card Section - At Bottom Before Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="mb-8 shadow-2xl border-4 border-yellow-400 bg-gradient-to-br from-yellow-50 to-pink-50">
-          <CardHeader className="bg-gradient-to-r from-yellow-100 to-orange-100 border-b-4 border-yellow-300 text-center">
-            <CardTitle className="flex flex-col sm:flex-row items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black text-yellow-800 mb-2 px-4">
-              <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-0 sm:mr-4 text-yellow-600" />
-              <span className="text-center">🎁 SCRATCH & WIN YOUR REWARD! 🎁</span>
-              <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 mt-2 sm:mt-0 sm:ml-4 text-yellow-600" />
-            </CardTitle>
-            <p className="text-center text-yellow-700 text-lg sm:text-xl font-bold px-4">🎯 SCRATCH 60% TO REVEAL YOUR EXCLUSIVE PROMO CODE! 🎯</p>
+      {/* Section 6: Scratch Card - Consistent Design */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <Card className="shadow-lg border-0" style={{ background: 'linear-gradient(to bottom right, #FEFEFE, #F8FAFC)' }}>
+          {/* Consistent Header */}
+          <CardHeader className="bg-blue-600 text-white px-6 py-4">
+            <div className="flex items-center justify-center space-x-3">
+              <Gift className="w-6 h-6 text-white" />
+              <CardTitle className="text-xl font-semibold text-white">Scratch & Win Your Reward</CardTitle>
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <p className="text-center text-white/90 text-sm mt-2">Scratch 60% to reveal your exclusive promo code</p>
           </CardHeader>
-          <CardContent className="p-8 bg-gradient-to-br from-yellow-50 to-pink-50">
-            <div className="max-w-4xl mx-auto">
-              {/* Scratch Card Component */}
-              <div className="mb-6 w-full scratch-card-container">
-                <ScratchCard 
-                  onReveal={handleScratchCardReveal} 
-                  reward={defaultReward}
-                />
+          
+          <CardContent className="p-8">
+            <div className="grid lg:grid-cols-2 gap-12">
+              {/* Left: Scratch Card */}
+              <div className="space-y-6">
+                <div className="scratch-card-container">
+                  <ScratchCard 
+                    onReveal={handleScratchCardReveal} 
+                    reward={defaultReward}
+                  />
+                </div>
               </div>
               
-              {/* Instructions */}
-              <div className="text-center">
-                <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-400 rounded-xl p-6 shadow-lg">
-                  <h4 className="font-bold text-blue-800 mb-3 text-xl">🎮 How to play:</h4>
-                  <ul className="text-sm text-blue-700 space-y-2 text-left">
-                    <li className="flex items-center">🖱️ <span className="ml-2">Use your mouse to scratch the gray area</span></li>
-                    <li className="flex items-center">🎯 <span className="ml-2">Scratch at least 60% to reveal your reward</span></li>
-                    <li className="flex items-center">⚠️ <span className="ml-2">Each scratch card can only be used once</span></li>
-                    <li className="flex items-center">⏰ <span className="ml-2">Promo codes have specific expiry dates</span></li>
-                    <li className="flex items-center">🎉 <span className="ml-2">Win amazing discounts on your next order!</span></li>
+              {/* Right: Instructions */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                  <h4 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                    <Star className="w-5 h-5 text-blue-600 mr-2" />
+                    How to Play
+                  </h4>
+                  <ul className="text-sm text-gray-700 space-y-3">
+                    <li className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                      Use your mouse to scratch the gray area
+                    </li>
+                    <li className="flex items-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                      Scratch at least 60% to reveal your reward
+                    </li>
+                    <li className="flex items-center">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                      Each card can only be used once
+                    </li>
                   </ul>
+                </div>
+                
+                <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                  <div className="flex items-center mb-3">
+                    <Sparkles className="w-5 h-5 text-blue-600 mr-2" />
+                    <span className="text-lg font-medium text-blue-800">Win Amazing Rewards!</span>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Get exclusive discounts, free shipping, and special offers on your next order!
+                  </p>
                 </div>
               </div>
             </div>
@@ -1860,7 +2020,6 @@ const TrackingTemplate = () => {
                       width: '250px',
                       objectFit: 'cover',
                       objectPosition: 'center',
-                      imageRendering: 'crisp-edges',
                       imageRendering: '-webkit-optimize-contrast',
                       transform: 'translateZ(0)',
                       backfaceVisibility: 'hidden',
