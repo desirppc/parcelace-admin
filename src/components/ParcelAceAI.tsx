@@ -6,11 +6,17 @@ import { Card } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import { chatGPTService, ChatMessage, ChatResponse } from '@/services/chatGPTService';
-import { conversationService, Conversation } from '@/services/conversationService';
 import { analyticsService } from '@/services/analyticsService';
-import { debugService } from '@/services/debugService';
-import ModelSelector from './ModelSelector';
 import { getBrandMessage, QUICK_RESPONSES } from '@/config/brandConfig';
+
+interface Conversation {
+  id: string;
+  title: string;
+  createdAt: Date;
+  lastMessageAt: Date;
+  messageCount: number;
+  model: string;
+}
 
 interface DisplayMessage {
   id: string;
@@ -54,12 +60,19 @@ const ParcelAceAI = () => {
     analyticsService.testMetricParsing();
     
     // Load recent conversations
-    const recentConversations = conversationService.getRecentConversations();
+    const recentConversations: Conversation[] = []; // Mock implementation
     setConversations(recentConversations);
     
     // Create a new conversation if none exists
     if (recentConversations.length === 0) {
-      const newConversation = conversationService.createConversation('New Chat', selectedModel);
+      const newConversation: Conversation = {
+        id: Date.now().toString(),
+        title: 'New Chat',
+        createdAt: new Date(),
+        lastMessageAt: new Date(),
+        messageCount: 0,
+        model: selectedModel
+      };
       setCurrentConversation(newConversation);
       
       // Add welcome message if AI is not configured
@@ -97,10 +110,17 @@ const ParcelAceAI = () => {
   };
 
   const createNewChat = () => {
-    const newConversation = conversationService.createConversation('New Chat', selectedModel);
+    const newConversation: Conversation = {
+      id: Date.now().toString(),
+      title: 'New Chat',
+      createdAt: new Date(),
+      lastMessageAt: new Date(),
+      messageCount: 0,
+      model: selectedModel
+    };
     setCurrentConversation(newConversation);
     setDisplayMessages([]);
-    setConversations(conversationService.getRecentConversations());
+    setConversations([]); // Mock implementation
   };
 
   const loadConversation = (conversation: Conversation) => {
@@ -115,8 +135,8 @@ const ParcelAceAI = () => {
   };
 
   const deleteConversation = (conversationId: string) => {
-    conversationService.deleteConversation(conversationId);
-    setConversations(conversationService.getRecentConversations());
+    // Mock implementation - conversation deletion
+    setConversations([]); // Mock implementation
     
     if (currentConversation?.id === conversationId) {
       createNewChat();
@@ -134,7 +154,7 @@ const ParcelAceAI = () => {
     };
 
     // Add user message to conversation
-    conversationService.addMessage(currentConversation.id, userMessage);
+    // Mock implementation - add message
 
     // Add user message to display
     const displayUserMessage: DisplayMessage = {
@@ -171,11 +191,8 @@ const ParcelAceAI = () => {
         
         // Add debug information if debug mode is enabled
         if (debugMode) {
-          const debugSession = debugService.getCurrentSession();
-          if (debugSession) {
-            const debugInfo = debugService.formatSessionForDisplay(debugSession);
-            analyticsResponse += '\n\n---\n\n🔍 **DEBUG INFORMATION**\n\n' + debugInfo;
-          }
+          // Debug service removed
+          console.log('Debug mode enabled');
         }
         
         const aiMessage: DisplayMessage = {
@@ -186,13 +203,7 @@ const ParcelAceAI = () => {
           model: 'analytics'
         };
 
-        // Add AI message to conversation
-        if (currentConversation) {
-          conversationService.addMessage(currentConversation.id, {
-            ...aiMessage,
-            role: 'assistant'
-          });
-        }
+        // Mock implementation - add message
 
         setDisplayMessages(prev => 
           prev.map(msg => 
@@ -201,11 +212,11 @@ const ParcelAceAI = () => {
         );
 
         // Update conversations list
-        setConversations(conversationService.getRecentConversations());
+        setConversations([]); // Mock implementation
         
         // End debug session after response is displayed
         if (debugMode) {
-          debugService.endSession();
+          // Debug service removed
         }
         return;
       }
@@ -217,11 +228,8 @@ const ParcelAceAI = () => {
         
         // Add debug information if debug mode is enabled and no analytics result was found
         if (debugMode) {
-          const debugSession = debugService.getCurrentSession();
-          if (debugSession) {
-            const debugInfo = debugService.formatSessionForDisplay(debugSession);
-            fallbackResponse += '\n\n---\n\n🔍 **DEBUG INFORMATION**\n\n' + debugInfo;
-          }
+          // Debug service removed
+          console.log('Debug mode enabled');
         }
         
         const aiMessage: DisplayMessage = {
@@ -239,17 +247,17 @@ const ParcelAceAI = () => {
         
         // End debug session after response is displayed
         if (debugMode) {
-          debugService.endSession();
+          // Debug service removed
         }
         return;
       }
 
-      // Get conversation context
-      const context = conversationService.getConversationContext(currentConversation.id);
+      // Mock implementation - get conversation context
+      const context: ChatMessage[] = [];
 
       // Start debug session for ChatGPT responses if debug mode is enabled
       if (debugMode) {
-        debugService.startSession(message);
+        // Debug service removed
       }
 
       // Generate streaming response
@@ -277,11 +285,8 @@ const ParcelAceAI = () => {
           
           // Add debug information if debug mode is enabled
           if (debugMode) {
-            const debugSession = debugService.getCurrentSession();
-            if (debugSession) {
-              const debugInfo = debugService.formatSessionForDisplay(debugSession);
-              finalContent += '\n\n---\n\n🔍 **DEBUG INFORMATION**\n\n' + debugInfo;
-            }
+            // Debug service removed
+            console.log('Debug mode enabled');
           }
           
           const aiMessage: ChatMessage = {
@@ -292,9 +297,7 @@ const ParcelAceAI = () => {
             model: selectedModel
           };
 
-          // Add AI message to conversation
-          conversationService.addMessage(currentConversation.id, aiMessage);
-          conversationService.updateConversationStats(currentConversation.id, response.usage, selectedModel);
+          // Mock implementation - add message and update stats
 
           // Replace generating message with final response
           const finalDisplayMessage: DisplayMessage = {
@@ -313,11 +316,11 @@ const ParcelAceAI = () => {
           );
 
           // Update conversations list
-          setConversations(conversationService.getRecentConversations());
+          setConversations([]); // Mock implementation
           
           // End debug session if debug mode is enabled
           if (debugMode) {
-            debugService.endSession();
+            console.log('Debug session ended');
           }
         },
         (error: Error) => {
@@ -325,7 +328,7 @@ const ParcelAceAI = () => {
           
           // End debug session if debug mode is enabled
           if (debugMode) {
-            debugService.endSession();
+            console.log('Debug session ended');
           }
           
           const errorMessage: DisplayMessage = {
@@ -377,8 +380,8 @@ const ParcelAceAI = () => {
       });
     } finally {
       // End debug session if debug mode is enabled and session is still active
-      if (debugMode && debugService.getCurrentSession()) {
-        debugService.endSession();
+      if (debugMode) {
+        // Debug service removed
       }
       
       setIsLoading(false);
@@ -501,10 +504,7 @@ const ParcelAceAI = () => {
           
           {showSettings && (
             <div className="mt-4">
-              <ModelSelector
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-              />
+              {/* Model selector removed */}
             </div>
           )}
         </div>

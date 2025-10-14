@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { orderService } from '@/services/orderService';
-import CourierPartnerSelection from './CourierPartnerSelection';
 import pincodeMapping from '@/data/pincode-city-state.json';
 
 // Initial empty state
@@ -1740,11 +1739,10 @@ const OrderDetails = () => {
             <DialogTitle>Select Courier Partner for Order {order_details.order_id}</DialogTitle>
           </DialogHeader>
           <div className="mt-4">
-            <CourierPartnerSelection
-              orderSummary={getOrderSummaryForCourier()}
-              onCourierSelect={handleCourierSelect}
-              initialShipRates={[]}
-            />
+            {/* Courier selection component removed */}
+            <div className="text-center text-gray-500 py-8">
+              Courier selection functionality has been removed.
+            </div>
           </div>
         </DialogContent>
       </Dialog>

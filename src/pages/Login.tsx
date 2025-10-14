@@ -62,7 +62,45 @@ const Login = () => {
       localStorage.removeItem('parcelace_remember_credentials');
     }
 
-    // Check for demo credentials first
+    // Check for admin credentials first
+    if (email === 'hitesh.verma0@gmail.com' && password === 'admin123') {
+      console.log('Using admin login for hitesh.verma0@gmail.com');
+      
+      // Store admin user data
+      const adminUserData = {
+        id: 999,
+        name: 'Hitesh Verma',
+        email: 'hitesh.verma0@gmail.com',
+        username: 'hitesh_admin',
+        phone: '+919876543210',
+        auth_token: 'admin-token-hitesh-123',
+        access_token: 'admin-access-token-hitesh',
+        shop: 'Admin Shop',
+        is_kyc_verified: 1,
+        is_onboarding_filled: true,
+        mobile_verified_at: new Date().toISOString(),
+        user_role: 'admin'
+      };
+
+      localStorage.setItem('auth_token', 'admin-token-hitesh-123');
+      sessionStorage.setItem('auth_token', 'admin-token-hitesh-123');
+      localStorage.setItem('user_data', JSON.stringify(adminUserData));
+      sessionStorage.setItem('user_data', JSON.stringify(adminUserData));
+      
+      // Use the auth hook to handle login
+      login(adminUserData, 'admin-token-hitesh-123');
+      
+      toast({
+        title: "Admin Login Successful",
+        description: "Welcome to the admin dashboard!",
+      });
+      
+      navigate('/dashboard/orders');
+      setIsLoading(false);
+      return;
+    }
+
+    // Check for demo credentials
     if (email === 'demo@parcelace.io' && password === 'demo123') {
       console.log('Using demo login');
       
@@ -78,7 +116,8 @@ const Login = () => {
         shop: 'Demo Shop',
         is_kyc_verified: 1,
         is_onboarding_filled: true,
-        mobile_verified_at: new Date().toISOString()
+        mobile_verified_at: new Date().toISOString(),
+        user_role: 'user'
       };
 
       localStorage.setItem('auth_token', 'demo-token-123');
@@ -123,19 +162,28 @@ const Login = () => {
       console.log('Response data:', data);
 
       if (response.ok && data.status) {
+        // Check if this is an admin user and add admin role
+        const userData = data.data;
+        if (userData.email === 'hitesh.verma0@gmail.com') {
+          console.log('🔑 Admin user detected, setting admin role and auto-verifying mobile');
+          userData.user_role = 'admin';
+          userData.mobile_verified_at = new Date().toISOString(); // Auto-verify admin
+          console.log('🔑 Modified user data:', userData);
+        }
+        
         // Store tokens and user info
         localStorage.setItem('auth_token', data.data.auth_token);
         localStorage.setItem('access_token', data.data.access_token);
-        localStorage.setItem('user_data', JSON.stringify(data.data));
+        localStorage.setItem('user_data', JSON.stringify(userData));
         sessionStorage.setItem('auth_token', data.data.auth_token);
         sessionStorage.setItem('access_token', data.data.access_token);
-        sessionStorage.setItem('user_data', JSON.stringify(data.data));
+        sessionStorage.setItem('user_data', JSON.stringify(userData));
         
         // Use the auth hook to handle login
-        login(data.data, data.data.auth_token);
+        login(userData, data.data.auth_token);
         
         // Save user data to session storage for Razorpay integration
-        sessionStorage.setItem('user', JSON.stringify(data.data));
+        sessionStorage.setItem('user', JSON.stringify(userData));
         
         // Set initial wallet balance (you can fetch this from your API)
         sessionStorage.setItem('walletBalance', '0');
@@ -160,10 +208,15 @@ const Login = () => {
         });
         
         // Check mobile verification and onboarding status
-        const userData = data.data;
+        // Admin users bypass OTP verification
+        console.log('🔍 Login verification check:', {
+          mobileVerifiedAt: userData.mobile_verified_at,
+          userRole: userData.user_role,
+          isAdmin: userData.user_role === 'admin',
+          userEmail: userData.email
+        });
         
-        // If mobile is not verified, navigate to OTP verification
-        if (!userData.mobile_verified_at) {
+        if (!userData.mobile_verified_at && userData.user_role !== 'admin') {
           console.log('Mobile not verified, navigating to OTP verification');
           navigate('/otp-verification', { 
             state: { 
@@ -175,13 +228,18 @@ const Login = () => {
           return;
         }
         
-        // If onboarding is not filled, go to onboarding wizard
-        if (!userData.is_onboarding_filled) {
+        // If onboarding is not filled, go to onboarding wizard (skip for admin users)
+        if (!userData.is_onboarding_filled && userData.user_role !== 'admin') {
+          console.log('⚠️ Onboarding not completed, redirecting to wizard');
           navigate('/onboarding/wizard');
           return;
         }
         
-        // If both mobile verified and onboarding filled, go to orders page
+        // Admin users and fully verified users go to dashboard
+        console.log('✅ User fully verified, navigating to dashboard');
+        if (userData.user_role === 'admin') {
+          console.log('🔑 Admin user bypassing onboarding, going directly to dashboard');
+        }
         navigate('/dashboard/orders');
         } else {
           toast({

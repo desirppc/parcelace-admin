@@ -321,6 +321,15 @@ export const isMobileVerified = (): boolean => {
   return userData && userData.mobile_verified_at;
 };
 
+export const isAdminUser = (): boolean => {
+  const userData = getStoredUserData();
+  return userData && userData.user_role === 'admin';
+};
+
+export const isAdminUserByEmail = (email: string): boolean => {
+  return email === 'hitesh.verma0@gmail.com';
+};
+
 export const isOnboardingCompleted = (): boolean => {
   const userData = getStoredUserData();
   return userData && userData.is_onboarding_filled;

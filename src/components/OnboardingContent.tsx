@@ -1,6 +1,5 @@
 import React, { Suspense, lazy } from 'react';
 import { Package, Shield, Truck, CreditCard, FileText, MessageSquare, BarChart3, Settings, Building, RefreshCw, Star } from 'lucide-react';
-import { SupportTicket } from '@/types/support';
 
 // Lazy load all components to prevent them from loading when OnboardingContent loads
 const KYCVerification = lazy(() => import('./KYCVerification'));
@@ -13,9 +12,6 @@ const EarlyCODPlans = lazy(() => import('./EarlyCODPlans'));
 const ReturnPro = lazy(() => import('./ReturnPro'));
 const Billing = lazy(() => import('./Billing'));
 const ShippingLabelSettings = lazy(() => import('./ShippingLabelSettings'));
-const WarehouseScreen = lazy(() => import('./WarehouseScreen'));
-const SupportDashboard = lazy(() => import('./SupportDashboard'));
-const CreateTicket = lazy(() => import('./CreateTicket'));
 
 // Loading component for Suspense fallback
 const ComponentLoader = () => (
@@ -29,11 +25,6 @@ interface OnboardingContentProps {
 }
 
 const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem }) => {
-  const handleTicketSelect = (ticket: SupportTicket) => {
-    console.log('Selected ticket:', ticket);
-    // TODO: Implement ticket selection logic (e.g., open ticket details modal)
-  };
-
   const renderContent = () => {
     switch (activeMenuItem) {
       case 'onboarding':
@@ -109,16 +100,6 @@ const OnboardingContent: React.FC<OnboardingContentProps> = ({ activeMenuItem })
         return <Suspense fallback={<ComponentLoader />}><Billing /></Suspense>;
       case 'tracking-page':
         return <Suspense fallback={<ComponentLoader />}><ShippingLabelSettings /></Suspense>;
-      case 'warehouse-location':
-        return <Suspense fallback={<ComponentLoader />}><WarehouseScreen /></Suspense>;
-
-      case 'support-dashboard':
-        return <Suspense fallback={<ComponentLoader />}><SupportDashboard /></Suspense>;
-      case 'create-ticket':
-        return <Suspense fallback={<ComponentLoader />}><CreateTicket /></Suspense>;
-      case 'my-tickets':
-      case 'ticket-history':
-        return <Suspense fallback={<ComponentLoader />}><SupportDashboard /></Suspense>; // Redirect to support dashboard instead
 
       default:
         return (

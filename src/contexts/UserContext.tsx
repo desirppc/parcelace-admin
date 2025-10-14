@@ -22,6 +22,7 @@ interface UserData {
   return_service: string;
   waba_service: string;
   comment: string;
+  user_role: string;
   // Add other fields as needed
 }
 
@@ -80,10 +81,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setWalletBalance(parseInt(savedBalance));
     }
     
-    // Only fetch wallet balance if we have a user
-    if (savedUser || savedUserData) {
-      updateWalletBalance();
-    }
+    // Wallet balance fetching disabled as requested
+    // if (savedUser || savedUserData) {
+    //   updateWalletBalance();
+    // }
   }, []);
 
   // Save user data to session storage when it changes

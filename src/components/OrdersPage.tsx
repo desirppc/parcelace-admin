@@ -37,7 +37,6 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useNavigate, useLocation } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
-import CourierPartnerSelection from './CourierPartnerSelection';
 import { orderService } from '@/services/orderService';
 import API_CONFIG from '@/config/api';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
@@ -80,10 +79,6 @@ const OrdersPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const [warehouses, setWarehouses] = useState([]);
-  const [warehousesLoading, setWarehousesLoading] = useState(true);
-  const [warehouseSearch, setWarehouseSearch] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   
   // Import order states
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -189,38 +184,6 @@ const OrdersPage = () => {
   }, [currentPageType, currentPage, pageSize]);
 
   useEffect(() => {
-    const fetchWarehouses = async () => {
-      setWarehousesLoading(true);
-      try {
-        let authToken = sessionStorage.getItem('auth_token');
-        if (!authToken) authToken = localStorage.getItem('auth_token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Accept': 'application/json',
-          },
-        });
-        const data = await response.json();
-        let warehousesData = [];
-        if (data && data.status && data.data && Array.isArray(data.data.warehouses_data)) {
-          warehousesData = data.data.warehouses_data;
-        } else if (data && Array.isArray(data)) {
-          warehousesData = data;
-        } else if (data && data.data && Array.isArray(data.data.warehouses)) {
-          warehousesData = data.data.warehouses;
-        } else if (data && data.data && data.data.warehouses && Array.isArray(data.data.warehouses)) {
-          warehousesData = data.data.warehouses;
-        } else if (data && data.warehouses && Array.isArray(data.warehouses)) {
-          warehousesData = data.warehouses;
-        }
-        setWarehouses(warehousesData);
-      } catch (error) {
-        setWarehouses([]);
-      } finally {
-        setWarehousesLoading(false);
-      }
-    };
-    fetchWarehouses();
   }, []);
 
   // Filter orders based on current page type
@@ -440,40 +403,28 @@ const OrdersPage = () => {
       return;
     }
 
-    // Show the bulk ship modal for warehouse selection
+    // Show the bulk ship modal for courier selection
     setShowBulkShipModal(true);
   };
 
   const handleBulkShipConfirm = async () => {
-    if (!selectedWarehouse) {
-      toast({
-        title: "No Warehouse Selected",
-        description: "Please select a warehouse to proceed.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const currentPageSelectedIds = getCurrentPageSelectedIds();
     
     try {
       // Close the modal
       setShowBulkShipModal(false);
       
-      // Navigate to CourierChoiceHub with selected orders and warehouse
+      // Navigate to CourierChoiceHub with selected orders
       navigate('/dashboard/shipments/courier-choice-hub', {
         state: {
           selectedOrders: currentPageSelectedIds,
-          warehouseId: selectedWarehouse.id.toString(),
-          rtoId: selectedWarehouse.id.toString() // Same as warehouse ID
+          warehouseId: '60', // Default warehouse ID
+          rtoId: '60' // Default RTO ID
         }
       });
       
       // Clear the current page selections
       setSelectedOrders(prev => prev.filter(id => !currentPageSelectedIds.includes(id)));
-      
-      // Reset warehouse selection
-      setSelectedWarehouse(null);
       
     } catch (error) {
       console.error('Error in bulk ship confirmation:', error);
@@ -487,23 +438,8 @@ const OrdersPage = () => {
 
 
 
-  const handleWarehouseSelect = (warehouse: any) => {
-    setSelectedWarehouse(warehouse);
-  };
-
-
-
   const confirmShipment = () => {
-    if (!selectedWarehouse) {
-      toast({
-        title: "No Warehouse Selected",
-        description: "Please select a warehouse to proceed.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Close warehouse modal and open courier selection
+    // Close courier modal and open courier selection
     setShowShipModal(false);
     setShowCourierSelection(true);
     setSelectedOrderForShipping(selectedOrder);
@@ -851,14 +787,6 @@ const OrdersPage = () => {
     clearCacheByPrefix(CacheGroups.orders);
     fetchOrders();
   };
-
-  const filteredWarehouses = Array.isArray(warehouses)
-    ? warehouses.filter(warehouse =>
-        (warehouse.warehouse_name || '').toLowerCase().includes(warehouseSearch.toLowerCase()) ||
-        (warehouse.city || '').toLowerCase().includes(warehouseSearch.toLowerCase()) ||
-        (warehouse.state || '').toLowerCase().includes(warehouseSearch.toLowerCase())
-      )
-    : [];
 
   const hasSelectedOrders = selectedOrders.length > 0;
   
@@ -1348,19 +1276,16 @@ const OrdersPage = () => {
     console.log('Order ID:', order.order_id);
     console.log('Order ID type:', typeof order.order_id);
     console.log('Parsed order ID:', parseInt(order.order_id));
-    console.log('Selected warehouse:', selectedWarehouse);
-    console.log('Order warehouse details:', order.warehouse_details);
     
-    // Use selected warehouse if available, otherwise fall back to order data
-    const warehouseDetails = selectedWarehouse || order.warehouse_details;
-    const pickupLocation = warehouseDetails 
-      ? `${warehouseDetails.city || 'Unknown'}, ${warehouseDetails.state || 'Unknown'} - ${warehouseDetails.pincode || 'Unknown'}`
-      : "Warehouse location to be determined";
+    // Use default warehouse details
+    const pickupLocation = order.warehouse_details 
+      ? `${order.warehouse_details.city || 'Unknown'}, ${order.warehouse_details.state || 'Unknown'} - ${order.warehouse_details.pincode || 'Unknown'}`
+      : "Default warehouse location";
 
     const result = {
       orderId: parseInt(order.order_id) || 1,
-      warehouseId: warehouseDetails?.id || 60,
-      rtoId: warehouseDetails?.id || 60,
+      warehouseId: 60, // Default warehouse ID
+      rtoId: 60, // Default RTO ID
       parcelType: order.parcel_type || 'parcel',
       pickupLocation: pickupLocation,
       deliveryLocation: `${order.customer_details?.city || 'Unknown'}, ${order.customer_details?.zipcode || 'Unknown'}`,
@@ -2353,70 +2278,28 @@ const OrdersPage = () => {
           <Dialog open={showShipModal} onOpenChange={setShowShipModal}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Select Warehouse for {selectedOrder?.order_no}</DialogTitle>
+                <DialogTitle>Ship Order {selectedOrder?.order_no}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search warehouses..." 
-                    className="pl-10"
-                    value={warehouseSearch}
-                    onChange={(e) => setWarehouseSearch(e.target.value)}
-                  />
-                </div>
-                <div className="max-h-60 overflow-y-auto space-y-2">
-                  {warehousesLoading ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading warehouses...</div>
-                  ) : filteredWarehouses.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No warehouses found.</div>
-                  ) : filteredWarehouses.map((warehouse) => (
-                    <div 
-                      key={warehouse.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                        selectedWarehouse?.id === warehouse.id 
-                          ? 'border-primary bg-gradient-to-r from-pink-500/10 to-blue-600/10' 
-                          : 'hover:bg-gradient-to-r hover:from-pink-500/5 hover:to-blue-600/5 hover:border-primary/20'
-                      }`}
-                      onClick={() => handleWarehouseSelect(warehouse)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{warehouse.warehouse_name}</div>
-                          <div className="text-sm text-muted-foreground">{warehouse.city}, {warehouse.state}</div>
-                          <div className="text-xs text-muted-foreground">{warehouse.pincode}</div>
-                        </div>
-                        {selectedWarehouse?.id === warehouse.id && (
-                          <Check className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p>Ready to ship this order? You'll be taken to the courier selection page.</p>
                 <div className="flex justify-end space-x-3 pt-4 border-t">
                   <Button 
                     variant="outline" 
-                    onClick={() => {
-                      setShowShipModal(false);
-                      setSelectedWarehouse(null);
-                    }}
+                    onClick={() => setShowShipModal(false)}
                   >
-                    Close
+                    Cancel
                   </Button>
                   <Button 
                     onClick={confirmShipment}
                     className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
                   >
                     <Ship className="w-4 h-4 mr-2" />
-                    Ship
+                    Proceed to Ship
                   </Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
-
-
-            
 
           {/* Bulk Ship Modal */}
           <Dialog open={showBulkShipModal} onOpenChange={setShowBulkShipModal}>
@@ -2424,7 +2307,7 @@ const OrdersPage = () => {
               <DialogHeader>
                 <DialogTitle>Get Courier Rates for {getCurrentPageSelectedCount()} Orders</DialogTitle>
                 <DialogDescription>
-                  Select a warehouse to get real-time courier rates and pricing for your selected orders
+                  Ready to get courier rates for your selected orders?
                 </DialogDescription>
                 {!canBulkShipSelectedOrders() && (
                   <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
@@ -2433,77 +2316,28 @@ const OrdersPage = () => {
                 )}
               </DialogHeader>
               <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search warehouses..." 
-                    className="pl-10"
-                    value={warehouseSearch}
-                    onChange={(e) => setWarehouseSearch(e.target.value)}
-                  />
+                <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  💡 <strong>What happens next?</strong> You'll be taken to the Courier Choice Hub where you can:
+                  <ul className="mt-2 ml-4 list-disc space-y-1">
+                    <li>Get real-time courier rates for your selected orders</li>
+                    <li>Compare different courier partners and pricing</li>
+                    <li>Apply bulk courier selection to all orders at once</li>
+                  </ul>
                 </div>
-                <div className="max-h-60 overflow-y-auto space-y-2">
-                  {warehousesLoading ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading warehouses...</div>
-                  ) : filteredWarehouses.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No warehouses found.</div>
-                  ) : filteredWarehouses.map((warehouse) => (
-                    <div 
-                      key={warehouse.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                        selectedWarehouse?.id === warehouse.id 
-                          ? 'border-primary bg-gradient-to-r from-pink-500/10 to-blue-600/10' 
-                          : 'hover:bg-gradient-to-r hover:from-pink-500/5 hover:to-blue-600/5 hover:border-primary/20'
-                      }`}
-                      onClick={() => handleWarehouseSelect(warehouse)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{warehouse.warehouse_name}</div>
-                          <div className="text-sm text-muted-foreground">{warehouse.city}, {warehouse.state}</div>
-                          <div className="text-xs text-muted-foreground">{warehouse.pincode}</div>
-                        </div>
-                        {selectedWarehouse?.id === warehouse.id && (
-                          <Check className="w-5 h-4 text-primary" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  {!selectedWarehouse ? (
-                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                      ⚠️ <strong>Please select a warehouse first</strong> to proceed to the Courier Choice Hub
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
-                      💡 <strong>What happens next?</strong> After selecting a warehouse, you'll be taken to the Courier Choice Hub where you can:
-                      <ul className="mt-2 ml-4 list-disc space-y-1">
-                        <li>Get real-time courier rates for your selected orders</li>
-                        <li>Compare different courier partners and pricing</li>
-                        <li>Apply bulk courier selection to all orders at once</li>
-                      </ul>
-                    </div>
-                  )}
-                  <div className="flex justify-end space-x-3 pt-2 border-t">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setShowBulkShipModal(false);
-                        setSelectedWarehouse(null);
-                      }}
-                    >
-                      Close
-                    </Button>
-                    <Button 
-                      onClick={handleBulkShipConfirm}
-                      className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
-                      disabled={!selectedWarehouse}
-                    >
-                      <Ship className="w-4 h-4 mr-2" />
-                      Get Courier Rates
-                    </Button>
-                  </div>
+                <div className="flex justify-end space-x-3 pt-2 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowBulkShipModal(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    onClick={handleBulkShipConfirm}
+                    className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
+                  >
+                    <Ship className="w-4 h-4 mr-2" />
+                    Get Courier Rates
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -2586,12 +2420,9 @@ const OrdersPage = () => {
                 <DialogTitle>Select Courier Partner for Order {selectedOrderForShipping?.order_no}</DialogTitle>
               </DialogHeader>
               <div className="mt-4">
-                {selectedOrderForShipping && (
-                  <CourierPartnerSelection
-                    orderSummary={getOrderSummaryForCourier(selectedOrderForShipping)}
-                    onCourierSelect={handleCourierSelect}
-                  />
-                )}
+                <div className="text-center text-gray-500 py-8">
+                  Courier selection functionality has been removed.
+                </div>
               </div>
             </DialogContent>
           </Dialog>

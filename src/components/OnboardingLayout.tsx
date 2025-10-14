@@ -33,7 +33,8 @@ import {
   BarChart3,
   Mail,
   Building,
-  Star
+  Star,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,39 +64,13 @@ const OnboardingLayout = () => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['onboarding']);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const navigate = useNavigate();
-  const { walletBalance, updateWalletBalance, user } = useUser();
+  const { user } = useUser();
   
   // Add refs for timeout management
   const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const submenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update wallet balance on mount and when wallet is updated
-  useEffect(() => {
-    updateWalletBalance();
-    
-    const handleWalletUpdate = () => {
-      updateWalletBalance();
-    };
-    
-    window.addEventListener('walletBalanceUpdated', handleWalletUpdate);
-    
-    return () => {
-      window.removeEventListener('walletBalanceUpdated', handleWalletUpdate);
-    };
-  }, [updateWalletBalance]);
-
   const menuItems: MenuItem[] = [
-    {
-      id: 'onboarding',
-      title: 'Onboarding',
-      icon: Home,
-      progress: 30,
-      subItems: [
-        { id: 'checklist', title: 'Onboarding Checklist', icon: CheckCircle, progress: 60 },
-        { id: 'kyc', title: 'KYC Verification', icon: Fingerprint, progress: 0, route: '/dashboard/kyc' },
-        { id: 'integration', title: 'Shopify Integration', icon: Circle, progress: 0 }
-      ]
-    },
     {
       id: 'orders',
       title: 'Orders',
@@ -106,95 +81,42 @@ const OnboardingLayout = () => {
       id: 'shipments',
       title: 'Shipments',
       icon: Truck,
-      subItems: [
-        { id: 'prepaid-shipments', title: 'Prepaid Shipments', icon: Truck },
-        { id: 'reverse-shipments', title: 'Reverse Shipments', icon: Truck }
-      ]
-    },
-    {
-      id: 'finance',
-      title: 'Finance',
-      icon: DollarSign,
-      subItems: [
-        { id: 'cod-remittance', title: 'COD Remittance', icon: Receipt },
-        { id: 'wallet-transaction', title: 'Wallet Transaction', icon: Wallet },
-        { id: 'early-cod', title: 'Early COD', icon: Zap },
-        { id: 'invoice', title: 'Invoice', icon: FileText }
-      ]
-    },
-    {
-      id: 'postship',
-      title: 'Postship',
-      icon: RefreshCw,
-      subItems: [
-        { id: 'return-pro', title: 'Return Pro', icon: Package },
-        { id: 'brand-details', title: 'Brand Details', icon: Building },
-        { id: 'nps', title: 'NPS', icon: Star },
-        { id: 'customise-tracking', title: 'Customise Tracking', icon: Settings },
-        { id: 'notify-ace', title: 'Notify Ace', icon: MessageSquare }
-      ]
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      icon: Settings,
-      subItems: [
-        { id: 'billing', title: 'Billing', icon: CreditCard },
-        { id: 'tracking-page', title: 'Customise Label', icon: Tag },
-        { id: 'warehouse', title: 'Warehouse', icon: Building },
-        { id: 'courier-priority', title: 'Courier Priority', icon: Bolt }
-      ]
+      route: '/dashboard/shipments'
     },
     {
       id: 'support',
       title: 'Support',
-      icon: MessageSquare,
+      icon: Headphones,
       route: '/dashboard/support/support-dashboard'
     },
-
     {
-      id: 'reports',
-      title: 'Reports',
-      icon: BarChart3,
-      subItems: [
-        { id: 'daily-report', title: 'Daily Report', icon: BarChart3 },
-        { id: 'admin-email', title: 'Admin Email Reports', icon: Mail }
-      ]
+      id: 'ai',
+      title: 'AI Assistant',
+      icon: MessageCircle,
+      route: '/dashboard/ai'
     },
-
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      icon: BarChart3,
+      route: '/dashboard/analytics'
+    },
+    {
+      id: 'users',
+      title: 'Users',
+      icon: User,
+      route: '/dashboard/users'
+    }
   ];
 
   const routeMapping: { [key: string]: string } = {
     // Dashboard Routes (Primary)
-    'checklist': '/onboarding/checklist',
-    'integration': '/onboarding/shopify-integration',
-    'aadhar-verification': '/dashboard/kyc',
-    'pan-verification': '/dashboard/kyc',
-    'bank-verification': '/dashboard/kyc',
-    'gst-verification': '/dashboard/kyc',
-    'prepaid-orders': '/dashboard/orders',
-    'prepaid-shipments': '/dashboard/shipments/prepaid',
-    'reverse-shipments': '/dashboard/shipments/reverse',
-    'courier-priority-rules': '/dashboard/settings/courier-priority-rules',
-    'cod-remittance': '/dashboard/finance/cod-remittance',
-    'wallet-transaction': '/dashboard/finance/wallet-transaction',
-    'early-cod': '/dashboard/finance/early-cod',
-    'invoice': '/dashboard/finance/invoice',
-    'return-pro': '/onboarding/postship/return-pro',
-    'brand-details': '/dashboard/postship/brand-details',
-    'nps': '/dashboard/postship/nps',
-    'customise-tracking': '/dashboard/postship/customise-tracking',
-    'notify-ace': '/dashboard/postship/notify-ace',
-    'billing': '/dashboard/settings/billing',
-    'tracking-page': '/dashboard/settings/customise-shipping-label',
-    'courier-priority': '/dashboard/settings/courier-priority-rules',
-    'warehouse': '/dashboard/warehouse',
-    'warehouse-location': '/dashboard/settings/warehouse',
-    'support-dashboard': '/dashboard/support/support-dashboard',
-    'create-ticket': '/dashboard/support/create-ticket',
-    'daily-report': '/dashboard/reports/daily',
-    'admin-email': '/dashboard/reports/admin-email'
-
+    'orders': '/dashboard/orders',
+    'shipments': '/dashboard/shipments',
+    'support': '/dashboard/support/support-dashboard',
+    'ai': '/dashboard/ai',
+    'analytics': '/dashboard/analytics',
+    'users': '/dashboard/users'
   };
 
   const toggleMenu = (menuId: string) => {
@@ -213,18 +135,6 @@ const OnboardingLayout = () => {
       toggleMenu(menuId);
     }
   };
-
-  const settingsOptions = [
-    { icon: Tag, label: 'Shipping Labels' },
-    { icon: Receipt, label: 'Billing & Invoices' },
-    { icon: Building, label: 'Warehouse Location' },
-    { icon: BankIcon, label: 'Bank Accounts' },
-    { icon: Bolt, label: 'Courier Priority' },
-    { icon: Link, label: 'Tracking Links' },
-    { icon: MessageSquare, label: 'WhatsApp Notifications' },
-    { icon: AlertTriangle, label: 'Admin Alerts' },
-    { icon: Phone, label: 'Contact Person' }
-  ];
 
   const handleLogout = async () => {
     try {
@@ -468,3 +378,4 @@ const OnboardingLayout = () => {
 };
 
 export default OnboardingLayout;
+

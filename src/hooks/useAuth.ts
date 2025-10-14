@@ -26,6 +26,7 @@ interface UserData {
   return_service: string;
   waba_service: string;
   comment: string;
+  user_role: string;
   [key: string]: any;
 }
 

@@ -43,7 +43,6 @@ export default defineConfig(({ mode }) => ({
             './src/pages/Index',
             './src/components/OrdersPage',
             './src/components/ShipmentPage',
-            './src/components/WarehouseScreen',
             './src/components/ParcelAceAI',
             './src/pages/AnalyticsTest'
           ],
@@ -51,45 +50,13 @@ export default defineConfig(({ mode }) => ({
             './src/components/TrackingPage',
             './src/components/TrackingV2Page',
             './src/pages/PublicTracking',
-            './src/pages/TrackingTemplate',
-            './src/pages/CustomiseTrackingPage'
+            './src/pages/TrackingTemplate'
           ],
           'onboarding': [
-            './src/components/OnboardingWizard',
-            './src/pages/OnboardingChecklist',
-            './src/pages/OnboardingPrepaidOrders',
-            './src/pages/OnboardingKYC',
-            './src/pages/OnboardingPrepaidShipments',
-            './src/pages/OnboardingReverseShipments',
-            './src/pages/OnboardingShipmentTracking',
-            './src/pages/OnboardingCourierSelection',
-            './src/pages/OnboardingCODRemittance',
-            './src/pages/OnboardingWalletTransaction',
-            './src/pages/OnboardingEarlyCOD',
-            './src/pages/OnboardingInvoice',
-            './src/pages/OnboardingBilling',
-            './src/pages/OnboardingTrackingPage',
-            './src/pages/OnboardingSupportDashboard',
-            './src/pages/OnboardingCreateTicket',
-            './src/pages/OnboardingShopifyIntegration',
-            './src/pages/OnboardingReturnPro'
+            './src/components/OnboardingWizard'
           ],
-          'finance': [
-            './src/pages/CODRemittanceDetails',
-            './src/pages/DailyReport',
-            './src/pages/AdminEmailReportsPage'
-          ],
-          'support': [
-            './src/pages/NotifyAce',
-            './src/pages/NPS',
-            './src/pages/BrandDetails'
-          ],
-          'settings': [
-            './src/pages/CourierChoiceHub',
-            './src/pages/CourierPriorityRules',
-            './src/components/ProfilePage',
-            './src/components/ProfileTest'
-          ]
+          'finance': [],
+          'settings': []
         }
       }
     },

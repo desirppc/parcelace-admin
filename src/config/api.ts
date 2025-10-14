@@ -85,13 +85,6 @@ const API_CONFIG = {
     WALLET_RECHARGE: 'api/wallet/recharge',
     COD_REMITTANCE: 'api/cod-remittance',
     
-    // Support & Tickets
-    SUPPORT: 'api/support',
-    TICKETS: 'api/support/tickets',
-    CREATE_TICKET: 'api/support/tickets/create',
-    TICKET_DETAILS: 'api/support/tickets/details',
-    TICKET_REPLY: 'api/support/tickets/reply',
-    
     // Notifications
     NOTIFICATIONS: 'api/notifications',
     NOTIFICATIONS_MARK_READ: 'api/notifications/mark-read',
@@ -99,11 +92,6 @@ const API_CONFIG = {
     // KYC & Verification
     KYC_VERIFICATION: 'api/kyc/verify',
     KYC_STATUS: 'api/kyc/status',
-    
-    // Warehouse & Locations
-    WAREHOUSE: 'api/warehouse',
-    WAREHOUSE_LIST: 'api/warehouse/list',
-    WAREHOUSE_DETAILS: 'api/warehouse/details',
     
     // Courier Partners
     COURIER_PARTNERS: 'api/courier-partners',
@@ -129,6 +117,9 @@ const API_CONFIG = {
     GET_USER_META: 'api/get-user-meta',
     UPDATE_USER_META: 'api/user-meta',
     IMAGE_UPLOAD: 'api/image-upload',
+    
+    // Support Users
+    SUPPORT_USERS: 'api/support-user',
     
     // Shipping Label Settings
     SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',

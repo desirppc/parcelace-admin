@@ -44,11 +44,12 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
         setUser(data.data);
         
         // Check mobile verification and onboarding status
-        if (!data.data.mobile_verified_at) {
+        // Admin users bypass OTP verification
+        if (!data.data.mobile_verified_at && data.data.user_role !== 'admin') {
           // User needs mobile OTP verification
           onNavigateToOnboarding(); // This will be handled by RouteGuard
-        } else if (!data.data.is_onboarding_filled) {
-          // User needs to complete onboarding wizard
+        } else if (!data.data.is_onboarding_filled && data.data.user_role !== 'admin') {
+          // User needs to complete onboarding wizard (skip for admin users)
           window.location.href = '/onboarding/wizard';
         } else {
           // User is fully verified and onboarded

@@ -82,22 +82,16 @@ export const PageMetaConfigs = {
     keywords: 'shipment tracking, package tracking, delivery status, courier tracking, logistics tracking'
   },
   
-  warehouse: {
-    title: 'Warehouse Management - ParcelAce',
-    description: 'Manage your warehouse operations with ParcelAce. Track inventory, manage locations, and optimize your warehouse efficiency.',
-    keywords: 'warehouse management, inventory tracking, warehouse operations, logistics management'
-  },
-  
   analytics: {
     title: 'Analytics & Reports - ParcelAce',
     description: 'Get insights into your shipping operations with ParcelAce analytics. View performance metrics, generate reports, and optimize your logistics.',
     keywords: 'shipping analytics, logistics reports, performance metrics, shipping insights, data analytics'
   },
   
-  profile: {
-    title: 'Profile Settings - ParcelAce',
-    description: 'Manage your ParcelAce profile settings. Update your account information, preferences, and security settings.',
-    keywords: 'profile settings, account management, user settings, account preferences'
+  users: {
+    title: 'Users Management - ParcelAce',
+    description: 'Manage support users and their information with ParcelAce. View user details, contact information, and account creation dates.',
+    keywords: 'user management, support users, user administration, user details, account management'
   },
   
   // Auth pages

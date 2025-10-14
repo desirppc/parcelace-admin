@@ -46,8 +46,8 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
         return;
       }
 
-      // Check mobile verification
-      if (!user.mobile_verified_at) {
+      // Check mobile verification - bypass for admin users
+      if (!user.mobile_verified_at && user.user_role !== 'admin') {
         console.log('⚠️ RouteGuard: Mobile not verified, redirecting to OTP verification');
         navigate('/mobile-otp-verification', { 
           state: { 
@@ -60,8 +60,8 @@ const RouteGuard: React.FC<RouteGuardProps> = ({
         return;
       }
 
-      // Check onboarding completion if required
-      if (requireOnboarding && !user.is_onboarding_filled) {
+      // Check onboarding completion if required (skip for admin users)
+      if (requireOnboarding && !user.is_onboarding_filled && user.user_role !== 'admin') {
         console.log('⚠️ RouteGuard: Onboarding not completed, redirecting to wizard');
         navigate('/onboarding/wizard', { 
           state: { redirectTo: location.pathname },

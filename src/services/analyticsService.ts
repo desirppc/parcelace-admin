@@ -1,8 +1,6 @@
 import masterFormulas from '@/data/master-formulas.json';
-import { walletService } from './walletService';
 import { orderService } from './orderService';
 import { shipmentService } from './shipmentService';
-import { debugService } from './debugService';
 
 interface DataPoint {
   name: string;
@@ -81,13 +79,11 @@ class AnalyticsService {
       
       if (hasMatch) {
         console.log(`Found matching metric: ${key}`);
-        debugService.logMetricParsing(query, metric, metric.aliases);
         return metric as Metric;
       }
     }
     
     console.log('No matching metric found');
-    debugService.logMetricParsing(query, null, []);
     return null;
   }
 
@@ -110,7 +106,6 @@ class AnalyticsService {
     }
     
     console.log(`Extracted data points for ${metric.name}:`, dataPoints);
-    debugService.logDataPointExtraction(metric.name, dataPoints);
     return dataPoints;
   }
 
@@ -167,13 +162,11 @@ class AnalyticsService {
       }
       
       const duration = Date.now() - startTime;
-      debugService.logDataFetching(dataPointKey, filters, result, duration);
       return result;
       
     } catch (error) {
       console.error(`Error fetching data for ${dataPointKey}:`, error);
       const duration = Date.now() - startTime;
-      debugService.logDataFetching(dataPointKey, filters, null, duration);
       return this.getMockValue(dataPointKey);
     }
   }
@@ -210,7 +203,6 @@ class AnalyticsService {
     }
     
     // Log calculation step
-    debugService.logCalculation(formula, dataPointValues, calculatedValue);
     
     // Generate friendly response
     const userName = this.getUserName();
@@ -254,9 +246,6 @@ class AnalyticsService {
   async processQuery(query: string, filters: Record<string, any> = {}): Promise<AnalyticsResponse | null> {
     console.log('Processing analytics query:', query);
     
-    // Start debug session
-    debugService.startSession(query);
-    
     const metric = this.parseQuery(query);
     
     if (!metric) {
@@ -269,7 +258,6 @@ class AnalyticsService {
     
     // Process date filters if present in query
     const processedFilters = this.processDateFilters(query, filters);
-    debugService.logFilterProcessing(query, filters, processedFilters);
     
     const result = await this.calculateMetric(metric, processedFilters);
     console.log('Analytics result:', result);
@@ -397,7 +385,8 @@ class AnalyticsService {
         shipmentStats
       ] = await Promise.all([
         orderService.getOrderStats(),
-        walletService.getWalletBalance(),
+        // Mock wallet balance
+        Promise.resolve({ balance: 0, currency: 'INR' }),
         shipmentService.getShipmentStats()
       ]);
 
@@ -588,7 +577,8 @@ class AnalyticsService {
         return cached;
       }
 
-      const balance = await walletService.getWalletBalance();
+      // Mock wallet balance
+      const balance = { balance: 0, currency: 'INR' };
       const result = balance.balance;
       
       this.setCachedData(cacheKey, result);
@@ -604,7 +594,8 @@ class AnalyticsService {
    */
   private async fetchWalletExpense(filters: Record<string, any> = {}): Promise<number> {
     try {
-      const transactions = await walletService.getWalletTransactions();
+      // Mock wallet transactions
+      const transactions: any[] = [];
       
       // Calculate total expense (debit transactions)
       const totalExpense = transactions
