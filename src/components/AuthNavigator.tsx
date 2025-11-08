@@ -10,7 +10,6 @@ const OTPPage = lazy(() => import('./OTPPage'));
 const OTPVerificationScreen = lazy(() => import('./OTPVerificationScreen'));
 const ResetPasswordScreen = lazy(() => import('./ResetPasswordScreen'));
 const MobileOTPVerification = lazy(() => import('./MobileOTPVerification'));
-const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
 
 // Loading component for Suspense fallback
 const AuthLoader = () => (
@@ -21,7 +20,7 @@ const AuthLoader = () => (
 
 // Add a new state for the OTP email and token
 
-type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'mobile-otp-verification' | 'reset-password' | 'onboarding';
+type AuthScreen = 'login' | 'signup' | 'forgot-password' | 'otp-verification' | 'mobile-otp-verification' | 'reset-password';
 
 interface AuthNavigatorProps {
   initialScreen?: AuthScreen;
@@ -69,27 +68,10 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
     setCurrentScreen('login'); // Redirect to login after successful reset
   };
 
-  const handleNavigateToOnboarding = () => {
-    navigate('/dashboard/orders');
-  };
-
   const handleMobileOTPSuccess = () => {
-    // After mobile OTP verification, check if onboarding is needed
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-    if (userData.is_onboarding_filled) {
-      // Onboarding already completed, go to dashboard
-      navigate('/dashboard/orders');
-    } else {
-      // Navigate to onboarding wizard
-      setCurrentScreen('onboarding');
-    }
-  };
-
-  const handleOnboardingComplete = useCallback(() => {
-    console.log('handleOnboardingComplete called');
-    // After onboarding completion, navigate to dashboard
+    // After mobile OTP verification, always redirect to dashboard
     navigate('/dashboard/orders');
-  }, [navigate]);
+  };
 
   const handleSignUpSuccess = (phone?: string, token?: string) => {
     // After successful signup, store auth token and navigate to mobile OTP verification
@@ -150,20 +132,6 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
           <ResetPasswordScreen
             onNavigateBack={handleNavigateBack}
             onPasswordReset={handlePasswordReset}
-          />
-        </Suspense>
-      );
-    
-    case 'onboarding':
-      console.log('Rendering OnboardingWizard with props:', {
-        onComplete: handleOnboardingComplete,
-        onNavigateBack: handleNavigateBack
-      });
-      return (
-        <Suspense fallback={<AuthLoader />}>
-          <OnboardingWizard
-            onComplete={handleOnboardingComplete}
-            onNavigateBack={handleNavigateBack}
           />
         </Suspense>
       );

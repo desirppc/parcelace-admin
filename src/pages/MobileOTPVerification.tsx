@@ -15,23 +15,13 @@ const MobileOTPVerificationPage = () => {
   };
 
   const handleVerificationSuccess = () => {
-    // After mobile OTP verification, check if onboarding is needed
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-    
-    // Check if there's a redirect destination stored
+    // After mobile OTP verification, always redirect to dashboard
     const redirectTo = sessionStorage.getItem('redirectAfterLogin');
     if (redirectTo) {
       sessionStorage.removeItem('redirectAfterLogin');
       navigate(redirectTo);
-      return;
-    }
-    
-    if (userData.is_onboarding_filled) {
-      // Onboarding already completed, go to dashboard
-      navigate('/dashboard/orders/prepaid');
     } else {
-      // Navigate to onboarding wizard
-      navigate('/onboarding/wizard');
+      navigate('/dashboard/orders/prepaid');
     }
   };
 

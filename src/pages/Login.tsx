@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import API_CONFIG from '@/config/api';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
+import { isUserAuthorized, getUserRoleNames, getAuthorizationErrorMessage, shouldBypassVerification } from '@/utils/roleUtils';
 
 const Login = () => {
   // Set page meta tags
@@ -162,8 +163,32 @@ const Login = () => {
       console.log('Response data:', data);
 
       if (response.ok && data.status) {
-        // Check if this is an admin user and add admin role
+        // Check user roles for authorization
         const userData = data.data;
+        
+        if (!isUserAuthorized(userData)) {
+          const userRoles = getUserRoleNames(userData);
+          console.log('🚫 Unauthorized access attempt:', {
+            userEmail: userData.email,
+            userRoles: userRoles
+          });
+          
+          toast({
+            title: "Access Denied",
+            description: getAuthorizationErrorMessage(userRoles),
+            variant: "destructive"
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('✅ Authorized user login:', {
+          userEmail: userData.email,
+          userRoles: getUserRoleNames(userData)
+        });
+        
+        // Check if this is an admin user and add admin role
         if (userData.email === 'hitesh.verma0@gmail.com') {
           console.log('🔑 Admin user detected, setting admin role and auto-verifying mobile');
           userData.user_role = 'admin';
@@ -208,38 +233,19 @@ const Login = () => {
         });
         
         // Check mobile verification and onboarding status
-        // Admin users bypass OTP verification
+        // Admin and authorized users (superadmin/Support) bypass OTP verification and onboarding
+        const shouldBypass = shouldBypassVerification(userData);
+        
         console.log('🔍 Login verification check:', {
           mobileVerifiedAt: userData.mobile_verified_at,
           userRole: userData.user_role,
-          isAdmin: userData.user_role === 'admin',
-          userEmail: userData.email
+          shouldBypass: shouldBypass,
+          userEmail: userData.email,
+          userRoles: getUserRoleNames(userData)
         });
         
-        if (!userData.mobile_verified_at && userData.user_role !== 'admin') {
-          console.log('Mobile not verified, navigating to OTP verification');
-          navigate('/otp-verification', { 
-            state: { 
-              email: email,
-              fromLogin: true,
-              userData: userData
-            }
-          });
-          return;
-        }
-        
-        // If onboarding is not filled, go to onboarding wizard (skip for admin users)
-        if (!userData.is_onboarding_filled && userData.user_role !== 'admin') {
-          console.log('⚠️ Onboarding not completed, redirecting to wizard');
-          navigate('/onboarding/wizard');
-          return;
-        }
-        
-        // Admin users and fully verified users go to dashboard
-        console.log('✅ User fully verified, navigating to dashboard');
-        if (userData.user_role === 'admin') {
-          console.log('🔑 Admin user bypassing onboarding, going directly to dashboard');
-        }
+        // Always redirect to dashboard after successful login - no onboarding required
+        console.log('✅ User login successful, navigating to dashboard');
         navigate('/dashboard/orders');
         } else {
           toast({

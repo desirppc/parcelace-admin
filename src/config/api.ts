@@ -121,6 +121,13 @@ const API_CONFIG = {
     // Support Users
     SUPPORT_USERS: 'api/support-user',
     
+    // Vendors
+    VENDORS: 'api/support-user/vendor',
+    
+    // Support Tickets
+    SUPPORT_TICKETS: 'api/support-ticket',
+    SUPPORT_TICKET_ASSIGN: 'api/support-user/ticket-assign',
+    
     // Shipping Label Settings
     SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',
     SHIPPING_LABEL_SETTINGS_UPDATE: 'api/shipping-label-settings/update',

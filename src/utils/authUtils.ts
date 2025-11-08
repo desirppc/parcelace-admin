@@ -335,6 +335,20 @@ export const isOnboardingCompleted = (): boolean => {
   return userData && userData.is_onboarding_filled;
 };
 
+export const shouldBypassOnboarding = (): boolean => {
+  const userData = getStoredUserData();
+  if (!userData) return false;
+  
+  // Import shouldBypassVerification dynamically to avoid circular imports
+  try {
+    const { shouldBypassVerification } = require('./roleUtils');
+    return shouldBypassVerification(userData);
+  } catch (error) {
+    console.error('Error importing shouldBypassVerification:', error);
+    return false;
+  }
+};
+
 // Enhanced session management
 export const getSessionInfo = () => {
   const token = getStoredToken();
@@ -347,9 +361,11 @@ export const getSessionInfo = () => {
     isAuthenticated: isUserAuthenticated(),
     isMobileVerified: isMobileVerified(),
     isOnboardingCompleted: isOnboardingCompleted(),
+    shouldBypassOnboarding: shouldBypassOnboarding(),
     tokenLength: token ? token.length : 0,
     userId: userData?.id || null,
     userEmail: userData?.email || null,
+    userRoles: userData?.roles?.map((r: any) => r.name) || [],
     sessionAgeMinutes: sessionAge,
     shouldShowWarning: false, // Removed as per edit hint
     isExpiringSoon: isSessionExpiringSoon(),

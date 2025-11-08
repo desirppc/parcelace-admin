@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import API_CONFIG, { handleSessionExpiry } from '../config/api';
 
+interface UserRole {
+  id: number;
+  name: string;
+  guard_name: string;
+  created_at: string | null;
+  updated_at: string | null;
+  pivot: {
+    model_type: string;
+    model_id: number;
+    role_id: number;
+  };
+}
+
 interface UserData {
   id: number;
   name: string;
@@ -23,6 +36,7 @@ interface UserData {
   waba_service: string;
   comment: string;
   user_role: string;
+  roles?: UserRole[];
   // Add other fields as needed
 }
 

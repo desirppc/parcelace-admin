@@ -31,8 +31,8 @@ const ViewOrderDetails = lazy(() => import("./components/ViewOrderDetails"));
 const ViewShipment = lazy(() => import("./components/ViewShipment"));
 const OrdersPage = lazy(() => import("./components/OrdersPage"));
 const UsersPage = lazy(() => import("./components/UsersPage"));
+const VendorsPage = lazy(() => import("./components/VendorsPage"));
 const SupportTicketsPage = lazy(() => import("./components/SupportTicketsPage"));
-const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
 const ParcelAceAI = lazy(() => import('./components/ParcelAceAI'));
 const AnalyticsTest = lazy(() => import('./pages/AnalyticsTest'));
 const PublicTracking = lazy(() => import('./pages/PublicTracking'));
@@ -84,19 +84,7 @@ const App = () => {
               <Route path="/tracking/:awbNumber" element={<Suspense fallback={<LoadingSpinner />}><PublicTracking /></Suspense>} />
               <Route path="/tracking-template" element={<Suspense fallback={<LoadingSpinner />}><TrackingTemplate /></Suspense>} />
               
-              {/* Onboarding Wizard - Requires Authentication but not onboarding completion */}
-              <Route path="/onboarding/wizard" element={
-                <RouteGuard requireAuth={true} requireOnboarding={false}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <OnboardingWizard 
-                      onComplete={() => window.location.href = '/dashboard/orders/prepaid'} 
-                      onNavigateBack={() => window.history.back()} 
-                    />
-                  </Suspense>
-                </RouteGuard>
-              } />
               
-              {/* Redirect Routes */}
               <Route path="/orders" element={<Navigate to="/dashboard/orders" replace />} />
               <Route path="/dashboard" element={<Navigate to="/dashboard/orders" replace />} />
               
@@ -107,6 +95,7 @@ const App = () => {
                 <Route path="/dashboard/shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
                 <Route path="/dashboard/tracking" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
                 <Route path="/dashboard/users" element={<Suspense fallback={<LoadingSpinner />}><UsersPage /></Suspense>} />
+                <Route path="/dashboard/vendors" element={<Suspense fallback={<LoadingSpinner />}><VendorsPage /></Suspense>} />
                 <Route path="/dashboard/support" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/support/support-dashboard" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/ai" element={<Suspense fallback={<LoadingSpinner />}><ParcelAceAI /></Suspense>} />

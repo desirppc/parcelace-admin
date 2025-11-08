@@ -137,22 +137,14 @@ const OTPVerification = () => {
         });
 
         if (fromLogin) {
-          // If coming from login, proceed with the login flow
+          // If coming from login, always redirect to dashboard
           if (userData) {
             // Update user data with verified status
             const updatedUserData = { ...userData, mobile_verified_at: new Date().toISOString() };
             localStorage.setItem('user', JSON.stringify(updatedUserData));
             sessionStorage.setItem('user', JSON.stringify(updatedUserData));
-            
-            // Check onboarding status
-            if (!updatedUserData.is_onboarding_filled) {
-              navigate('/onboarding/wizard');
-            } else {
-              navigate('/dashboard/orders/prepaid');
-            }
-          } else {
-            navigate('/dashboard/orders/prepaid');
           }
+          navigate('/dashboard/orders/prepaid');
         } else {
           // If coming from forgot password, go to reset password
           const authToken = data.data?.auth_token || data.data?.token || data.auth_token;

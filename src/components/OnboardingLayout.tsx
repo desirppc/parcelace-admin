@@ -106,6 +106,12 @@ const OnboardingLayout = () => {
       title: 'Users',
       icon: User,
       route: '/dashboard/users'
+    },
+    {
+      id: 'vendors',
+      title: 'Vendors',
+      icon: Building,
+      route: '/dashboard/vendors'
     }
   ];
 
@@ -116,7 +122,8 @@ const OnboardingLayout = () => {
     'support': '/dashboard/support/support-dashboard',
     'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
-    'users': '/dashboard/users'
+    'users': '/dashboard/users',
+    'vendors': '/dashboard/vendors'
   };
 
   const toggleMenu = (menuId: string) => {

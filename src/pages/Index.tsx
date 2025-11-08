@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthNavigator from '@/components/AuthNavigator';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { isUserAuthenticated, isMobileVerified, isOnboardingCompleted, getSessionInfo } from '@/utils/authUtils';
+import { isUserAuthenticated, getSessionInfo } from '@/utils/authUtils';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -38,39 +38,10 @@ const Index = () => {
       });
       
       if (hasValidSession && !isRedirecting) {
-        console.log('User has valid session, checking verification status...');
+        console.log('User has valid session, redirecting to dashboard...');
         setIsRedirecting(true);
         
-        // Check if mobile is verified
-        const mobileVerified = user?.mobile_verified_at || isMobileVerified();
-        
-        if (!mobileVerified) {
-          console.log('Mobile not verified, redirecting to OTP verification');
-          navigate('/mobile-otp-verification', { 
-            state: { 
-              phone: user?.phone, 
-              authToken: user?.auth_token,
-              redirectTo: '/dashboard/orders' 
-            },
-            replace: true 
-          });
-          return;
-        }
-        
-        // Check if onboarding is completed
-        const onboardingCompleted = user?.is_onboarding_filled || isOnboardingCompleted();
-        
-        if (!onboardingCompleted) {
-          console.log('Onboarding not completed, redirecting to wizard');
-          navigate('/onboarding/wizard', { 
-            state: { redirectTo: '/dashboard/orders' },
-            replace: true 
-          });
-          return;
-        }
-        
-        // All checks passed, redirect to dashboard
-        console.log('All checks passed, redirecting to dashboard');
+        // Always redirect to dashboard after login - no onboarding required
         navigate('/dashboard/orders', { replace: true });
       }
     }

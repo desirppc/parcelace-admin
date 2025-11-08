@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/UserContext';
+import { isUserAuthorized, getUserRoleNames, getAuthorizationErrorMessage } from '@/utils/roleUtils';
 
 const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack, onNavigateToOnboarding }: { 
   onNavigateToSignUp: () => void;
@@ -31,6 +32,29 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
       });
       const data = await response.json();
       if (response.ok && data.status && data.data) {
+        // Check user roles for authorization
+        const userData = data.data;
+        
+        if (!isUserAuthorized(userData)) {
+          const userRoles = getUserRoleNames(userData);
+          console.log('🚫 Unauthorized access attempt:', {
+            userEmail: userData.email,
+            userRoles: userRoles
+          });
+          
+          toast({
+            title: "Access Denied",
+            description: getAuthorizationErrorMessage(userRoles),
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✅ Authorized user login:', {
+          userEmail: userData.email,
+          userRoles: getUserRoleNames(userData)
+        });
+        
         // Store tokens and user info
         localStorage.setItem('auth_token', data.data.auth_token);
         localStorage.setItem('access_token', data.data.access_token);
@@ -43,18 +67,8 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
         // Set user in context
         setUser(data.data);
         
-        // Check mobile verification and onboarding status
-        // Admin users bypass OTP verification
-        if (!data.data.mobile_verified_at && data.data.user_role !== 'admin') {
-          // User needs mobile OTP verification
-          onNavigateToOnboarding(); // This will be handled by RouteGuard
-        } else if (!data.data.is_onboarding_filled && data.data.user_role !== 'admin') {
-          // User needs to complete onboarding wizard (skip for admin users)
-          window.location.href = '/onboarding/wizard';
-        } else {
-          // User is fully verified and onboarded
-          window.location.href = '/dashboard/orders';
-        }
+        // Always redirect to dashboard after successful login - no onboarding required
+        window.location.href = '/dashboard/orders';
       } else {
         toast({
           title: 'Error',
