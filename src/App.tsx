@@ -92,9 +92,10 @@ const App = () => {
               <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
                 {/* Core Dashboard Routes */}
                 <Route path="/dashboard/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
-                <Route path="/dashboard/shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
+                <Route path="/dashboard/prepaid-shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
+                <Route path="/dashboard/reverse-shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
                 <Route path="/dashboard/tracking" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
-                <Route path="/dashboard/users" element={<Suspense fallback={<LoadingSpinner />}><UsersPage /></Suspense>} />
+                <Route path="/dashboard/support-user" element={<Suspense fallback={<LoadingSpinner />}><UsersPage /></Suspense>} />
                 <Route path="/dashboard/vendors" element={<Suspense fallback={<LoadingSpinner />}><VendorsPage /></Suspense>} />
                 <Route path="/dashboard/support" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/support/support-dashboard" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />

@@ -142,16 +142,16 @@ const AssignTicketDialog: React.FC<AssignTicketDialogProps> = ({
               </div>
             ) : (
               <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger>
+                <SelectTrigger className="focus:ring-0 focus:ring-offset-0 border-input">
                   <SelectValue placeholder="Select a support user" />
                 </SelectTrigger>
                 <SelectContent>
                   {supportUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
-                      <div className="flex flex-col">
+                      <span className="text-sm">
                         <span className="font-medium">{user.name}</span>
-                        <span className="text-sm text-gray-500">{user.email}</span>
-                      </div>
+                        <span className="text-gray-500"> - {user.email}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

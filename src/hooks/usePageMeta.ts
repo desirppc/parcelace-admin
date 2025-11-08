@@ -89,7 +89,7 @@ export const PageMetaConfigs = {
   },
   
   users: {
-    title: 'Users Management - ParcelAce',
+    title: 'Support User Management - ParcelAce',
     description: 'Manage support users and their information with ParcelAce. View user details, contact information, and account creation dates.',
     keywords: 'user management, support users, user administration, user details, account management'
   },

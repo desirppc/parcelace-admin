@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Loader2, Users, Mail, Phone, Calendar, Search, Filter, Download, MoreHorizontal, X, Eye, EyeOff, Trash2, IndianRupee } from 'lucide-react';
+import { Loader2, Users, Mail, Phone, Calendar, Search, Filter, Download, MoreHorizontal, X, Trash2, IndianRupee, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { vendorService, Vendor } from '@/services/vendorService';
 import API_CONFIG from '@/config/api';
 import { getAuthHeaders } from '@/config/api';
+import AssignVendorsToSupportDialog from '@/components/AssignVendorsToSupportDialog';
 
 const VendorsPage = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -23,24 +24,12 @@ const VendorsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
-  const [addVendorLoading, setAddVendorLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteVendorLoading, setDeleteVendorLoading] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletLoading, setWalletLoading] = useState(false);
   const [vendorForWallet, setVendorForWallet] = useState<Vendor | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    password_confirmation: '',
-    parent_vendor_email: ''
-  });
   const [walletFormData, setWalletFormData] = useState({
     amount: '',
     transactionId: '',
@@ -52,32 +41,6 @@ const VendorsPage = () => {
   });
   const [vendorBalance, setVendorBalance] = useState<number>(0);
   const { toast } = useToast();
-
-  // Password validation function
-  const validatePassword = (password: string): boolean => {
-    // Minimum 8 characters, 1 small, 1 capital, 1 special character, 1 number
-    const minLength = password.length >= 8;
-    const hasLower = /[a-z]/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
-    return minLength && hasLower && hasUpper && hasNumber && hasSpecial;
-  };
-
-  // Check if passwords match
-  const passwordsMatch = formData.password === formData.password_confirmation;
-  const showPasswordError = formData.password_confirmation.length > 0 && !passwordsMatch;
-
-  // Check if all required fields are filled and passwords match
-  const isFormValid = formData.name.trim() !== '' && 
-                     formData.email.trim() !== '' && 
-                     formData.phone.trim() !== '' && 
-                     formData.password.trim() !== '' && 
-                     formData.password_confirmation.trim() !== '' && 
-                     passwordsMatch && 
-                     validatePassword(formData.password);
-
 
   // Fetch vendors
   const fetchVendors = async () => {
@@ -153,122 +116,6 @@ const VendorsPage = () => {
   useEffect(() => {
     fetchVendors();
   }, []);
-
-  const handleAddVendor = () => {
-    setShowAddVendorModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowAddVendorModal(false);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      password: '',
-      password_confirmation: '',
-      parent_vendor_email: ''
-    });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleCreateVendor = async () => {
-    try {
-      // Validation
-      if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-        toast({
-          title: "Validation Error",
-          description: "Please fill in all required fields",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!validatePassword(formData.password)) {
-        toast({
-          title: "Password Error",
-          description: "Password must be minimum 8 characters with 1 lowercase, 1 uppercase, 1 number, and 1 special character",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.password !== formData.password_confirmation) {
-        toast({
-          title: "Password Error",
-          description: "Passwords do not match",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setAddVendorLoading(true);
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VENDORS}`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          password_confirmation: formData.password_confirmation,
-          parent_vendor_email: formData.parent_vendor_email
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status) {
-        toast({
-          title: "Success",
-          description: data.message || "Vendor created successfully",
-        });
-        handleCloseModal();
-        fetchVendors(); // Refresh the vendors list
-      } else {
-        // Extract error message from API response
-        let errorMessage = data.message || "Failed to create vendor";
-        
-        // Check if there's a detailed error message in the error object
-        if (data.error && typeof data.error === 'object') {
-          if (data.error.message) {
-            errorMessage = data.error.message;
-          } else if (typeof data.error === 'string') {
-            errorMessage = data.error;
-          }
-        }
-        
-        // Handle specific error cases
-        if (errorMessage.includes("email has already been taken")) {
-          errorMessage = "This email address is already registered. Please use a different email.";
-        } else if (errorMessage.includes("Invalid request")) {
-          errorMessage = "Please check all fields and try again.";
-        }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error creating vendor:', error);
-      toast({
-        title: "Error",
-        description: "Network error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setAddVendorLoading(false);
-    }
-  };
 
   const handleDeleteVendor = (vendor: Vendor) => {
     setVendorToDelete(vendor);
@@ -493,29 +340,33 @@ const VendorsPage = () => {
             Manage and monitor vendor users
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={handleAddVendor} 
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add Vendor
-          </Button>
-        </div>
       </div>
 
       {/* Search Bar */}
       <div className="flex flex-col gap-4">
-        <div className="w-full sm:w-[30%]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex items-center gap-4">
+          <div className="w-full sm:w-[30%]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
+          <AssignVendorsToSupportDialog
+            onAssignmentComplete={fetchVendors}
+            trigger={
+              <Button 
+                className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Support User
+              </Button>
+            }
+          />
         </div>
 
         {/* Results Summary */}
@@ -638,172 +489,6 @@ const VendorsPage = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Add Vendor Modal */}
-      <Dialog open={showAddVendorModal} onOpenChange={setShowAddVendorModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Vendor</DialogTitle>
-            <DialogDescription>
-              Create a new vendor account. All fields marked with * are required.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Enter full name"
-                value={formData.name}
-                onChange={handleInputChange}
-                disabled={addVendorLoading}
-              />
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="vendor@example.com"
-                value={formData.email}
-                onChange={handleInputChange}
-                disabled={addVendorLoading}
-              />
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="Enter phone number"
-                value={formData.phone}
-                onChange={handleInputChange}
-                disabled={addVendorLoading}
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  disabled={addVendorLoading}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  disabled={addVendorLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Minimum 8 characters, 1 lowercase, 1 uppercase, 1 number, 1 special character
-              </p>
-            </div>
-
-            {/* Password Confirmation */}
-            <div className="space-y-2">
-              <Label htmlFor="password_confirmation">Confirm Password *</Label>
-              <div className="relative">
-                <Input
-                  id="password_confirmation"
-                  name="password_confirmation"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Re-enter password"
-                  value={formData.password_confirmation}
-                  onChange={handleInputChange}
-                  disabled={addVendorLoading}
-                  className={`pr-10 ${showPasswordError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  disabled={addVendorLoading}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {showPasswordError && (
-                <p className="text-xs text-red-500">
-                  Passwords do not match
-                </p>
-              )}
-            </div>
-
-            {/* Parent Vendor Email */}
-            <div className="space-y-2">
-              <Label htmlFor="parent_vendor_email">Parent Vendor Email</Label>
-              <Input
-                id="parent_vendor_email"
-                name="parent_vendor_email"
-                type="email"
-                placeholder="parent@vendor.com (optional)"
-                value={formData.parent_vendor_email}
-                onChange={handleInputChange}
-                disabled={addVendorLoading}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={handleCloseModal}
-              disabled={addVendorLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateVendor}
-              disabled={addVendorLoading || !isFormValid}
-              className={`${
-                isFormValid 
-                  ? "bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white" 
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              {addVendorLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Vendor
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Vendor Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>

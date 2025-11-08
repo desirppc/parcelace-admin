@@ -377,7 +377,7 @@ const ViewShipment = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/dashboard/shipments');
+    navigate('/dashboard/prepaid-shipments');
   };
 
   const handleDownloadInvoice = () => {

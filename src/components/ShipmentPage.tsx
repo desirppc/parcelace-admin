@@ -135,6 +135,10 @@ interface ShipmentItem {
     id: number;
     name: string;
   };
+  user?: {
+    id: number;
+    email: string;
+  };
 }
 
 const ShipmentPage = () => {
@@ -156,6 +160,7 @@ const ShipmentPage = () => {
     all: true
   });
   const [shipmentStatus, setShipmentStatus] = useState<string[]>([]);
+  const [filterOptions, setFilterOptions] = useState<Record<string, string>>({});
   const [hoveredShipment, setHoveredShipment] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
@@ -181,9 +186,9 @@ const ShipmentPage = () => {
   // Determine current page type based on URL
   const getCurrentPageType = () => {
     const pathname = location.pathname;
-    if (pathname.includes('/dashboard/shipments/reverse')) {
+    if (pathname.includes('/dashboard/reverse-shipments') || pathname.includes('/dashboard/shipments/reverse')) {
       return 'reverse';
-    } else if (pathname.includes('/dashboard/shipments/prepaid')) {
+    } else if (pathname.includes('/dashboard/prepaid-shipments') || pathname.includes('/dashboard/shipments/prepaid')) {
       return 'prepaid';
     }
     return 'all';
@@ -203,7 +208,11 @@ const ShipmentPage = () => {
     { value: 'custom', label: 'Custom Range' }
   ];
 
-    const fetchShipments = async (isRefresh = false) => {
+    const fetchShipments = async (isRefresh = false, customFilters?: {
+      date_range?: string;
+      order_type?: string[];
+      tracking_status?: string[];
+    }) => {
     if (isRefresh) {
       setIsRefreshing(true);
     } else {
@@ -220,15 +229,32 @@ const ShipmentPage = () => {
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
       
-      // Build request body with pagination parameters
-      const requestBody = {
-        page: currentPage,
-        per_page: pageSize
+      // Build request body with filter parameters
+      // Use custom filters if provided, otherwise use default filters based on page type
+      const defaultOrderType = currentPageType === 'reverse' 
+        ? ["reverse"]
+        : currentPageType === 'prepaid'
+        ? ["prepaid", "cod"]
+        : ["prepaid", "cod"];
+      
+      // On initial load (no custom filters), use default filters to show all data
+      // Only apply specific filters when explicitly provided (from filter panel or tabs)
+      const requestBody = customFilters || {
+        date_range: "",
+        order_type: defaultOrderType,
+        tracking_status: [] // Empty array - API should return all statuses when empty
       };
       
-      console.log('Fetching fresh shipments with pagination:', requestBody);
+      // Build API URL with query parameters for pagination
+      const baseUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/filter`;
+      const apiUrl = `${baseUrl}?per_page=${pageSize}&page=${currentPage}`;
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
+      console.log('🔍 Fetching shipments with Filter API');
+      console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('🌐 API URL:', apiUrl);
+      console.log('📄 Pagination:', { per_page: pageSize, page: currentPage });
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -238,29 +264,85 @@ const ShipmentPage = () => {
         body: JSON.stringify(requestBody),
       });
       
+      console.log('📡 Response Status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      }
+      
       const data = await response.json();
       
-      console.log('API Response:', data);
+      console.log('📥 API Response Data:', JSON.stringify(data, null, 2));
       
-      if (response.ok && data.status) {
-        // Handle different possible response structures
-        let shipmentsData = [];
+      // Check for "No shipments found" message
+      const errorMessage = data?.error?.message || data?.message || '';
+      const isNoShipmentsFound = errorMessage.toLowerCase().includes('no shipments found');
+      
+      if (isNoShipmentsFound) {
+        // Handle "No shipments found" case - show toast and set empty state
+        console.log('⚠️ No shipments found for the selected filters');
         
-        if (Array.isArray(data.data)) {
-          shipmentsData = data.data;
-        } else if (data.data && Array.isArray(data.data.shipment_data)) {
-          shipmentsData = data.data.shipment_data;
-        } else if (data.data && Array.isArray(data.data.shipments)) {
-          shipmentsData = data.data.shipments;
-        } else if (data.data && Array.isArray(data.data.data)) {
-          shipmentsData = data.data.data;
-        } else if (data.shipments && Array.isArray(data.shipments)) {
-          shipmentsData = data.shipments;
-        } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
-          shipmentsData = data.shipment_data;
+        // Extract filter_options if available even when no shipments found
+        if (data.data?.filter_options) {
+          console.log('✅ Filter options received:', data.data.filter_options);
+          setFilterOptions(data.data.filter_options);
         }
         
-        console.log('Processed shipments data:', shipmentsData);
+        // Set empty shipments
+        setShipments([]);
+        setFilteredShipments([]);
+        setTotalShipments(0);
+        setTotalPages(0);
+        setLastFetchTime(new Date());
+        
+        // Show red toast notification
+        toast({
+          title: "No Shipments Found",
+          description: errorMessage || "No shipments found for the selected filters.",
+          variant: "destructive",
+        });
+        
+        console.log('✅ Empty state set and toast notification shown');
+        return; // Exit early, don't throw error
+      }
+      
+      if (data && data.status) {
+        // Extract filter_options from API response
+        if (data.data?.filter_options) {
+          console.log('✅ Filter options received:', data.data.filter_options);
+          setFilterOptions(data.data.filter_options);
+        } else {
+          console.warn('⚠️ No filter_options in response');
+        }
+        
+        // Handle different possible response structures - prioritize shipment_data
+        let shipmentsData = [];
+        
+        if (data.data?.shipment_data && Array.isArray(data.data.shipment_data)) {
+          shipmentsData = data.data.shipment_data;
+          console.log('✅ Found shipment_data array with', shipmentsData.length, 'items');
+        } else if (Array.isArray(data.data)) {
+          shipmentsData = data.data;
+          console.log('✅ Found data array with', shipmentsData.length, 'items');
+        } else if (data.data && Array.isArray(data.data.shipments)) {
+          shipmentsData = data.data.shipments;
+          console.log('✅ Found shipments array with', shipmentsData.length, 'items');
+        } else if (data.data && Array.isArray(data.data.data)) {
+          shipmentsData = data.data.data;
+          console.log('✅ Found data.data array with', shipmentsData.length, 'items');
+        } else if (data.shipments && Array.isArray(data.shipments)) {
+          shipmentsData = data.shipments;
+          console.log('✅ Found shipments array (root) with', shipmentsData.length, 'items');
+        } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
+          shipmentsData = data.shipment_data;
+          console.log('✅ Found shipment_data array (root) with', shipmentsData.length, 'items');
+        } else {
+          console.warn('⚠️ No shipments array found in response. Data structure:', Object.keys(data.data || {}));
+        }
+        
+        console.log('📦 Processed shipments data:', shipmentsData.length, 'shipments');
         
         // Filter out shipments where AWB is null and sort by latest first
         const shipmentsWithAWB = shipmentsData
@@ -279,10 +361,22 @@ const ShipmentPage = () => {
         
         // Update state with fresh data
         setShipments(shipmentsWithAWB);
-        setFilteredShipments(shipmentsWithAWB);
+        
+        // Apply client-side search filter if search term exists
+        let finalFiltered = shipmentsWithAWB;
+        if (searchTerm) {
+          const searchLower = searchTerm.toLowerCase();
+          finalFiltered = shipmentsWithAWB.filter(shipment => 
+            shipment.awb?.toLowerCase().includes(searchLower) ||
+            shipment.customer_name?.toLowerCase().includes(searchLower) ||
+            shipment.store_order?.order_no?.toLowerCase().includes(searchLower)
+          );
+        }
+        
+        setFilteredShipments(finalFiltered);
         setTotalShipments(totalShipments);
         setTotalPages(totalPages);
-        filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
+        filterShipmentsByPageType(finalFiltered, currentPageType);
         setLastFetchTime(new Date());
         
         // Cache the fresh data for future use
@@ -296,7 +390,11 @@ const ShipmentPage = () => {
         
         console.log('✅ Fresh shipments data loaded and cached');
       } else {
-        throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
+        // Handle other errors
+        const errorMsg = errorMessage || 'Failed to fetch shipments';
+        console.error('❌ API returned error:', errorMsg);
+        console.error('❌ Full error response:', data);
+        throw new Error(errorMsg);
       }
     } catch (error) {
       console.error('Error fetching shipments:', error);
@@ -314,7 +412,27 @@ const ShipmentPage = () => {
     }
   };
 
+  // Reset all filters when page type changes (e.g., switching between prepaid and reverse)
   useEffect(() => {
+    // Reset all filter states
+    setActiveTab('all');
+    setSearchTerm('');
+    setDateFilter('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setOrderTypes({
+      prepaid: false,
+      cod: false,
+      all: true
+    });
+    setShipmentStatus([]);
+    setCurrentPage(1); // Reset to first page
+    setShowFilter(false);
+  }, [currentPageType]);
+
+  // Fetch shipments when page type, page, or page size changes
+  useEffect(() => {
+    // On initial load or page type change, fetch without filters (empty tracking_status)
     fetchShipments();
   }, [currentPageType, currentPage, pageSize]);
 
@@ -422,13 +540,20 @@ const ShipmentPage = () => {
         selected_status?: string[];
       } = {};
 
-      // Add order types based on current filters
-      if (!orderTypes.all) {
-        const selectedTypes = [];
-        if (orderTypes.prepaid) selectedTypes.push('prepaid');
-        if (orderTypes.cod) selectedTypes.push('cod');
-        if (selectedTypes.length > 0) {
-          exportFilters.order_type = selectedTypes;
+      // Add order types based on page type and current filters
+      if (currentPageType === 'reverse') {
+        exportFilters.order_type = ['reverse'];
+      } else if (currentPageType === 'prepaid') {
+        exportFilters.order_type = ['prepaid', 'cod'];
+      } else {
+        // For other pages, use the filter checkboxes
+        if (!orderTypes.all) {
+          const selectedTypes = [];
+          if (orderTypes.prepaid) selectedTypes.push('prepaid');
+          if (orderTypes.cod) selectedTypes.push('cod');
+          if (selectedTypes.length > 0) {
+            exportFilters.order_type = selectedTypes;
+          }
         }
       }
 
@@ -662,60 +787,155 @@ const ShipmentPage = () => {
     setCurrentPage(1);
   };
 
-  // Enhanced filter function (copied from OrdersPage)
-  const applyFilters = () => {
-    let filtered = shipments;
-
-    // First apply page type filtering
-    if (currentPageType === 'reverse') {
-      filtered = filtered.filter((shipment: ShipmentItem) => 
-        (shipment.payment_mode || '').toLowerCase() === 'reverse'
-      );
-    } else if (currentPageType === 'prepaid') {
-      filtered = filtered.filter((shipment: ShipmentItem) => {
-        const paymentMode = (shipment.payment_mode || '').toLowerCase();
-        return paymentMode === 'prepaid' || paymentMode === 'cod';
+  // Enhanced filter function - calls Filter API instead of client-side filtering
+  const applyFilters = async () => {
+    try {
+      setIsLoading(true);
+      resetPagination(); // Reset pagination when filters are applied
+      
+      // Build date_range string - format: "YYYY-MM-DD ~ YYYY-MM-DD"
+      let dateRangeStr = "";
+      
+      // Helper function to format date as YYYY-MM-DD (local timezone, not UTC)
+      const formatDate = (date: Date) => {
+        if (!date) return '';
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      if (dateFilter === 'custom' && dateFrom && dateTo) {
+        // Custom date range
+        const fromStr = formatDate(dateFrom);
+        const toStr = formatDate(dateTo);
+        if (fromStr && toStr) {
+          dateRangeStr = `${fromStr} ~ ${toStr}`;
+        }
+        console.log('📅 Custom date range:', { dateFrom, dateTo, dateRangeStr });
+      } else if (dateFilter !== 'all') {
+        // Handle predefined date ranges
+        const today = new Date();
+        // Reset time to midnight to avoid timezone issues
+        today.setHours(0, 0, 0, 0);
+        
+        let startDate: Date;
+        let endDate: Date;
+        
+        switch (dateFilter) {
+          case 'today':
+            startDate = new Date(today);
+            endDate = new Date(today);
+            break;
+          case 'yesterday':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 1);
+            endDate = new Date(startDate);
+            break;
+          case 'last7days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 7);
+            endDate = new Date(today);
+            break;
+          case 'last30days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            endDate = new Date(today);
+            break;
+          case 'thismonth':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(today);
+            break;
+          case 'lastmonth':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+          default:
+            startDate = new Date(today);
+            endDate = new Date(today);
+        }
+        
+        const fromStr = formatDate(startDate);
+        const toStr = formatDate(endDate);
+        if (fromStr && toStr) {
+          dateRangeStr = `${fromStr} ~ ${toStr}`;
+        }
+        console.log('📅 Predefined date range:', { dateFilter, startDate, endDate, dateRangeStr });
+      } else {
+        // dateFilter === 'all' - empty string
+        dateRangeStr = "";
+        console.log('📅 No date filter (all time)');
+      }
+      
+      // Build order_type array based on page type and selected filters
+      const orderTypeArray: string[] = [];
+      
+      // If on reverse-shipments page, always use reverse
+      if (currentPageType === 'reverse') {
+        orderTypeArray.push('reverse');
+      } else if (currentPageType === 'prepaid') {
+        // If on prepaid-shipments page, use prepaid and cod
+        orderTypeArray.push('prepaid', 'cod');
+      } else {
+        // For other pages, use the filter checkboxes
+        if (!orderTypes.all) {
+          if (orderTypes.prepaid) orderTypeArray.push('prepaid');
+          if (orderTypes.cod) orderTypeArray.push('cod');
+        } else {
+          // If "all" is selected, include both prepaid and cod
+          orderTypeArray.push('prepaid', 'cod');
+        }
+      }
+      
+      // Build tracking_status array - use selected statuses or all if none selected
+      const trackingStatusArray = shipmentStatus.length > 0 
+        ? shipmentStatus 
+        : Object.keys(filterOptions).length > 0 
+          ? Object.keys(filterOptions) 
+          : ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"];
+      
+      // If activeTab is not 'all', filter by that status
+      if (activeTab !== 'all') {
+        const tabStatus = activeTab;
+        if (!trackingStatusArray.includes(tabStatus)) {
+          trackingStatusArray.push(tabStatus);
+        }
+      }
+      
+      // Build the filter request body
+      const filterRequestBody = {
+        date_range: dateRangeStr,
+        order_type: orderTypeArray,
+        tracking_status: trackingStatusArray
+      };
+      
+      console.log('🔍 Applying filters with request:', JSON.stringify(filterRequestBody, null, 2));
+      
+      // Call fetchShipments with custom filters
+      await fetchShipments(false, filterRequestBody);
+      
+      setShowFilter(false);
+      
+      toast({
+        title: "Filters Applied",
+        description: "Shipments filtered successfully.",
       });
-    }
-
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(shipment => 
-        shipment.awb?.toLowerCase().includes(searchLower) ||
-        shipment.customer_name?.toLowerCase().includes(searchLower) ||
-        shipment.store_order?.order_no?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Order type filter
-    if (!orderTypes.all) {
-      filtered = filtered.filter(shipment => {
-        const paymentMode = (shipment.payment_mode || '').toLowerCase();
-        if (orderTypes.prepaid && paymentMode === 'prepaid') return true;
-        if (orderTypes.cod && paymentMode === 'cod') return true;
-        return false;
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      toast({
+        title: "Error Applying Filters",
+        description: "Failed to apply filters. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Shipment status filter
-    if (shipmentStatus.length > 0) {
-      filtered = filtered.filter(shipment => 
-        shipmentStatus.includes(shipment.shipment_status?.toLowerCase() || '')
-      );
-    }
-
-    // Tab filter
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(shipment => shipment.shipment_status?.toLowerCase() === activeTab.replace(/_/g, ' '));
-    }
-
-    setFilteredShipments(filtered);
-    setShowFilter(false);
-    resetPagination(); // Reset pagination when filters are applied
   };
 
-  const resetFilters = () => {
+  const resetFilters = async () => {
     setSearchTerm('');
     setDateFilter('all');
     setDateFrom(undefined);
@@ -727,8 +947,26 @@ const ShipmentPage = () => {
     });
     setShipmentStatus([]);
     setActiveTab('all');
-    setFilteredShipments(shipments);
     resetPagination(); // Reset pagination when filters are reset
+    
+    // Call API with default filters to reset (based on page type)
+    try {
+      const defaultOrderType = currentPageType === 'reverse' 
+        ? ["reverse"]
+        : currentPageType === 'prepaid'
+        ? ["prepaid", "cod"]
+        : ["prepaid", "cod"];
+      
+      await fetchShipments(false, {
+        date_range: "",
+        order_type: defaultOrderType,
+        tracking_status: Object.keys(filterOptions).length > 0 
+          ? Object.keys(filterOptions) 
+          : ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"]
+      });
+    } catch (error) {
+      console.error('Error resetting filters:', error);
+    }
   };
 
   const handleCancelShipment = (shipment: ShipmentItem) => {
@@ -891,102 +1129,7 @@ const ShipmentPage = () => {
           <Button 
             variant="outline" 
             onClick={async () => {
-              setIsRefreshing(true);
-              try {
-                // Clear all shipment cache to ensure fresh data
-                clearCacheByPrefix(CacheGroups.shipments);
-                
-                // Fetch fresh data directly
-                let authToken = sessionStorage.getItem('auth_token');
-                if (!authToken) authToken = localStorage.getItem('auth_token');
-                
-                const requestBody = {
-                  page: currentPage,
-                  per_page: pageSize
-                };
-                
-                console.log('🔄 Manual refresh - fetching fresh shipments');
-                
-                const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/list`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                  },
-                  body: JSON.stringify(requestBody),
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.status) {
-                  // Handle different possible response structures
-                  let shipmentsData = [];
-                  
-                  if (Array.isArray(data.data)) {
-                    shipmentsData = data.data;
-                  } else if (data.data && Array.isArray(data.data.shipment_data)) {
-                    shipmentsData = data.data.shipment_data;
-                  } else if (data.data && Array.isArray(data.data.shipments)) {
-                    shipmentsData = data.data.shipments;
-                  } else if (data.data && Array.isArray(data.data.data)) {
-                    shipmentsData = data.data.data;
-                  } else if (data.shipments && Array.isArray(data.shipments)) {
-                    shipmentsData = data.shipments;
-                  } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
-                    shipmentsData = data.shipment_data;
-                  }
-                  
-                  // Filter out shipments where AWB is null and sort by latest first
-                  const shipmentsWithAWB = shipmentsData
-                    .filter(shipment => shipment.awb !== null && shipment.awb !== '')
-                    .sort((a, b) => {
-                      // Sort by created_at descending (latest first)
-                      const dateA = new Date(a.created_at || a.order_date || a.store_order?.sync_date || 0);
-                      const dateB = new Date(b.created_at || b.order_date || b.store_order?.sync_date || 0);
-                      return dateB.getTime() - dateA.getTime();
-                    });
-                  
-                  const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
-                  const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
-                  
-                  // Update state with fresh data
-                  setShipments(shipmentsWithAWB);
-                  setFilteredShipments(shipmentsWithAWB);
-                  setTotalShipments(totalShipments);
-                  setTotalPages(totalPages);
-                  filterShipmentsByPageType(shipmentsWithAWB, currentPageType);
-                  setLastFetchTime(new Date());
-                  
-                  // Cache the fresh data
-                  const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
-                  const cacheData = {
-                    shipments: shipmentsWithAWB,
-                    totalShipments,
-                    totalPages,
-                    timestamp: Date.now()
-                  };
-                  setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
-                  
-                  toast({
-                    title: "Shipments Refreshed",
-                    description: `Shipments list updated successfully with fresh data`,
-                  });
-                  
-                  console.log('✅ Manual refresh completed with fresh data');
-                } else {
-                  throw new Error(data?.error?.message || data?.message || 'Failed to fetch shipments');
-                }
-              } catch (error) {
-                console.error('Error refreshing shipments:', error);
-                toast({
-                  title: "Refresh Failed",
-                  description: "Failed to refresh shipments list.",
-                  variant: "destructive",
-                });
-              } finally {
-                setIsRefreshing(false);
-              }
+              await fetchShipments(true);
             }}
             disabled={isRefreshing}
           >
@@ -1031,7 +1174,21 @@ const ShipmentPage = () => {
                     placeholder="Search shipments..." 
                     value={searchTerm}
                     onChange={(e) => {
-                      setSearchTerm(e.target.value);
+                      const newSearchTerm = e.target.value;
+                      setSearchTerm(newSearchTerm);
+                      
+                      // Apply client-side search filter immediately
+                      if (newSearchTerm) {
+                        const searchLower = newSearchTerm.toLowerCase();
+                        const filtered = shipments.filter(shipment => 
+                          shipment.awb?.toLowerCase().includes(searchLower) ||
+                          shipment.customer_name?.toLowerCase().includes(searchLower) ||
+                          shipment.store_order?.order_no?.toLowerCase().includes(searchLower)
+                        );
+                        setFilteredShipments(filtered);
+                      } else {
+                        setFilteredShipments(shipments);
+                      }
                       // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
@@ -1068,35 +1225,58 @@ const ShipmentPage = () => {
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-0" align="start">
                       <div className="p-2 space-y-1">
-                        {[
-                          { value: 'booked', label: 'Created' },
-                          { value: 'in_transit', label: 'In Transit' },
-                          { value: 'ndr', label: 'NDR' },
-                          { value: 'delivered', label: 'Delivered' },
-                          { value: 'rto_in_transit', label: 'RTO' },
-                          { value: 'rto_delivered', label: 'RTO Delivered' },
-                          { value: 'out_for_delivery', label: 'Out For Delivery' },
-                          { value: 'pickup_failed', label: 'Pickup Failed' },
-                          { value: 'cancelled', label: 'Cancelled' }
-                        ].map((status) => (
-                          <div key={status.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-sm">
-                            <Checkbox 
-                              id={status.value}
-                              checked={shipmentStatus.includes(status.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setShipmentStatus(prev => [...prev, status.value]);
-                                } else {
-                                  setShipmentStatus(prev => prev.filter(s => s !== status.value));
-                                }
-                                // Don't reset pagination here as it interferes with user navigation
-                              }}
-                            />
-                            <label htmlFor={status.value} className="text-sm cursor-pointer flex-1">
-                              {status.label}
-                            </label>
-                          </div>
-                        ))}
+                        {Object.keys(filterOptions).length > 0 ? (
+                          Object.entries(filterOptions).map(([value, label]) => (
+                            <div key={value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-sm">
+                              <Checkbox 
+                                id={value}
+                                checked={shipmentStatus.includes(value)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setShipmentStatus(prev => [...prev, value]);
+                                  } else {
+                                    setShipmentStatus(prev => prev.filter(s => s !== value));
+                                  }
+                                  // Don't reset pagination here as it interferes with user navigation
+                                }}
+                              />
+                              <label htmlFor={value} className="text-sm cursor-pointer flex-1">
+                                {label}
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          // Fallback to default options if filterOptions not loaded yet
+                          [
+                            { value: 'booked', label: 'Created' },
+                            { value: 'in_transit', label: 'In Transit' },
+                            { value: 'ndr', label: 'NDR' },
+                            { value: 'delivered', label: 'Delivered' },
+                            { value: 'rto_in_transit', label: 'RTO' },
+                            { value: 'rto_delivered', label: 'RTO Delivered' },
+                            { value: 'out_for_delivery', label: 'Out For Delivery' },
+                            { value: 'pickup_failed', label: 'Pickup Failed' },
+                            { value: 'cancelled', label: 'Cancelled' }
+                          ].map((status) => (
+                            <div key={status.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-sm">
+                              <Checkbox 
+                                id={status.value}
+                                checked={shipmentStatus.includes(status.value)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setShipmentStatus(prev => [...prev, status.value]);
+                                  } else {
+                                    setShipmentStatus(prev => prev.filter(s => s !== status.value));
+                                  }
+                                  // Don't reset pagination here as it interferes with user navigation
+                                }}
+                              />
+                              <label htmlFor={status.value} className="text-sm cursor-pointer flex-1">
+                                {status.label}
+                              </label>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -1203,9 +1383,38 @@ const ShipmentPage = () => {
 
       {/* Enhanced Tabs - Hidden when multi-select is active */}
       {selectedShipments.length === 0 && (
-        <Tabs value={activeTab} onValueChange={(value) => {
+        <Tabs value={activeTab} onValueChange={async (value) => {
           setActiveTab(value);
-          // Don't reset pagination here as it interferes with user navigation
+          resetPagination(); // Reset to first page when changing tabs
+          
+          // Build order_type based on page type
+          const orderTypeArray: string[] = [];
+          if (currentPageType === 'reverse') {
+            orderTypeArray.push('reverse');
+          } else if (currentPageType === 'prepaid') {
+            orderTypeArray.push('prepaid', 'cod');
+          } else {
+            orderTypeArray.push('prepaid', 'cod');
+          }
+          
+          // Build tracking_status array based on selected tab
+          const trackingStatusArray = value === 'all' 
+            ? ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"]
+            : [value];
+          
+          // Call filter API with tab selection
+          try {
+            setIsLoading(true);
+            await fetchShipments(false, {
+              date_range: "",
+              order_type: orderTypeArray,
+              tracking_status: trackingStatusArray
+            });
+          } catch (error) {
+            console.error('Error applying tab filter:', error);
+          } finally {
+            setIsLoading(false);
+          }
         }}>
           <TabsList className="inline-flex py-1 text-xs" style={{ fontSize: '80%', padding: '0.25rem 0' }}>
             <TabsTrigger value="all">All Orders</TabsTrigger>
@@ -1423,6 +1632,12 @@ const ShipmentPage = () => {
                       <div className="text-sm text-muted-foreground">
                         {getFirstProductName(shipment)}
                       </div>
+                      {shipment.user?.email && (
+                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          <User className="w-3 h-3 inline mr-1" />
+                          {shipment.user.email}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>

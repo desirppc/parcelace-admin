@@ -123,6 +123,7 @@ const API_CONFIG = {
     
     // Vendors
     VENDORS: 'api/support-user/vendor',
+    ASSIGN_VENDORS: 'api/support-user/assign',
     
     // Support Tickets
     SUPPORT_TICKETS: 'api/support-ticket',

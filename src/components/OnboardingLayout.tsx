@@ -30,6 +30,7 @@ import {
   Headphones,
   History,
   RefreshCw,
+  RotateCcw,
   BarChart3,
   Mail,
   Building,
@@ -42,7 +43,7 @@ import { ThemeToggle } from './ThemeToggle';
 import OnboardingContent from './OnboardingContent';
 import NotificationPanel from './NotificationPanel';
 
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import API_CONFIG from '@/config/api';
 import AppHeader from './AppHeader';
@@ -64,6 +65,7 @@ const OnboardingLayout = () => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['onboarding']);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   
   // Add refs for timeout management
@@ -81,7 +83,21 @@ const OnboardingLayout = () => {
       id: 'shipments',
       title: 'Shipments',
       icon: Truck,
-      route: '/dashboard/shipments'
+      route: '/dashboard/prepaid-shipments',
+      subItems: [
+        {
+          id: 'prepaid-shipments',
+          title: 'Prepaid Shipment',
+          icon: CreditCard,
+          route: '/dashboard/prepaid-shipments'
+        },
+        {
+          id: 'reverse-shipments',
+          title: 'Reverse Shipment',
+          icon: RotateCcw,
+          route: '/dashboard/reverse-shipments'
+        }
+      ]
     },
     {
       id: 'support',
@@ -103,9 +119,9 @@ const OnboardingLayout = () => {
     },
     {
       id: 'users',
-      title: 'Users',
+      title: 'Support Users',
       icon: User,
-      route: '/dashboard/users'
+      route: '/dashboard/support-user'
     },
     {
       id: 'vendors',
@@ -118,11 +134,13 @@ const OnboardingLayout = () => {
   const routeMapping: { [key: string]: string } = {
     // Dashboard Routes (Primary)
     'orders': '/dashboard/orders',
-    'shipments': '/dashboard/shipments',
+    'shipments': '/dashboard/prepaid-shipments',
+    'prepaid-shipments': '/dashboard/prepaid-shipments',
+    'reverse-shipments': '/dashboard/reverse-shipments',
     'support': '/dashboard/support/support-dashboard',
     'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
-    'users': '/dashboard/users',
+    'users': '/dashboard/support-user',
     'vendors': '/dashboard/vendors'
   };
 
@@ -223,6 +241,19 @@ const OnboardingLayout = () => {
     }
   }, [sidebarOpen]);
 
+  // Auto-expand shipments menu when on shipment pages
+  useEffect(() => {
+    const pathname = location.pathname;
+    if (pathname.includes('/dashboard/prepaid-shipments') || pathname.includes('/dashboard/reverse-shipments')) {
+      setExpandedMenus(prev => {
+        if (!prev.includes('shipments')) {
+          return [...prev, 'shipments'];
+        }
+        return prev;
+      });
+    }
+  }, [location.pathname]);
+
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
@@ -316,34 +347,37 @@ const OnboardingLayout = () => {
                   onMouseEnter={handleSubmenuMouseEnter}
                   onMouseLeave={handleSubmenuMouseLeave}
                 >
-                  {item.subItems.map((subItem) => (
-                    <button
-                      key={subItem.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (routeMapping[subItem.id]) navigate(routeMapping[subItem.id]);
-                      }}
-                      className={`w-full flex items-center px-4 py-2 text-left transition-all duration-300 group relative overflow-hidden rounded-lg mx-2 ${
-                        window.location.pathname === routeMapping[subItem.id]
-                          ? 'bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-blue-500/15 text-purple-600 dark:text-purple-400 shadow-md backdrop-blur-sm' 
-                          : 'text-muted-foreground hover:bg-gradient-to-r hover:from-pink-500/8 hover:via-purple-500/8 hover:to-blue-500/8 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm hover:backdrop-blur-sm'
-                      }`}
-                    >
-                      {/* Animated background on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-pink-500/3 via-purple-500/3 to-blue-500/3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
-                      
-                      <subItem.icon className="w-4 h-4 relative z-10 transition-colors duration-300" />
-                      <span className="ml-3 text-sm relative z-10 transition-all duration-300 group-hover:font-medium">{subItem.title}</span>
-                      {subItem.progress !== undefined && (
-                        <div className="ml-auto w-6 h-1.5 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full overflow-hidden shadow-inner">
-                          <div 
-                            className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-full transition-all duration-500 shadow-sm"
-                            style={{ width: `${subItem.progress}%` }}
-                          />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {item.subItems.map((subItem) => {
+                    const subItemRoute = subItem.route || routeMapping[subItem.id];
+                    return (
+                      <button
+                        key={subItem.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (subItemRoute) navigate(subItemRoute);
+                        }}
+                        className={`w-full flex items-center px-4 py-2 text-left transition-all duration-300 group relative overflow-hidden rounded-lg mx-2 ${
+                          window.location.pathname === subItemRoute
+                            ? 'bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-blue-500/15 text-purple-600 dark:text-purple-400 shadow-md backdrop-blur-sm' 
+                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-pink-500/8 hover:via-purple-500/8 hover:to-blue-500/8 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm hover:backdrop-blur-sm'
+                        }`}
+                      >
+                        {/* Animated background on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/3 via-purple-500/3 to-blue-500/3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                        
+                        <subItem.icon className="w-4 h-4 relative z-10 transition-colors duration-300" />
+                        <span className="ml-3 text-sm relative z-10 transition-all duration-300 group-hover:font-medium">{subItem.title}</span>
+                        {subItem.progress !== undefined && (
+                          <div className="ml-auto w-6 h-1.5 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full overflow-hidden shadow-inner">
+                            <div 
+                              className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-full transition-all duration-500 shadow-sm"
+                              style={{ width: `${subItem.progress}%` }}
+                            />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
