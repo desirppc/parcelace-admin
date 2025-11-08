@@ -12,7 +12,9 @@
     "build:staging": "vite build --mode staging",
     "build:production": "vite build --mode production",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "deploy": "npm run build:production && npx netlify-cli deploy --prod --dir=dist",
+    "deploy:preview": "npm run build:production && npx netlify-cli deploy --dir=dist"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -81,6 +81,11 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
     handleNavigateToMobileOTP(phone);
   };
 
+  const handleNavigateToOnboarding = () => {
+    // After successful login, navigate to dashboard (onboarding is handled separately if needed)
+    navigate('/dashboard/orders');
+  };
+
   switch (currentScreen) {
     case 'signup':
       return (

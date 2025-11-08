@@ -30,3 +30,6 @@ dist-ssr
 .env.test.local
 .env.production.local
 backup_20250814_014458_complete/
+
+# Local Netlify folder
+.netlify
