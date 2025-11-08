@@ -59,8 +59,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
-import { CacheKeys, CacheGroups, getCache, setCache, clearCacheByPrefix } from '@/utils/cache';
-import { EnhancedCacheKeys } from '@/utils/smartCache';
+import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 
 interface ShipmentItem {
@@ -141,6 +140,21 @@ interface ShipmentItem {
   };
 }
 
+type ShipmentFilterRequest = {
+  date_range?: string;
+  order_type?: string[];
+  tracking_status?: string[];
+};
+
+interface ShipmentsFetchResult {
+  shipments: ShipmentItem[];
+  totalShipments: number;
+  totalPages: number;
+  filterOptions: Record<string, string>;
+  fetchedAt: number;
+  noShipmentsMessage?: string;
+}
+
 const ShipmentPage = () => {
   // Set page meta tags
   usePageMeta(PageMetaConfigs.shipments);
@@ -196,6 +210,21 @@ const ShipmentPage = () => {
 
   const currentPageType = getCurrentPageType();
 
+  // All available tracking statuses
+  const ALL_TRACKING_STATUSES = [
+    "pending", 
+    "booked", 
+    "pickup_failed", 
+    "in_transit", 
+    "out_for_delivery", 
+    "delivered", 
+    "ndr", 
+    "rto_in_transit", 
+    "rto_delivered", 
+    "cancelled", 
+    "rvp_cancelled"
+  ];
+
   // Date filter options (copied from OrdersPage)
   const dateFilterOptions = [
     { value: 'all', label: 'All Time' },
@@ -208,206 +237,207 @@ const ShipmentPage = () => {
     { value: 'custom', label: 'Custom Range' }
   ];
 
-    const fetchShipments = async (isRefresh = false, customFilters?: {
-      date_range?: string;
-      order_type?: string[];
-      tracking_status?: string[];
-    }) => {
+  const applyFilteredShipments = (shipmentsData: ShipmentItem[], overrideSearchTerm?: string) => {
+    const filteredByPageType = filterShipmentsForPageType(shipmentsData, currentPageType);
+    const finalFiltered = filterShipmentsBySearchTerm(
+      filteredByPageType,
+      overrideSearchTerm !== undefined ? overrideSearchTerm : searchTerm
+    );
+    setFilteredShipments(finalFiltered);
+  };
+
+  const fetchShipments = async ({
+    isRefresh = false,
+    filters,
+  }: {
+    isRefresh?: boolean;
+    filters?: ShipmentFilterRequest;
+  } = {}) => {
     if (isRefresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (shipments.length === 0) {
       setIsLoading(true);
     }
-    
-    const cacheKey = EnhancedCacheKeys.shipments(currentPage, pageSize, currentPageType);
-    
-    // Clear any existing cache for shipments to ensure fresh data
-    clearCacheByPrefix(CacheGroups.shipments);
-    
-    // Fetch fresh data directly without showing cached data first
-    try {
+
+    const defaultOrderType =
+      currentPageType === 'reverse'
+        ? ['reverse']
+        : currentPageType === 'prepaid'
+        ? ['prepaid', 'cod']
+        : ['prepaid', 'cod'];
+
+    const requestFilters: ShipmentFilterRequest =
+      filters || {
+        date_range: '',
+        order_type: defaultOrderType,
+        tracking_status: ALL_TRACKING_STATUSES,
+      };
+
+    const cacheKey = EnhancedCacheKeys.shipments(
+      currentPage,
+      pageSize,
+      currentPageType,
+      requestFilters
+    );
+
+    let latestDataSource: 'cache' | 'network' | null = null;
+
+    const updateStateFromResult = (result: ShipmentsFetchResult | null, isFromCache: boolean) => {
+      if (!result) return;
+
+      latestDataSource = isFromCache ? 'cache' : 'network';
+
+      if (result.filterOptions) {
+        setFilterOptions(result.filterOptions);
+      }
+
+      setShipments(result.shipments);
+      applyFilteredShipments(result.shipments);
+      setTotalShipments(result.totalShipments);
+      setTotalPages(result.totalPages);
+
+      if (result.fetchedAt) {
+        setLastFetchTime(new Date(result.fetchedAt));
+      }
+
+      if (isFromCache) {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchFromApi = async (): Promise<ShipmentsFetchResult> => {
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
-      
-      // Build request body with filter parameters
-      // Use custom filters if provided, otherwise use default filters based on page type
-      const defaultOrderType = currentPageType === 'reverse' 
-        ? ["reverse"]
-        : currentPageType === 'prepaid'
-        ? ["prepaid", "cod"]
-        : ["prepaid", "cod"];
-      
-      // On initial load (no custom filters), use default filters to show all data
-      // Only apply specific filters when explicitly provided (from filter panel or tabs)
-      const requestBody = customFilters || {
-        date_range: "",
-        order_type: defaultOrderType,
-        tracking_status: [] // Empty array - API should return all statuses when empty
-      };
-      
-      // Build API URL with query parameters for pagination
-      const baseUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/filter`;
+
+      const baseUrl = `${
+        import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'
+      }api/shipments/filter`;
       const apiUrl = `${baseUrl}?per_page=${pageSize}&page=${currentPage}`;
-      
+
       console.log('🔍 Fetching shipments with Filter API');
-      console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('📤 Request Body:', JSON.stringify(requestFilters, null, 2));
       console.log('🌐 API URL:', apiUrl);
       console.log('📄 Pagination:', { per_page: pageSize, page: currentPage });
-      
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestFilters),
       });
-      
+
       console.log('📡 Response Status:', response.status, response.statusText);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error Response:', errorText);
         throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
-      
+
       const data = await response.json();
-      
+
       console.log('📥 API Response Data:', JSON.stringify(data, null, 2));
-      
-      // Check for "No shipments found" message
+
       const errorMessage = data?.error?.message || data?.message || '';
-      const isNoShipmentsFound = errorMessage.toLowerCase().includes('no shipments found');
-      
-      if (isNoShipmentsFound) {
-        // Handle "No shipments found" case - show toast and set empty state
-        console.log('⚠️ No shipments found for the selected filters');
-        
-        // Extract filter_options if available even when no shipments found
-        if (data.data?.filter_options) {
-          console.log('✅ Filter options received:', data.data.filter_options);
-          setFilterOptions(data.data.filter_options);
-        }
-        
-        // Set empty shipments
-        setShipments([]);
-        setFilteredShipments([]);
-        setTotalShipments(0);
-        setTotalPages(0);
-        setLastFetchTime(new Date());
-        
-        // Show red toast notification
-        toast({
-          title: "No Shipments Found",
-          description: errorMessage || "No shipments found for the selected filters.",
-          variant: "destructive",
-        });
-        
-        console.log('✅ Empty state set and toast notification shown');
-        return; // Exit early, don't throw error
-      }
-      
-      if (data && data.status) {
-        // Extract filter_options from API response
-        if (data.data?.filter_options) {
-          console.log('✅ Filter options received:', data.data.filter_options);
-          setFilterOptions(data.data.filter_options);
-        } else {
-          console.warn('⚠️ No filter_options in response');
-        }
-        
-        // Handle different possible response structures - prioritize shipment_data
-        let shipmentsData = [];
-        
-        if (data.data?.shipment_data && Array.isArray(data.data.shipment_data)) {
-          shipmentsData = data.data.shipment_data;
-          console.log('✅ Found shipment_data array with', shipmentsData.length, 'items');
-        } else if (Array.isArray(data.data)) {
-          shipmentsData = data.data;
-          console.log('✅ Found data array with', shipmentsData.length, 'items');
-        } else if (data.data && Array.isArray(data.data.shipments)) {
-          shipmentsData = data.data.shipments;
-          console.log('✅ Found shipments array with', shipmentsData.length, 'items');
-        } else if (data.data && Array.isArray(data.data.data)) {
-          shipmentsData = data.data.data;
-          console.log('✅ Found data.data array with', shipmentsData.length, 'items');
-        } else if (data.shipments && Array.isArray(data.shipments)) {
-          shipmentsData = data.shipments;
-          console.log('✅ Found shipments array (root) with', shipmentsData.length, 'items');
-        } else if (data.shipment_data && Array.isArray(data.shipment_data)) {
-          shipmentsData = data.shipment_data;
-          console.log('✅ Found shipment_data array (root) with', shipmentsData.length, 'items');
-        } else {
-          console.warn('⚠️ No shipments array found in response. Data structure:', Object.keys(data.data || {}));
-        }
-        
-        console.log('📦 Processed shipments data:', shipmentsData.length, 'shipments');
-        
-        // Filter out shipments where AWB is null and sort by latest first
-        const shipmentsWithAWB = shipmentsData
-          .filter(shipment => shipment.awb !== null && shipment.awb !== '')
-          .sort((a, b) => {
-            // Sort by created_at descending (latest first)
-            const dateA = new Date(a.created_at || a.order_date || a.store_order?.sync_date || 0);
-            const dateB = new Date(b.created_at || b.order_date || b.store_order?.sync_date || 0);
-            return dateB.getTime() - dateA.getTime();
-          });
-        
-        console.log('Shipments with AWB (sorted by created_at latest):', shipmentsWithAWB);
-        
-        const totalShipments = data.data.pagination?.total || shipmentsWithAWB.length;
-        const totalPages = data.data.pagination?.last_page || Math.ceil(totalShipments / pageSize);
-        
-        // Update state with fresh data
-        setShipments(shipmentsWithAWB);
-        
-        // Apply client-side search filter if search term exists
-        let finalFiltered = shipmentsWithAWB;
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
-          finalFiltered = shipmentsWithAWB.filter(shipment => 
-            shipment.awb?.toLowerCase().includes(searchLower) ||
-            shipment.customer_name?.toLowerCase().includes(searchLower) ||
-            shipment.store_order?.order_no?.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        setFilteredShipments(finalFiltered);
-        setTotalShipments(totalShipments);
-        setTotalPages(totalPages);
-        filterShipmentsByPageType(finalFiltered, currentPageType);
-        setLastFetchTime(new Date());
-        
-        // Cache the fresh data for future use
-        const cacheData = {
-          shipments: shipmentsWithAWB,
-          totalShipments,
-          totalPages,
-          timestamp: Date.now()
-        };
-        setCache(cacheKey, cacheData, 2 * 60 * 1000); // Cache for only 2 minutes
-        
-        console.log('✅ Fresh shipments data loaded and cached');
-      } else {
-        // Handle other errors
+      const isNoShipmentsFound = errorMessage?.toLowerCase?.().includes('no shipments found');
+
+      if (!data?.status && !isNoShipmentsFound) {
         const errorMsg = errorMessage || 'Failed to fetch shipments';
         console.error('❌ API returned error:', errorMsg);
-        console.error('❌ Full error response:', data);
         throw new Error(errorMsg);
+      }
+
+      const filtersFromResponse = data?.data?.filter_options || {};
+
+      let shipmentsData: ShipmentItem[] = [];
+
+      if (data?.data?.shipment_data && Array.isArray(data.data.shipment_data)) {
+        shipmentsData = data.data.shipment_data;
+      } else if (Array.isArray(data?.data)) {
+        shipmentsData = data.data;
+      } else if (data?.data?.shipments && Array.isArray(data.data.shipments)) {
+        shipmentsData = data.data.shipments;
+      } else if (data?.data?.data && Array.isArray(data.data.data)) {
+        shipmentsData = data.data.data;
+      } else if (Array.isArray(data?.shipments)) {
+        shipmentsData = data.shipments;
+      } else if (Array.isArray(data?.shipment_data)) {
+        shipmentsData = data.shipment_data;
+      } else {
+        console.warn('⚠️ No shipments array found in response. Data structure:', data);
+      }
+
+      const shipmentsWithAWB = (shipmentsData || [])
+        .filter((shipment) => shipment.awb !== null && shipment.awb !== '')
+        .sort((a, b) => {
+          const dateA = new Date(a.created_at || a.order_date || a.store_order?.sync_date || 0);
+          const dateB = new Date(b.created_at || b.order_date || b.store_order?.sync_date || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+      const totalShipmentsCount =
+        data?.data?.pagination?.total ?? shipmentsWithAWB.length ?? 0;
+      const totalPagesCount =
+        data?.data?.pagination?.last_page ??
+        (totalShipmentsCount > 0 ? Math.ceil(totalShipmentsCount / pageSize) : 0);
+
+      return {
+        shipments: shipmentsWithAWB,
+        totalShipments: totalShipmentsCount,
+        totalPages: totalPagesCount,
+        filterOptions: filtersFromResponse,
+        fetchedAt: Date.now(),
+        noShipmentsMessage: isNoShipmentsFound
+          ? errorMessage || 'No shipments found for the selected filters.'
+          : undefined,
+      };
+    };
+
+    try {
+      let result: ShipmentsFetchResult | null;
+
+      if (isRefresh) {
+        result = await SmartCache.forceRefresh(
+          cacheKey,
+          fetchFromApi,
+          CacheStrategies.shipments,
+          updateStateFromResult
+        );
+      } else {
+        result = await SmartCache.getData(
+          cacheKey,
+          fetchFromApi,
+          CacheStrategies.shipments,
+          updateStateFromResult
+        );
+      }
+
+      if (
+        result &&
+        result.noShipmentsMessage &&
+        result.shipments.length === 0 &&
+        latestDataSource === 'network'
+      ) {
+        toast({
+          title: 'No Shipments Found',
+          description: result.noShipmentsMessage,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error fetching shipments:', error);
       toast({
-        title: "Error Loading Shipments",
-        description: "Failed to fetch shipments. Please try again.",
-        variant: "destructive",
+        title: 'Error Loading Shipments',
+        description: error instanceof Error ? error.message : 'Failed to fetch shipments. Please try again.',
+        variant: 'destructive',
       });
     } finally {
+      setIsLoading(false);
       if (isRefresh) {
         setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
       }
     }
   };
@@ -432,7 +462,8 @@ const ShipmentPage = () => {
 
   // Fetch shipments when page type, page, or page size changes
   useEffect(() => {
-    // On initial load or page type change, fetch without filters (empty tracking_status)
+    // On initial load or page type change, fetch with all tracking statuses
+    // This ensures we get all shipments when the page loads or reloads
     fetchShipments();
   }, [currentPageType, currentPage, pageSize]);
 
@@ -741,24 +772,41 @@ const ShipmentPage = () => {
     }
   };
 
-  // Filter shipments based on current page type
-  const filterShipmentsByPageType = (shipmentsData: ShipmentItem[], pageType: string) => {
-    let filtered = shipmentsData;
-    
+  const filterShipmentsForPageType = (
+    shipmentsData: ShipmentItem[],
+    pageType: string
+  ): ShipmentItem[] => {
     if (pageType === 'reverse') {
-      filtered = shipmentsData.filter((shipment: ShipmentItem) => 
-        (shipment.payment_mode || '').toLowerCase() === 'reverse'
+      return shipmentsData.filter(
+        (shipment: ShipmentItem) => (shipment.payment_mode || '').toLowerCase() === 'reverse'
       );
-    } else if (pageType === 'prepaid') {
-      filtered = shipmentsData.filter((shipment: ShipmentItem) => {
+    }
+
+    if (pageType === 'prepaid') {
+      return shipmentsData.filter((shipment: ShipmentItem) => {
         const paymentMode = (shipment.payment_mode || '').toLowerCase();
         return paymentMode === 'prepaid' || paymentMode === 'cod';
       });
     }
-    // For 'all' page type, show all shipments
-    
-    setFilteredShipments(filtered);
-    // Don't reset pagination here as it interferes with user navigation
+
+    return shipmentsData;
+  };
+
+  const filterShipmentsBySearchTerm = (
+    shipmentsData: ShipmentItem[],
+    term: string
+  ): ShipmentItem[] => {
+    if (!term) {
+      return shipmentsData;
+    }
+
+    const searchLower = term.toLowerCase();
+    return shipmentsData.filter((shipment) => {
+      const awbMatch = shipment.awb?.toLowerCase().includes(searchLower);
+      const nameMatch = shipment.customer_name?.toLowerCase().includes(searchLower);
+      const orderMatch = shipment.store_order?.order_no?.toLowerCase().includes(searchLower);
+      return Boolean(awbMatch || nameMatch || orderMatch);
+    });
   };
 
   // Pagination functions
@@ -895,7 +943,7 @@ const ShipmentPage = () => {
         ? shipmentStatus 
         : Object.keys(filterOptions).length > 0 
           ? Object.keys(filterOptions) 
-          : ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"];
+          : ALL_TRACKING_STATUSES;
       
       // If activeTab is not 'all', filter by that status
       if (activeTab !== 'all') {
@@ -915,7 +963,7 @@ const ShipmentPage = () => {
       console.log('🔍 Applying filters with request:', JSON.stringify(filterRequestBody, null, 2));
       
       // Call fetchShipments with custom filters
-      await fetchShipments(false, filterRequestBody);
+      await fetchShipments({ filters: filterRequestBody });
       
       setShowFilter(false);
       
@@ -957,12 +1005,14 @@ const ShipmentPage = () => {
         ? ["prepaid", "cod"]
         : ["prepaid", "cod"];
       
-      await fetchShipments(false, {
-        date_range: "",
-        order_type: defaultOrderType,
-        tracking_status: Object.keys(filterOptions).length > 0 
-          ? Object.keys(filterOptions) 
-          : ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"]
+      await fetchShipments({
+        filters: {
+          date_range: "",
+          order_type: defaultOrderType,
+          tracking_status: Object.keys(filterOptions).length > 0 
+            ? Object.keys(filterOptions) 
+            : ALL_TRACKING_STATUSES
+        }
       });
     } catch (error) {
       console.error('Error resetting filters:', error);
@@ -1129,7 +1179,36 @@ const ShipmentPage = () => {
           <Button 
             variant="outline" 
             onClick={async () => {
-              await fetchShipments(true);
+              // Reset all filters when refreshing
+              setActiveTab('all');
+              setSearchTerm('');
+              setDateFilter('all');
+              setDateFrom(undefined);
+              setDateTo(undefined);
+              setOrderTypes({
+                prepaid: false,
+                cod: false,
+                all: true
+              });
+              setShipmentStatus([]);
+              setCurrentPage(1);
+              setShowFilter(false);
+              
+              // Fetch with all tracking statuses
+              const defaultOrderType = currentPageType === 'reverse' 
+                ? ["reverse"]
+                : currentPageType === 'prepaid'
+                ? ["prepaid", "cod"]
+                : ["prepaid", "cod"];
+              
+              await fetchShipments({
+                isRefresh: true,
+                filters: {
+                  date_range: "",
+                  order_type: defaultOrderType,
+                  tracking_status: ALL_TRACKING_STATUSES
+                }
+              });
             }}
             disabled={isRefreshing}
           >
@@ -1176,19 +1255,7 @@ const ShipmentPage = () => {
                     onChange={(e) => {
                       const newSearchTerm = e.target.value;
                       setSearchTerm(newSearchTerm);
-                      
-                      // Apply client-side search filter immediately
-                      if (newSearchTerm) {
-                        const searchLower = newSearchTerm.toLowerCase();
-                        const filtered = shipments.filter(shipment => 
-                          shipment.awb?.toLowerCase().includes(searchLower) ||
-                          shipment.customer_name?.toLowerCase().includes(searchLower) ||
-                          shipment.store_order?.order_no?.toLowerCase().includes(searchLower)
-                        );
-                        setFilteredShipments(filtered);
-                      } else {
-                        setFilteredShipments(shipments);
-                      }
+                      applyFilteredShipments(shipments, newSearchTerm);
                       // Don't reset pagination here as it interferes with user navigation
                     }}
                   />
@@ -1399,16 +1466,18 @@ const ShipmentPage = () => {
           
           // Build tracking_status array based on selected tab
           const trackingStatusArray = value === 'all' 
-            ? ["pending", "booked", "pickup_failed", "in_transit", "out_for_delivery", "delivered", "ndr", "rto_in_transit", "rto_delivered", "cancelled", "rvp_cancelled"]
+            ? ALL_TRACKING_STATUSES
             : [value];
           
           // Call filter API with tab selection
           try {
             setIsLoading(true);
-            await fetchShipments(false, {
-              date_range: "",
-              order_type: orderTypeArray,
-              tracking_status: trackingStatusArray
+            await fetchShipments({
+              filters: {
+                date_range: "",
+                order_type: orderTypeArray,
+                tracking_status: trackingStatusArray
+              }
             });
           } catch (error) {
             console.error('Error applying tab filter:', error);
