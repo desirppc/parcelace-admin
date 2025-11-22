@@ -460,7 +460,7 @@ const ParcelAceAI = () => {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground flex dark:from-background dark:via-muted/10 dark:to-background overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground flex overflow-hidden">
       {/* Left Sidebar - Fixed Position */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} min-w-[280px] max-w-[320px] bg-sidebar border-r border-sidebar-border flex flex-col h-screen transition-all duration-300 ease-in-out lg:block ${sidebarOpen ? 'block' : 'hidden'}`}>
         {/* Header */}

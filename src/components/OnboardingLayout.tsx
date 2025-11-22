@@ -280,17 +280,17 @@ const OnboardingLayout = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-purple-50 flex">
       {/* Sidebar */}
       <div 
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-white/95 via-blue-50/90 to-purple-50/95 dark:from-gray-900/95 dark:via-blue-800/90 dark:to-gray-900/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-900/80 shadow-2xl transition-all duration-300 z-50 border-r border-purple-200/30 dark:border-purple-800/30 ${
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-white/95 via-blue-50/90 to-purple-50/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 shadow-2xl transition-all duration-300 z-50 border-r border-purple-200/30 ${
           sidebarOpen ? 'w-64' : 'w-16'
         }`}
         onMouseEnter={handleSidebarMouseEnter}
         onMouseLeave={handleSidebarMouseLeave}
       >
         {/* Logo */}
-        <div className="p-4 border-b border-gradient-to-r from-pink-200/30 via-blue-200/30 to-purple-200/30 dark:from-pink-800/30 dark:via-blue-800/30 dark:to-purple-800/30">
+        <div className="p-4 border-b border-gradient-to-r from-pink-200/30 via-blue-200/30 to-purple-200/30">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
               <Truck className="w-5 h-5 text-white" />
@@ -321,8 +321,8 @@ const OnboardingLayout = () => {
                 
                 <item.icon className={`w-5 h-5 relative z-10 transition-colors duration-300 ${
                   item.route && window.location.pathname === item.route
-                    ? 'text-purple-600 dark:text-purple-400' 
-                    : 'text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400'
+                    ? 'text-purple-600' 
+                    : 'text-muted-foreground group-hover:text-purple-600'
                 }`} />
                 {sidebarOpen && (
                   <>
@@ -332,7 +332,7 @@ const OnboardingLayout = () => {
                         : 'text-foreground group-hover:text-foreground group-hover:font-medium'
                     }`}>{item.title}</span>
                     {item.progress !== undefined && (
-                      <div className="w-8 h-2 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full mr-2 overflow-hidden shadow-inner">
+                      <div className="w-8 h-2 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full mr-2 overflow-hidden shadow-inner">
                         <div 
                           className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-full transition-all duration-500 shadow-sm"
                           style={{ width: `${item.progress}%` }}
@@ -344,8 +344,8 @@ const OnboardingLayout = () => {
                         expandedMenus.includes(item.id) ? 'rotate-90' : ''
                       }`}>
                         {expandedMenus.includes(item.id) ? 
-                          <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300" /> :
-                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-purple-600 transition-colors duration-300" /> :
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-purple-600 transition-colors duration-300" />
                         }
                       </div>
                     )}
@@ -371,8 +371,8 @@ const OnboardingLayout = () => {
                         }}
                         className={`w-full flex items-center px-4 py-2 text-left transition-all duration-300 group relative overflow-hidden rounded-lg mx-2 ${
                           window.location.pathname === subItemRoute
-                            ? 'bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-blue-500/15 text-purple-600 dark:text-purple-400 shadow-md backdrop-blur-sm' 
-                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-pink-500/8 hover:via-purple-500/8 hover:to-blue-500/8 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm hover:backdrop-blur-sm'
+                            ? 'bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-blue-500/15 text-purple-600 shadow-md backdrop-blur-sm' 
+                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-pink-500/8 hover:via-purple-500/8 hover:to-blue-500/8 hover:text-purple-600 hover:shadow-sm hover:backdrop-blur-sm'
                         }`}
                       >
                         {/* Animated background on hover */}
@@ -381,7 +381,7 @@ const OnboardingLayout = () => {
                         <subItem.icon className="w-4 h-4 relative z-10 transition-colors duration-300" />
                         <span className="ml-3 text-sm relative z-10 transition-all duration-300 group-hover:font-medium">{subItem.title}</span>
                         {subItem.progress !== undefined && (
-                          <div className="ml-auto w-6 h-1.5 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full overflow-hidden shadow-inner">
+                          <div className="ml-auto w-6 h-1.5 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full overflow-hidden shadow-inner">
                             <div 
                               className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-full transition-all duration-500 shadow-sm"
                               style={{ width: `${subItem.progress}%` }}
