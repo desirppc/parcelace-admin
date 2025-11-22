@@ -3,7 +3,6 @@ import { Send, Sparkles, MessageCircle, Plus, ThumbsUp, ThumbsDown, RotateCcw, C
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import { chatGPTService, ChatMessage, ChatResponse } from '@/services/chatGPTService';
 import { analyticsService } from '@/services/analyticsService';

@@ -39,7 +39,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ThemeToggle } from './ThemeToggle';
 import OnboardingContent from './OnboardingContent';
 import NotificationPanel from './NotificationPanel';
 
