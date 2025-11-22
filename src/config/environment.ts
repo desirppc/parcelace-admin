@@ -18,14 +18,23 @@ export const ENVIRONMENT = {
   // Get current API URL based on environment
   getCurrentApiUrl(): string {
     // Priority: 1. .env file, 2. localhost detection, 3. environment-specific, 4. fallback
-    if (import.meta.env.VITE_API_URL) {
-      let apiUrl = import.meta.env.VITE_API_URL.trim();
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    
+    if (envApiUrl) {
+      let apiUrl = String(envApiUrl).trim();
+      // Ensure URL has protocol
+      if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+        apiUrl = 'https://' + apiUrl;
+      }
       // Ensure URL ends with a trailing slash
       if (!apiUrl.endsWith('/')) {
         apiUrl += '/';
       }
+      console.log('🔗 Using VITE_API_URL from environment:', apiUrl);
       return apiUrl;
     }
+    
+    console.log('⚠️ VITE_API_URL not set, using fallback logic');
     
     // Check if we're running on localhost
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
@@ -46,16 +55,12 @@ export const ENVIRONMENT = {
         return this.API_URLS.staging;
       }
       
-      // Vercel domains
+      // Vercel domains - default to production API
       if (hostname.includes('vercel.app')) {
-        // Production deployment (main branch) - use production API
-        // Preview/branch deployments - use staging API
-        // You can customize this based on your Vercel project setup
-        if (hostname.includes('parcelace-admin') && !hostname.includes('git-')) {
-          return this.API_URLS.production;
-        }
-        // Preview deployments and branch deploys use staging
-        return this.API_URLS.staging;
+        // Always use production API for Vercel deployments
+        // Environment variable VITE_API_URL should be set in Vercel dashboard
+        console.log('🌐 Detected Vercel deployment, using production API');
+        return this.API_URLS.production;
       }
     }
     
@@ -103,8 +108,8 @@ export const ENVIRONMENT = {
   }
 };
 
-// Log environment info in development and staging
+// Log environment info in all environments for debugging
+console.log('🌍 Environment Configuration:', ENVIRONMENT.getInfo());
 if (ENVIRONMENT.isDevelopment() || ENVIRONMENT.isLocal() || ENVIRONMENT.isStaging()) {
-  console.log('🌍 Environment Configuration:', ENVIRONMENT.getInfo());
   console.log('🚀 Staging Environment Active - Using app.parcelace.io');
 }

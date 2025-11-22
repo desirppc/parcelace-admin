@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import API_CONFIG from '@/config/api';
+import API_CONFIG, { getApiUrl } from '@/config/api';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
 import { isUserAuthorized, getUserRoleNames, getAuthorizationErrorMessage, shouldBypassVerification } from '@/utils/roleUtils';
 
@@ -142,7 +142,7 @@ const Login = () => {
     // Try real API login
     try {
       console.log('Attempting API login with:', { email, password });
-      const loginUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`;
+      const loginUrl = getApiUrl(API_CONFIG.ENDPOINTS.LOGIN);
       console.log('API URL:', loginUrl);
       
       const response = await fetch(loginUrl, {

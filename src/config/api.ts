@@ -163,16 +163,15 @@ export const getApiUrl = (endpoint: string): string => {
   // Ensure baseUrl ends with / and construct full URL
   const fullUrl = `${baseUrl}${cleanEndpoint}`;
   
-  // Enhanced debugging in development
-  if (ENVIRONMENT.isDevelopment() || ENVIRONMENT.isStaging()) {
-    console.log('🔗 API Config Debug:', {
-      BASE_URL: baseUrl,
-      endpoint,
-      cleanEndpoint,
-      fullUrl,
-      environment: ENVIRONMENT.getInfo()
-    });
-  }
+  // Always log API URL construction for debugging (can be removed in production if needed)
+  console.log('🔗 API URL Construction:', {
+    BASE_URL: baseUrl,
+    endpoint,
+    cleanEndpoint,
+    fullUrl,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A'
+  });
   
   return fullUrl;
 };
