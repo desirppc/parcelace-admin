@@ -166,12 +166,12 @@ export const getApiUrl = (endpoint: string): string => {
   // Always log API URL construction for debugging (can be removed in production if needed)
   console.log('🔗 API URL Construction:', {
     BASE_URL: baseUrl,
-    endpoint,
+      endpoint,
     cleanEndpoint,
-    fullUrl,
+      fullUrl,
     VITE_API_URL: import.meta.env.VITE_API_URL,
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A'
-  });
+    });
   
   return fullUrl;
 };

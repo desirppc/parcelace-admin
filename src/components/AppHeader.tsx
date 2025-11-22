@@ -239,7 +239,7 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="w-full bg-white dark:bg-gray-900 shadow-sm border-b border-purple-200 dark:border-purple-800 px-6 py-4 flex items-center justify-between z-40">
+    <header className="w-full bg-white shadow-sm border-b border-purple-200 px-6 py-4 flex items-center justify-between z-40">
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div className="relative" ref={searchInputRef}>
@@ -248,7 +248,7 @@ const AppHeader: React.FC = () => {
             placeholder="Search by AWb, Order Id, Customer Number"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 pr-10 h-10 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200/50 dark:border-purple-800/50 focus:bg-white dark:focus:bg-gray-900 focus:border-purple-400 dark:focus:border-purple-600 transition-all duration-300"
+            className="pl-10 pr-10 h-10 bg-gradient-to-r from-purple-50/50 to-blue-50/50 border-purple-200/50 focus:bg-white focus:border-purple-400 transition-all duration-300"
           />
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
             <Search className="w-4 h-4 text-muted-foreground" />
@@ -261,28 +261,28 @@ const AppHeader: React.FC = () => {
           
           {/* Search Results Dropdown */}
           {showSearchDropdown && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-800 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-purple-200 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
               {searchResults.map((result) => (
                 <div
                   key={`${result.id}-${result.store_order_id}`}
                   onClick={() => handleSearchResultClick(result)}
-                  className="p-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors duration-200"
+                  className="p-4 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-200"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <Package className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <Package className="w-4 h-4 text-purple-600" />
+                        <span className="font-medium text-gray-900">
                           {result.store_order.order_no}
                         </span>
                         {result.awb && (
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="text-sm text-gray-600">
                             AWB {result.awb}
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
                         {result.shipment_date && (
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-3 h-3" />
@@ -292,7 +292,7 @@ const AppHeader: React.FC = () => {
                         {result.shipment_status && (
                           <div className="flex items-center space-x-1">
                             <MapPin className="w-3 h-3" />
-                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-xs">
+                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
                               {result.shipment_status}
                             </span>
                           </div>
@@ -300,7 +300,7 @@ const AppHeader: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-right text-sm text-gray-500">
                       {result.awb ? 'Shipment' : 'Order'}
                     </div>
                   </div>
@@ -311,8 +311,8 @@ const AppHeader: React.FC = () => {
           
           {/* No Results */}
           {showSearchDropdown && searchResults.length === 0 && searchQuery.trim() && !isSearching && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-800 rounded-lg shadow-xl z-50 p-4">
-              <div className="text-center text-gray-500 dark:text-gray-400">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-purple-200 rounded-lg shadow-xl z-50 p-4">
+              <div className="text-center text-gray-500">
                 <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No results found for "{searchQuery}"</p>
               </div>
@@ -334,12 +334,12 @@ const AppHeader: React.FC = () => {
         {/* Settings Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-10 w-10 p-0 border-purple-200/50 dark:border-purple-800/50 flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors duration-200">
-              <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <Button variant="outline" className="h-10 w-10 p-0 border-purple-200/50 flex items-center hover:bg-purple-50 transition-colors duration-200">
+              <Settings className="w-4 h-4 text-purple-600" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-purple-200 dark:border-purple-800 z-[70] animate-fade-in min-w-[200px]">
-            <DropdownMenuLabel className="text-purple-600 dark:text-purple-400 font-semibold px-4 py-2">Settings</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="bg-white rounded-lg shadow-xl border border-purple-200 z-[70] animate-fade-in min-w-[200px]">
+            <DropdownMenuLabel className="text-purple-600 font-semibold px-4 py-2">Settings</DropdownMenuLabel>
             <DropdownMenuSeparator />
           </DropdownMenuContent>
         </DropdownMenu>
@@ -347,15 +347,15 @@ const AppHeader: React.FC = () => {
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-10 px-3 border-purple-200/50 dark:border-purple-800/50 flex items-center hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors duration-200">
-              <User className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
+            <Button variant="outline" className="h-10 px-3 border-purple-200/50 flex items-center hover:bg-purple-50 transition-colors duration-200">
+              <User className="w-4 h-4 mr-2 text-purple-600" />
               <span className="text-sm">{getDisplayName()}</span>
-              <ChevronDown className="w-3 h-3 ml-2 text-purple-600 dark:text-purple-400" />
+              <ChevronDown className="w-3 h-3 ml-2 text-purple-600" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-purple-200 dark:border-purple-800 z-[70] animate-fade-in min-w-[180px]">
+          <DropdownMenuContent align="end" className="bg-white rounded-lg shadow-xl border border-purple-200 z-[70] animate-fade-in min-w-[180px]">
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors duration-200">
+            <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:bg-red-50 cursor-pointer transition-colors duration-200">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </DropdownMenuItem>

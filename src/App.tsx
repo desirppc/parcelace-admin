@@ -58,45 +58,16 @@ const App = () => {
   // Removed session monitoring setup - sessions only checked on API calls
   // No automatic refresh or monitoring needed
   
-  // Force light theme - remove dark class and prevent it from being added
+  // Cleanup background refresh timers on app unmount
   useEffect(() => {
-    // Remove dark class immediately
-    document.documentElement.classList.remove('dark');
-    document.body.classList.remove('dark');
-    
-    // Watch for any attempts to add dark class and remove it
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          document.documentElement.classList.remove('dark');
-          document.body.classList.remove('dark');
-        }
-      });
-    });
-    
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-    
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-    
-    // Clear theme from localStorage
-    localStorage.removeItem('theme');
-    localStorage.removeItem('next-themes');
-    
     return () => {
-      observer.disconnect();
       SmartCache.clearAllTimers();
     };
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false} storageKey="theme" disableTransitionOnChange>
+      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false} storageKey="parcelace-theme">
         <TooltipProvider>
           <UserProvider>
             <Toaster />

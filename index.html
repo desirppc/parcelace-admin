@@ -55,28 +55,6 @@
 
   <body>
     <div id="root"></div>
-    <script>
-      // Force light theme - remove any dark class and prevent dark theme
-      (function() {
-        // Remove dark class from html element
-        document.documentElement.classList.remove('dark');
-        // Prevent dark class from being added
-        const observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-              document.documentElement.classList.remove('dark');
-            }
-          });
-        });
-        observer.observe(document.documentElement, {
-          attributes: true,
-          attributeFilter: ['class']
-        });
-        // Clear any theme preference from localStorage
-        localStorage.removeItem('theme');
-        localStorage.removeItem('next-themes');
-      })();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
