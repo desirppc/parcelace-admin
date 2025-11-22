@@ -1,6 +1,7 @@
 import masterFormulas from '@/data/master-formulas.json';
 import { orderService } from './orderService';
 import { shipmentService } from './shipmentService';
+import { ENVIRONMENT } from '@/config/environment';
 
 interface DataPoint {
   name: string;
@@ -640,7 +641,10 @@ class AnalyticsService {
    */
   private async fetchDirectAPI(dataPoint: DataPoint, filters: Record<string, any> = {}): Promise<number> {
     try {
-      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io'}${dataPoint.api_endpoint}`;
+      // Use ENVIRONMENT to get the correct API URL with proper trailing slash handling
+      const baseUrl = ENVIRONMENT.getCurrentApiUrl();
+      const cleanEndpoint = dataPoint.api_endpoint.startsWith('/') ? dataPoint.api_endpoint.slice(1) : dataPoint.api_endpoint;
+      const apiUrl = `${baseUrl}${cleanEndpoint}`;
       
       // Build query parameters from filters
       const queryParams = new URLSearchParams();

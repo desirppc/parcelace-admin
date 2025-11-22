@@ -22,6 +22,8 @@ const handleSessionExpiry = () => {
 };
 
 const API_CONFIG = {
+  // Note: BASE_URL is now retrieved dynamically in getApiUrl() to ensure it's always current
+  // Keeping this for backward compatibility, but getApiUrl() uses ENVIRONMENT.getCurrentApiUrl() directly
   BASE_URL: ENVIRONMENT.getCurrentApiUrl(),
   ENDPOINTS: {
     // Authentication
@@ -152,13 +154,21 @@ const API_CONFIG = {
 
 // Helper function to get API URL with endpoint
 export const getApiUrl = (endpoint: string): string => {
-  const fullUrl = `${API_CONFIG.BASE_URL}${endpoint}`;
+  // Always get the current API URL dynamically to ensure it's up to date
+  const baseUrl = ENVIRONMENT.getCurrentApiUrl();
+  
+  // Remove leading slash from endpoint if present
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  
+  // Ensure baseUrl ends with / and construct full URL
+  const fullUrl = `${baseUrl}${cleanEndpoint}`;
   
   // Enhanced debugging in development
-  if (ENVIRONMENT.isDevelopment()) {
+  if (ENVIRONMENT.isDevelopment() || ENVIRONMENT.isStaging()) {
     console.log('🔗 API Config Debug:', {
-      BASE_URL: API_CONFIG.BASE_URL,
+      BASE_URL: baseUrl,
       endpoint,
+      cleanEndpoint,
       fullUrl,
       environment: ENVIRONMENT.getInfo()
     });

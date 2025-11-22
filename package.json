@@ -14,7 +14,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "deploy": "npm run build:production && npx netlify-cli deploy --prod --dir=dist",
-    "deploy:preview": "npm run build:production && npx netlify-cli deploy --dir=dist"
+    "deploy:preview": "npm run build:production && npx netlify-cli deploy --dir=dist",
+    "deploy:vercel": "npm run build:production && npx vercel --prod",
+    "deploy:vercel:preview": "npm run build:production && npx vercel"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

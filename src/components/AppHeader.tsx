@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { ThemeToggle } from './ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -331,11 +330,6 @@ const AppHeader: React.FC = () => {
           <Sparkles className="w-4 h-4" />
           <span className="hidden sm:inline">ParcelAce AI</span>
         </Button>
-
-        {/* Settings Dropdown */}
-
-        {/* Theme Toggle */}
-        <ThemeToggle />
 
         {/* Settings Dropdown */}
         <DropdownMenu>

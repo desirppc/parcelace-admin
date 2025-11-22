@@ -19,7 +19,12 @@ export const ENVIRONMENT = {
   getCurrentApiUrl(): string {
     // Priority: 1. .env file, 2. localhost detection, 3. environment-specific, 4. fallback
     if (import.meta.env.VITE_API_URL) {
-      return import.meta.env.VITE_API_URL;
+      let apiUrl = import.meta.env.VITE_API_URL.trim();
+      // Ensure URL ends with a trailing slash
+      if (!apiUrl.endsWith('/')) {
+        apiUrl += '/';
+      }
+      return apiUrl;
     }
     
     // Check if we're running on localhost
@@ -27,23 +32,37 @@ export const ENVIRONMENT = {
       return this.API_URLS.local;
     }
     
-    // Check if we're running on Netlify domains
+    // Check if we're running on Netlify or Vercel domains
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       
-      // Production domain
+      // Netlify production domain
       if (hostname === 'parcelace.netlify.app') {
         return this.API_URLS.production;
       }
       
-      // Staging domain or branch deploys
+      // Netlify staging domain or branch deploys
       if (hostname.includes('staging') || hostname.includes('--parcelace.netlify.app')) {
+        return this.API_URLS.staging;
+      }
+      
+      // Vercel domains
+      if (hostname.includes('vercel.app')) {
+        // Production deployment (main branch) - use production API
+        // Preview/branch deployments - use staging API
+        // You can customize this based on your Vercel project setup
+        if (hostname.includes('parcelace-admin') && !hostname.includes('git-')) {
+          return this.API_URLS.production;
+        }
+        // Preview deployments and branch deploys use staging
         return this.API_URLS.staging;
       }
     }
     
     const env = this.NODE_ENV;
-    return this.API_URLS[env] || this.API_URLS.production;
+    const apiUrl = this.API_URLS[env] || this.API_URLS.production;
+    // Ensure URL ends with a trailing slash
+    return apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
   },
   
   // Check if we're in local development mode
