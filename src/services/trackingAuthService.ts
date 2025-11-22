@@ -1,4 +1,4 @@
-import API_CONFIG from '@/config/api';
+import API_CONFIG, { getApiUrl } from '@/config/api';
 
 // Custom API request function for tracking pages (no session expiry redirect)
 const trackingApiRequest = async (
@@ -7,7 +7,7 @@ const trackingApiRequest = async (
   data?: any,
   customHeaders?: Record<string, string>
 ) => {
-  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const url = getApiUrl(endpoint);
   const headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
