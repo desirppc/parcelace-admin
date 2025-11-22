@@ -497,6 +497,9 @@ const SupportTicketsPage = () => {
                         <UpdateStatusDialog
                           ticketId={ticket.id}
                           currentStatus={ticket.status}
+                          currentPriority={ticket.priority}
+                          currentExpectedClosureDate={ticket.expected_closure_date}
+                          currentCloseDate={ticket.close_date}
                           onStatusUpdate={handleStatusUpdate}
                         />
                       </div>

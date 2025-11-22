@@ -80,6 +80,12 @@ const OnboardingLayout = () => {
       route: '/dashboard/orders'
     },
     {
+      id: 'fe-number',
+      title: 'FE Number',
+      icon: FileText,
+      route: '/dashboard/fe-number'
+    },
+    {
       id: 'shipments',
       title: 'Shipments',
       icon: Truck,
@@ -98,6 +104,12 @@ const OnboardingLayout = () => {
           route: '/dashboard/reverse-shipments'
         }
       ]
+    },
+    {
+      id: 'action-needed',
+      title: 'Action Needed',
+      icon: AlertTriangle,
+      route: '/dashboard/action-needed'
     },
     {
       id: 'support',
@@ -134,9 +146,11 @@ const OnboardingLayout = () => {
   const routeMapping: { [key: string]: string } = {
     // Dashboard Routes (Primary)
     'orders': '/dashboard/orders',
+    'fe-number': '/dashboard/fe-number',
     'shipments': '/dashboard/prepaid-shipments',
     'prepaid-shipments': '/dashboard/prepaid-shipments',
     'reverse-shipments': '/dashboard/reverse-shipments',
+    'action-needed': '/dashboard/action-needed',
     'support': '/dashboard/support/support-dashboard',
     'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
@@ -244,7 +258,7 @@ const OnboardingLayout = () => {
   // Auto-expand shipments menu when on shipment pages
   useEffect(() => {
     const pathname = location.pathname;
-    if (pathname.includes('/dashboard/prepaid-shipments') || pathname.includes('/dashboard/reverse-shipments')) {
+    if (pathname.includes('/dashboard/prepaid-shipments') || pathname.includes('/dashboard/reverse-shipments') || pathname.includes('/dashboard/action-needed')) {
       setExpandedMenus(prev => {
         if (!prev.includes('shipments')) {
           return [...prev, 'shipments'];

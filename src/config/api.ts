@@ -70,6 +70,7 @@ const API_CONFIG = {
     SHIPMENT_FEEDBACK: 'api/shipments/feedback-list',
     SHIPMENT_FEEDBACK_VIEW: 'api/shipments/feedback-view',
     AWB_SEARCH: 'api/shipments/awb-search',
+    UPDATE_REMARKS: 'api/shipment/update-remarks',
     
     // Bulk Booking
     BULK_BOOKING_REQUEST: 'api/shipments/bulk-booking-request',
@@ -124,10 +125,12 @@ const API_CONFIG = {
     // Vendors
     VENDORS: 'api/support-user/vendor',
     ASSIGN_VENDORS: 'api/support-user/assign',
+    VENDOR_POC: 'api/vendor-poc',
     
     // Support Tickets
     SUPPORT_TICKETS: 'api/support-ticket',
     SUPPORT_TICKET_ASSIGN: 'api/support-user/ticket-assign',
+    SUPPORT_TICKET_UPDATE_STATUS: 'api/support-ticket/update-status',
     
     // Shipping Label Settings
     SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',

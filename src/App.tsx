@@ -24,12 +24,14 @@ const SignUp = lazy(() => import("./pages/SignUp"));
 const MobileOTPVerification = lazy(() => import("./pages/MobileOTPVerification"));
 const AddOrder = lazy(() => import("./components/AddOrder"));
 const ShipmentPage = lazy(() => import("./components/ShipmentPage"));
+const ActionNeededPage = lazy(() => import("./components/ActionNeededPage"));
 const TrackingPage = lazy(() => import("./components/TrackingPage"));
 const TrackingV2Page = lazy(() => import("./components/TrackingV2Page"));
 const ViewOrder = lazy(() => import("./components/ViewOrder"));
 const ViewOrderDetails = lazy(() => import("./components/ViewOrderDetails"));
 const ViewShipment = lazy(() => import("./components/ViewShipment"));
 const OrdersPage = lazy(() => import("./components/OrdersPage"));
+const FENumberPage = lazy(() => import("./components/FENumberPage"));
 const UsersPage = lazy(() => import("./components/UsersPage"));
 const VendorsPage = lazy(() => import("./components/VendorsPage"));
 const SupportTicketsPage = lazy(() => import("./components/SupportTicketsPage"));
@@ -92,8 +94,10 @@ const App = () => {
               <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
                 {/* Core Dashboard Routes */}
                 <Route path="/dashboard/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
+                <Route path="/dashboard/fe-number" element={<Suspense fallback={<LoadingSpinner />}><FENumberPage /></Suspense>} />
                 <Route path="/dashboard/prepaid-shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
                 <Route path="/dashboard/reverse-shipments" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
+                <Route path="/dashboard/action-needed" element={<Suspense fallback={<LoadingSpinner />}><ActionNeededPage /></Suspense>} />
                 <Route path="/dashboard/tracking" element={<Suspense fallback={<LoadingSpinner />}><ShipmentPage /></Suspense>} />
                 <Route path="/dashboard/support-user" element={<Suspense fallback={<LoadingSpinner />}><UsersPage /></Suspense>} />
                 <Route path="/dashboard/vendors" element={<Suspense fallback={<LoadingSpinner />}><VendorsPage /></Suspense>} />
@@ -108,7 +112,7 @@ const App = () => {
                 <Route path="/dashboard/orders/:orderId" element={<RouteGuard><Suspense fallback={<LoadingSpinner />}><ViewOrderDetails /></Suspense></RouteGuard>} />
                 
                 {/* Shipment Management */}
-                <Route path="/dashboard/shipments/:shipmentId" element={<RouteGuard><Suspense fallback={<LoadingSpinner />}><ViewShipment /></Suspense></RouteGuard>} />
+                <Route path="/dashboard/shipment/:awb" element={<RouteGuard><Suspense fallback={<LoadingSpinner />}><ViewShipment /></Suspense></RouteGuard>} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<Suspense fallback={<LoadingSpinner />}><NotFound /></Suspense>} />

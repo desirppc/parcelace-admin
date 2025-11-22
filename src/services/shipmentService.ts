@@ -587,6 +587,89 @@ class ShipmentService {
     }
   }
 
+  async updateRemarks(awb: string, remarks: {
+    pickup_remark?: string;
+    delivery_remark?: string;
+    arrange_return?: string;
+    ndr_remark?: string;
+  }): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      if (!awb) {
+        throw new Error('AWB is required');
+      }
+
+      // Build request body with only the selected remark field (don't send empty fields)
+      const requestBody: {
+        pickup_remark?: string;
+        delivery_remark?: string;
+        arrange_return?: string;
+        ndr_remark?: string;
+      } = {};
+
+      // Only include fields that have actual values (not empty strings)
+      if (remarks.pickup_remark && remarks.pickup_remark.trim()) {
+        requestBody.pickup_remark = remarks.pickup_remark;
+      }
+      if (remarks.delivery_remark && remarks.delivery_remark.trim()) {
+        requestBody.delivery_remark = remarks.delivery_remark;
+      }
+      if (remarks.ndr_remark && remarks.ndr_remark.trim()) {
+        requestBody.ndr_remark = remarks.ndr_remark;
+      }
+      if (remarks.arrange_return && remarks.arrange_return.trim()) {
+        requestBody.arrange_return = remarks.arrange_return;
+      }
+
+      // Include AWB in the URL path
+      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPDATE_REMARKS}/${awb}`;
+      console.log('Update remarks API URL:', url);
+      console.log('Updating remarks for AWB:', awb);
+      console.log('Remarks payload:', requestBody);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Update remarks API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Update remarks API error response:', errorData);
+        throw new Error(errorData.message || `Failed to update remarks (${response.status})`);
+      }
+
+      const result = await response.json();
+      console.log('Update remarks API response:', result);
+      
+      // Return the message from data.message if available, otherwise use result.message
+      const successMessage = result.data?.message || result.message || 'Remarks updated successfully';
+      
+      return {
+        success: true,
+        message: successMessage,
+        data: result.data
+      };
+    } catch (error) {
+      console.error('Error updating remarks:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update remarks'
+      };
+    }
+  }
+
   // Bulk Booking Functions
   async createBulkBookingRequest(warehouseId: string, rtoId: string, orderIds: string[]): Promise<{ success: boolean; message: string; data?: { uuId: string }; error?: string }> {
     try {

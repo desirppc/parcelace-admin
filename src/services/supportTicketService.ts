@@ -18,6 +18,24 @@ export interface AssignTicketResponse {
   error: any;
 }
 
+export interface UpdateTicketStatusRequest {
+  ticket_id: number;
+  status: string;
+  priority: string;
+  expected_closure_date?: string | null;
+  close_date?: string | null;
+  open_date?: string;
+  status_update_date?: string;
+  note?: string;
+}
+
+export interface UpdateTicketStatusResponse {
+  status: boolean;
+  message: string;
+  data: any;
+  error: any;
+}
+
 class SupportTicketService {
   /**
    * Fetch support tickets list with pagination and filters
@@ -176,6 +194,40 @@ class SupportTicketService {
         message: 'Network error occurred',
         data: null,
         error: 'Failed to connect to ticket assignment service'
+      };
+    }
+  }
+
+  /**
+   * Update support ticket status
+   * @param updateData - Update data including ticket_id, status, priority, dates, and optional note
+   * @returns Promise<UpdateTicketStatusResponse>
+   */
+  async updateTicketStatus(updateData: UpdateTicketStatusRequest): Promise<UpdateTicketStatusResponse> {
+    try {
+      console.log('🔍 SupportTicketService: Updating ticket status:', updateData);
+      
+      const response = await apiRequest(
+        API_CONFIG.ENDPOINTS.SUPPORT_TICKET_UPDATE_STATUS, 
+        'POST', 
+        updateData
+      );
+      
+      console.log('🔍 SupportTicketService: Update ticket status response:', response);
+      
+      return {
+        status: response.success,
+        message: response.message || 'Ticket status updated successfully',
+        data: response.data,
+        error: response.error
+      };
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      return {
+        status: false,
+        message: 'Network error occurred',
+        data: null,
+        error: 'Failed to connect to ticket status update service'
       };
     }
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Users, Mail, Phone, Calendar, Search, Filter, Download, MoreHorizontal, X, Trash2, IndianRupee, UserPlus } from 'lucide-react';
+import { Loader2, Users, Mail, Phone, Calendar, Search, Filter, Download, MoreHorizontal, X, Trash2, IndianRupee, UserPlus, UserCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { vendorService, Vendor } from '@/services/vendorService';
+import { vendorService, Vendor, VendorPOCData, VendorPOC, VendorPOCListResponse } from '@/services/vendorService';
 import API_CONFIG from '@/config/api';
 import { getAuthHeaders } from '@/config/api';
 import AssignVendorsToSupportDialog from '@/components/AssignVendorsToSupportDialog';
@@ -40,6 +40,21 @@ const VendorsPage = () => {
     paymentDate: new Date()
   });
   const [vendorBalance, setVendorBalance] = useState<number>(0);
+  const [showPOCModal, setShowPOCModal] = useState(false);
+  const [pocLoading, setPocLoading] = useState(false);
+  const [vendorForPOC, setVendorForPOC] = useState<Vendor | null>(null);
+  const [pocFormData, setPocFormData] = useState({
+    name: '',
+    number: '',
+    role: '',
+    email: '',
+    whatsapp_number: ''
+  });
+  const [showViewPOCModal, setShowViewPOCModal] = useState(false);
+  const [viewPOCLoading, setViewPOCLoading] = useState(false);
+  const [vendorForViewPOC, setVendorForViewPOC] = useState<Vendor | null>(null);
+  const [vendorPOCs, setVendorPOCs] = useState<VendorPOC[]>([]);
+  const [showVendorSelectionModal, setShowVendorSelectionModal] = useState(false);
   const { toast } = useToast();
 
   // Fetch vendors
@@ -330,6 +345,152 @@ const VendorsPage = () => {
     }
   };
 
+  // POC handlers
+  const handleAddPOC = (vendor: Vendor) => {
+    setVendorForPOC(vendor);
+    setPocFormData({
+      name: '',
+      number: '',
+      role: '',
+      email: '',
+      whatsapp_number: ''
+    });
+    setShowPOCModal(true);
+  };
+
+  const handleClosePOCModal = () => {
+    setShowPOCModal(false);
+    setVendorForPOC(null);
+    setPocFormData({
+      name: '',
+      number: '',
+      role: '',
+      email: '',
+      whatsapp_number: ''
+    });
+  };
+
+  const handlePOCInputChange = (field: string, value: string) => {
+    setPocFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSavePOC = async () => {
+    if (!vendorForPOC) return;
+
+    // Validation
+    if (!pocFormData.name || !pocFormData.number || !pocFormData.role || !pocFormData.email || !pocFormData.whatsapp_number) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(pocFormData.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPocLoading(true);
+
+    try {
+      const pocData: VendorPOCData = {
+        vendor_id: vendorForPOC.id,
+        name: pocFormData.name,
+        number: pocFormData.number,
+        role: pocFormData.role,
+        email: pocFormData.email,
+        whatsapp_number: pocFormData.whatsapp_number
+      };
+
+      const response = await vendorService.createVendorPOC(pocData);
+
+      if (response.status) {
+        toast({
+          title: "Success",
+          description: response.message || "Vendor POC added successfully",
+        });
+        handleClosePOCModal();
+        // Refresh POC list if view modal is open
+        if (showViewPOCModal && vendorForViewPOC) {
+          await fetchVendorPOCs(vendorForViewPOC);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to add vendor POC",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating vendor POC:', error);
+      toast({
+        title: "Error",
+        description: "Network error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setPocLoading(false);
+    }
+  };
+
+  // View POC handlers
+  const handleViewPOC = async (vendor: Vendor) => {
+    setVendorForViewPOC(vendor);
+    setShowViewPOCModal(true);
+    await fetchVendorPOCs(vendor);
+  };
+
+  const handleCloseViewPOCModal = () => {
+    setShowViewPOCModal(false);
+    setVendorForViewPOC(null);
+    setVendorPOCs([]);
+  };
+
+  const fetchVendorPOCs = async (vendor: Vendor) => {
+    setViewPOCLoading(true);
+    try {
+      // Pass vendor_id to filter POCs for this specific vendor
+      const response = await vendorService.getVendorPOCs(vendor.id);
+      
+      if (response.status) {
+        setVendorPOCs(response.data.vendor_pocs_data || []);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to fetch vendor POCs",
+          variant: "destructive",
+        });
+        setVendorPOCs([]);
+      }
+    } catch (error) {
+      console.error('Error fetching vendor POCs:', error);
+      toast({
+        title: "Error",
+        description: "Network error occurred",
+        variant: "destructive",
+      });
+      setVendorPOCs([]);
+    } finally {
+      setViewPOCLoading(false);
+    }
+  };
+
+  const handleAddPOCFromView = (vendor: Vendor) => {
+    handleCloseViewPOCModal();
+    handleAddPOC(vendor);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -356,6 +517,23 @@ const VendorsPage = () => {
               />
             </div>
           </div>
+          <Button 
+            onClick={() => {
+              if (filteredVendors.length === 0) {
+                toast({
+                  title: "No Vendors",
+                  description: "Please ensure there are vendors available before adding a POC",
+                  variant: "destructive",
+                });
+                return;
+              }
+              setShowVendorSelectionModal(true);
+            }}
+            className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+          >
+            <UserCircle className="h-4 w-4 mr-2" />
+            Add POC
+          </Button>
           <AssignVendorsToSupportDialog
             onAssignmentComplete={fetchVendors}
             trigger={
@@ -426,7 +604,7 @@ const VendorsPage = () => {
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">Email</TableHead>
                     <TableHead className="font-semibold">Phone</TableHead>
-                    <TableHead className="font-semibold">Created</TableHead>
+                    <TableHead className="font-semibold">Support Users</TableHead>
                     <TableHead className="font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -449,18 +627,37 @@ const VendorsPage = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formatDate(vendor.created_at)}</span>
-                        </div>
+                        {vendor.support_user_count && vendor.support_user_count > 0 && vendor.support_users && vendor.support_users.length > 0 ? (
+                          <div className="space-y-2">
+                            {vendor.support_users.map((supportUser) => (
+                              <div key={supportUser.id} className="flex items-center gap-2">
+                                <Users className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                <div className="flex flex-col">
+                                  {supportUser.name && (
+                                    <span className="text-sm font-medium">{supportUser.name}</span>
+                                  )}
+                                  <span className={`text-xs ${supportUser.name ? 'text-muted-foreground' : 'text-sm'}`}>
+                                    {supportUser.email}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No support users</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Edit
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewPOC(vendor)}
+                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 border-purple-200"
+                            title="View POC"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View POC
                           </Button>
                           <Button 
                             variant="outline" 
@@ -711,6 +908,343 @@ const VendorsPage = () => {
                   Save Transaction
                 </>
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add POC Modal */}
+      <Dialog open={showPOCModal} onOpenChange={setShowPOCModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-blue-600" />
+              Add Point of Contact - {vendorForPOC?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Add a new point of contact for this vendor. All fields are required.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="poc-name">Name *</Label>
+              <Input
+                id="poc-name"
+                name="name"
+                placeholder="Enter POC name"
+                value={pocFormData.name}
+                onChange={(e) => handlePOCInputChange('name', e.target.value)}
+                disabled={pocLoading}
+              />
+            </div>
+
+            {/* Number */}
+            <div className="space-y-2">
+              <Label htmlFor="poc-number">Number *</Label>
+              <Input
+                id="poc-number"
+                name="number"
+                type="tel"
+                placeholder="Enter phone number"
+                value={pocFormData.number}
+                onChange={(e) => handlePOCInputChange('number', e.target.value)}
+                disabled={pocLoading}
+              />
+            </div>
+
+            {/* Role */}
+            <div className="space-y-2">
+              <Label htmlFor="poc-role">Role *</Label>
+              <Select
+                value={pocFormData.role}
+                onValueChange={(value) => handlePOCInputChange('role', value)}
+                disabled={pocLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Dept Head">Dept Head</SelectItem>
+                  <SelectItem value="Operations Manager">Operations Manager</SelectItem>
+                  <SelectItem value="Logistics Manager">Logistics Manager</SelectItem>
+                  <SelectItem value="Account Manager">Account Manager</SelectItem>
+                  <SelectItem value="Manager">Manager</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="poc-email">Email *</Label>
+              <Input
+                id="poc-email"
+                name="email"
+                type="email"
+                placeholder="Enter email address"
+                value={pocFormData.email}
+                onChange={(e) => handlePOCInputChange('email', e.target.value)}
+                disabled={pocLoading}
+              />
+            </div>
+
+            {/* WhatsApp Number */}
+            <div className="space-y-2">
+              <Label htmlFor="poc-whatsapp">WhatsApp Number *</Label>
+              <Input
+                id="poc-whatsapp"
+                name="whatsapp_number"
+                type="tel"
+                placeholder="Enter WhatsApp number"
+                value={pocFormData.whatsapp_number}
+                onChange={(e) => handlePOCInputChange('whatsapp_number', e.target.value)}
+                disabled={pocLoading}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={handleClosePOCModal}
+              disabled={pocLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePOC}
+              disabled={pocLoading || !pocFormData.name || !pocFormData.number || !pocFormData.role || !pocFormData.email || !pocFormData.whatsapp_number}
+              className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+            >
+              {pocLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Add POC
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View POC Modal */}
+      <Dialog open={showViewPOCModal} onOpenChange={setShowViewPOCModal}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
+          <DialogHeader className="pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <Eye className="h-5 w-5 text-purple-600" />
+                  POC Details - {vendorForViewPOC?.name}
+                </DialogTitle>
+                <DialogDescription className="mt-2">
+                  Manage points of contact for this vendor
+                </DialogDescription>
+              </div>
+              <Button
+                onClick={() => vendorForViewPOC && handleAddPOCFromView(vendorForViewPOC)}
+                className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+              >
+                <UserCircle className="h-4 w-4 mr-2" />
+                Add POC
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden flex flex-col py-4">
+            {/* POC List */}
+            {viewPOCLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                <span className="ml-3 text-muted-foreground">Loading POCs...</span>
+              </div>
+            ) : vendorPOCs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="rounded-full bg-purple-100 p-4 mb-4">
+                  <UserCircle className="h-12 w-12 text-purple-600" />
+                </div>
+                <p className="text-lg font-medium mb-2">No POCs found</p>
+                <p className="text-sm text-muted-foreground mb-4">Get started by adding a point of contact for this vendor</p>
+                <Button
+                  onClick={() => vendorForViewPOC && handleAddPOCFromView(vendorForViewPOC)}
+                  className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+                >
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Add First POC
+                </Button>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-auto">
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                          <TableRow className="border-b">
+                            <TableHead className="font-semibold text-sm h-12">Name</TableHead>
+                            <TableHead className="font-semibold text-sm h-12">Role</TableHead>
+                            <TableHead className="font-semibold text-sm h-12">Email</TableHead>
+                            <TableHead className="font-semibold text-sm h-12">Phone Number</TableHead>
+                            <TableHead className="font-semibold text-sm h-12">WhatsApp Number</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {vendorPOCs.map((poc, index) => (
+                            <TableRow 
+                              key={poc.id}
+                              className={index % 2 === 0 ? "bg-muted/30" : ""}
+                            >
+                              <TableCell className="font-medium py-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                                    {poc.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <span>{poc.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <Badge 
+                                  variant="outline" 
+                                  className="font-medium border-purple-200 text-purple-700 bg-purple-50"
+                                >
+                                  {poc.role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <a 
+                                    href={`mailto:${poc.email}`}
+                                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                  >
+                                    {poc.email}
+                                  </a>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <a 
+                                    href={`tel:${poc.number}`}
+                                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                  >
+                                    {poc.number}
+                                  </a>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                  <a 
+                                    href={`https://wa.me/${poc.whatsapp_number.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-green-600 hover:text-green-700 hover:underline"
+                                  >
+                                    {poc.whatsapp_number}
+                                  </a>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+                {vendorPOCs.length > 0 && (
+                  <div className="mt-4 text-sm text-muted-foreground text-center">
+                    Showing {vendorPOCs.length} POC{vendorPOCs.length !== 1 ? 's' : ''}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={handleCloseViewPOCModal}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vendor Selection Modal for Add POC */}
+      <Dialog open={showVendorSelectionModal} onOpenChange={setShowVendorSelectionModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-blue-600" />
+              Select Vendor to Add POC
+            </DialogTitle>
+            <DialogDescription>
+              Choose a vendor to add a new point of contact.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {filteredVendors.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No vendors available</p>
+              </div>
+            ) : (
+              <div className="max-h-[400px] overflow-y-auto">
+                <div className="space-y-2">
+                  {filteredVendors.map((vendor) => (
+                    <div
+                      key={vendor.id}
+                      onClick={() => {
+                        setShowVendorSelectionModal(false);
+                        handleAddPOC(vendor);
+                      }}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                          {vendor.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">{vendor.name}</p>
+                          <p className="text-sm text-muted-foreground">{vendor.email}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowVendorSelectionModal(false);
+                          handleAddPOC(vendor);
+                        }}
+                      >
+                        <UserCircle className="h-4 w-4 mr-2" />
+                        Add POC
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowVendorSelectionModal(false)}
+            >
+              Cancel
             </Button>
           </div>
         </DialogContent>

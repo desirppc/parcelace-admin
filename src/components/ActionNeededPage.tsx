@@ -31,8 +31,7 @@ import {
   FileText,
   MoreHorizontal,
   Trash2,
-  MessageSquare,
-  UserPlus
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,9 +45,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Pagination, 
   PaginationContent, 
@@ -160,7 +156,7 @@ interface ShipmentsFetchResult {
   noShipmentsMessage?: string;
 }
 
-const ShipmentPage = () => {
+const ActionNeededPage = () => {
   // Set page meta tags
   usePageMeta(PageMetaConfigs.shipments);
   
@@ -201,22 +197,6 @@ const ShipmentPage = () => {
   const [otherRemark, setOtherRemark] = useState<string>('');
   const [updatingRemark, setUpdatingRemark] = useState(false);
   
-  // Add FE Number modal states
-  const [addFENumberModalOpen, setAddFENumberModalOpen] = useState(false);
-  const [awbNumber, setAwbNumber] = useState<string>('');
-  const [fetchingShipmentData, setFetchingShipmentData] = useState(false);
-  const [feAWB, setFeAWB] = useState<string>('');
-  const [feCourierPartner, setFeCourierPartner] = useState<string>('');
-  const [feWarehouseName, setFeWarehouseName] = useState<string>('');
-  const [feCity, setFeCity] = useState<string>('');
-  const [feHubName, setFeHubName] = useState<string>('');
-  const [feGmapLocation, setFeGmapLocation] = useState<string>('');
-  const [feName, setFeName] = useState<string>('');
-  const [feNumber, setFeNumber] = useState<string>('');
-  const [feWhatsappNumber, setFeWhatsappNumber] = useState<string>('');
-  const [feConfidence, setFeConfidence] = useState<number>(50);
-  const [feRemarks, setFeRemarks] = useState<string>('');
-  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -231,7 +211,9 @@ const ShipmentPage = () => {
   // Determine current page type based on URL
   const getCurrentPageType = () => {
     const pathname = location.pathname;
-    if (pathname.includes('/dashboard/reverse-shipments') || pathname.includes('/dashboard/shipments/reverse')) {
+    if (pathname.includes('/dashboard/action-needed')) {
+      return 'action-needed';
+    } else if (pathname.includes('/dashboard/reverse-shipments') || pathname.includes('/dashboard/shipments/reverse')) {
       return 'reverse';
     } else if (pathname.includes('/dashboard/prepaid-shipments') || pathname.includes('/dashboard/shipments/prepaid')) {
       return 'prepaid';
@@ -240,6 +222,14 @@ const ShipmentPage = () => {
   };
 
   const currentPageType = getCurrentPageType();
+
+  // Action Needed page only shows these statuses
+  const ACTION_NEEDED_STATUSES = [
+    "pickup_failed",
+    "ndr",
+    "rto_in_transit",
+    "rvp_cancelled"
+  ];
 
   // All available tracking statuses
   const ALL_TRACKING_STATUSES = [
@@ -297,11 +287,16 @@ const ShipmentPage = () => {
         ? ['prepaid', 'cod']
         : ['prepaid', 'cod'];
 
+    // For action-needed page, only fetch the specific statuses
+    const defaultTrackingStatus = currentPageType === 'action-needed'
+      ? ACTION_NEEDED_STATUSES
+      : ALL_TRACKING_STATUSES;
+
     const requestFilters: ShipmentFilterRequest =
       filters || {
         date_range: '',
         order_type: defaultOrderType,
-        tracking_status: ALL_TRACKING_STATUSES,
+        tracking_status: defaultTrackingStatus,
       };
 
     const cacheKey = EnhancedCacheKeys.shipments(
@@ -1036,13 +1031,17 @@ const ShipmentPage = () => {
         ? ["prepaid", "cod"]
         : ["prepaid", "cod"];
       
+      const defaultTrackingStatus = currentPageType === 'action-needed'
+        ? ACTION_NEEDED_STATUSES
+        : Object.keys(filterOptions).length > 0 
+          ? Object.keys(filterOptions) 
+          : ALL_TRACKING_STATUSES;
+      
       await fetchShipments({
         filters: {
           date_range: "",
           order_type: defaultOrderType,
-          tracking_status: Object.keys(filterOptions).length > 0 
-            ? Object.keys(filterOptions) 
-            : ALL_TRACKING_STATUSES
+          tracking_status: defaultTrackingStatus
         }
       });
     } catch (error) {
@@ -1181,93 +1180,6 @@ const ShipmentPage = () => {
 
   const hasSelectedShipments = selectedShipments.length > 0;
 
-  const handleFetchShipmentData = async () => {
-    if (!awbNumber.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an AWB number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setFetchingShipmentData(true);
-      // Find the shipment with this AWB
-      const shipment = shipments.find(s => s.awb === awbNumber.trim());
-      
-      if (shipment) {
-        // Populate form fields with shipment data
-        setFeAWB(shipment.awb);
-        setFeCourierPartner(shipment.courier_partner?.name || '');
-        setFeWarehouseName(shipment.warehouse?.warehouse_name || '');
-        setFeCity(shipment.warehouse?.city || shipment.city || '');
-        setFeHubName(shipment.warehouse?.warehouse_name || '');
-        toast({
-          title: "Success",
-          description: "Shipment data fetched successfully.",
-        });
-      } else {
-        // If not found in current shipments, just set the AWB
-        setFeAWB(awbNumber.trim());
-        toast({
-          title: "Info",
-          description: "AWB number set. Please fill in the remaining details manually.",
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching shipment data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch shipment data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setFetchingShipmentData(false);
-    }
-  };
-
-  const handleSaveFENumber = async () => {
-    if (!feAWB || !feName || !feNumber) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields (AWB, Name, Number).",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // TODO: Implement API call to save FE number
-      toast({
-        title: "Success",
-        description: "FE Number saved successfully!",
-      });
-      
-      // Reset form
-      setAddFENumberModalOpen(false);
-      setAwbNumber('');
-      setFeAWB('');
-      setFeCourierPartner('');
-      setFeWarehouseName('');
-      setFeCity('');
-      setFeHubName('');
-      setFeGmapLocation('');
-      setFeName('');
-      setFeNumber('');
-      setFeWhatsappNumber('');
-      setFeConfidence(50);
-      setFeRemarks('');
-    } catch (error) {
-      console.error('Error saving FE number:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save FE number. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleUpdateRemark = async () => {
     if (!selectedShipmentForRemark || !selectedShipmentForRemark.awb) {
       toast({
@@ -1394,10 +1306,14 @@ const ShipmentPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
-            {currentPageType === 'reverse' ? 'Reverse Shipments' : 
+            {currentPageType === 'action-needed' ? 'Action Needed' : 
+             currentPageType === 'reverse' ? 'Reverse Shipments' : 
              currentPageType === 'prepaid' ? 'Prepaid & COD Shipments' : 
              'Shipments Management'}
           </h1>
+          {currentPageType === 'action-needed' && (
+            <p className="text-muted-foreground mt-1">Showing shipments requiring action: Pickup Failed, NDR, RTO In Transit, RVP Cancelled</p>
+          )}
           {currentPageType === 'reverse' && (
             <p className="text-muted-foreground mt-1">Showing only reverse shipments</p>
           )}
@@ -1436,12 +1352,16 @@ const ShipmentPage = () => {
                 ? ["prepaid", "cod"]
                 : ["prepaid", "cod"];
               
+              const defaultTrackingStatus = currentPageType === 'action-needed'
+                ? ACTION_NEEDED_STATUSES
+                : ALL_TRACKING_STATUSES;
+              
               await fetchShipments({
                 isRefresh: true,
                 filters: {
                   date_range: "",
                   order_type: defaultOrderType,
-                  tracking_status: ALL_TRACKING_STATUSES
+                  tracking_status: defaultTrackingStatus
                 }
               });
             }}
@@ -1700,8 +1620,13 @@ const ShipmentPage = () => {
           }
           
           // Build tracking_status array based on selected tab
+          // For action-needed page, only allow the specific statuses
+          const availableStatuses = currentPageType === 'action-needed'
+            ? ACTION_NEEDED_STATUSES
+            : ALL_TRACKING_STATUSES;
+          
           const trackingStatusArray = value === 'all' 
-            ? ALL_TRACKING_STATUSES
+            ? availableStatuses
             : [value];
           
           // Call filter API with tab selection
@@ -1722,7 +1647,7 @@ const ShipmentPage = () => {
         }}>
           <TabsList className="inline-flex py-1 text-xs" style={{ fontSize: '80%', padding: '0.25rem 0' }}>
             <TabsTrigger value="all">All Orders</TabsTrigger>
-            {ALL_TRACKING_STATUSES.map((statusKey) => {
+            {(currentPageType === 'action-needed' ? ACTION_NEEDED_STATUSES : ALL_TRACKING_STATUSES).map((statusKey) => {
               // Use label from filterOptions if available, otherwise use capitalized status key
               const statusLabel = filterOptions[statusKey] || statusKey.split('_').map(word => 
                 word.charAt(0).toUpperCase() + word.slice(1)
@@ -2001,129 +1926,68 @@ const ShipmentPage = () => {
                   </div>
                 </TableCell>
                                   <TableCell>
-                  <TooltipProvider>
-                    <div className="flex space-x-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => navigate(`/dashboard/shipment/${shipment.awb}`)}
-                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View Details</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleDownloadShippingLabels([shipment.awb])}
-                            className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-900 dark:hover:border-green-600 dark:hover:text-green-300 transition-colors duration-200"
-                          >
-                            <Download className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Download Label</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => {
-                              setSelectedShipmentForRemark(shipment);
-                              setShowUpdateRemarkDialog(true);
-                              setRemarkType('');
-                              setIssueSource('');
-                              setCustomerEndIssue('');
-                              setCourierPartnerIssue('');
-                              setOtherRemark('');
-                            }}
-                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
-                          >
-                            <MessageSquare className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Update Remark</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Duplicate Order</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-900 dark:hover:border-orange-600 dark:hover:text-orange-300 transition-colors duration-200"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Return Package</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => {
-                              setAwbNumber(shipment.awb);
-                              setFeAWB(shipment.awb);
-                              setFeCourierPartner(shipment.courier_partner?.name || '');
-                              setFeWarehouseName(shipment.warehouse?.warehouse_name || '');
-                              setFeCity(shipment.warehouse?.city || shipment.city || '');
-                              setFeHubName(shipment.warehouse?.warehouse_name || '');
-                              setAddFENumberModalOpen(true);
-                            }}
-                            className="hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:hover:bg-indigo-900 dark:hover:border-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Add FE Number</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleCancelShipment(shipment)}
-                            className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-900 dark:hover:border-red-600 dark:hover:text-red-300 transition-colors duration-200"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Cancel Shipment</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TooltipProvider>
+                  <div className="flex space-x-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title={`View Details (ID: ${shipment.id})`}
+                      onClick={() => navigate(`/dashboard/shipment/${shipment.awb}`)}
+                      className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Download Label"
+                      onClick={() => handleDownloadShippingLabels([shipment.awb])}
+                      className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-900 dark:hover:border-green-600 dark:hover:text-green-300 transition-colors duration-200"
+                    >
+                      <Download className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Update Remark"
+                      onClick={() => {
+                        setSelectedShipmentForRemark(shipment);
+                        setShowUpdateRemarkDialog(true);
+                        setRemarkType('');
+                        setIssueSource('');
+                        setCustomerEndIssue('');
+                        setCourierPartnerIssue('');
+                        setOtherRemark('');
+                      }}
+                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Duplicate Order"
+                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Return Package"
+                      className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-900 dark:hover:border-orange-600 dark:hover:text-orange-300 transition-colors duration-200"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      title="Cancel Shipment"
+                      onClick={() => handleCancelShipment(shipment)}
+                      className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-900 dark:hover:border-red-600 dark:hover:text-red-300 transition-colors duration-200"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </TableCell>
                 </TableRow>
                 ))
@@ -2482,187 +2346,8 @@ const ShipmentPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add FE Number Modal */}
-      <Dialog open={addFENumberModalOpen} onOpenChange={setAddFENumberModalOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add FE Number</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* AWB Input and Fetch Button */}
-            <div className="space-y-2">
-              <Label htmlFor="awbNumber">AWB Number *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="awbNumber"
-                  value={awbNumber}
-                  onChange={(e) => setAwbNumber(e.target.value)}
-                  placeholder="Enter AWB number"
-                  className="font-mono flex-1"
-                  disabled={fetchingShipmentData}
-                />
-                <Button
-                  onClick={handleFetchShipmentData}
-                  disabled={fetchingShipmentData || !awbNumber.trim()}
-                  className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
-                >
-                  {fetchingShipmentData ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Fetching...
-                    </>
-                  ) : (
-                    'Fetch Data'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="border-t pt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="feAWB">AWB *</Label>
-                  <Input
-                    id="feAWB"
-                    value={feAWB}
-                    onChange={(e) => setFeAWB(e.target.value)}
-                    placeholder="AWB Number"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feCourierPartner">Courier Partner</Label>
-                  <Input
-                    id="feCourierPartner"
-                    value={feCourierPartner}
-                    onChange={(e) => setFeCourierPartner(e.target.value)}
-                    placeholder="Courier Partner"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feWarehouseName">Warehouse Name</Label>
-                  <Input
-                    id="feWarehouseName"
-                    value={feWarehouseName}
-                    onChange={(e) => setFeWarehouseName(e.target.value)}
-                    placeholder="Warehouse Name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feCity">City</Label>
-                  <Input
-                    id="feCity"
-                    value={feCity}
-                    onChange={(e) => setFeCity(e.target.value)}
-                    placeholder="City"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feHubName">Hub Name</Label>
-                  <Input
-                    id="feHubName"
-                    value={feHubName}
-                    onChange={(e) => setFeHubName(e.target.value)}
-                    placeholder="Hub Name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feGmapLocation">Gmap Location</Label>
-                  <Input
-                    id="feGmapLocation"
-                    value={feGmapLocation}
-                    onChange={(e) => setFeGmapLocation(e.target.value)}
-                    placeholder="Google Maps Link"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feName">Name *</Label>
-                  <Input
-                    id="feName"
-                    value={feName}
-                    onChange={(e) => setFeName(e.target.value)}
-                    placeholder="Field Executive Name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feNumber">Number *</Label>
-                  <Input
-                    id="feNumber"
-                    value={feNumber}
-                    onChange={(e) => setFeNumber(e.target.value)}
-                    placeholder="Phone Number"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feWhatsappNumber">WhatsApp Number (Optional)</Label>
-                  <Input
-                    id="feWhatsappNumber"
-                    value={feWhatsappNumber}
-                    onChange={(e) => setFeWhatsappNumber(e.target.value)}
-                    placeholder="WhatsApp Number"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feConfidence">Confidence</Label>
-                  <Input
-                    id="feConfidence"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={feConfidence}
-                    onChange={(e) => setFeConfidence(parseInt(e.target.value) || 0)}
-                    placeholder="Confidence (0-100)"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="feRemarks">Remarks</Label>
-                <Textarea
-                  id="feRemarks"
-                  value={feRemarks}
-                  onChange={(e) => setFeRemarks(e.target.value)}
-                  placeholder="Enter remarks..."
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAddFENumberModalOpen(false);
-                  setAwbNumber('');
-                  setFeAWB('');
-                  setFeCourierPartner('');
-                  setFeWarehouseName('');
-                  setFeCity('');
-                  setFeHubName('');
-                  setFeGmapLocation('');
-                  setFeName('');
-                  setFeNumber('');
-                  setFeWhatsappNumber('');
-                  setFeConfidence(50);
-                  setFeRemarks('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveFENumber}
-                className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
-              >
-                Save FE Number
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-export default ShipmentPage;
+export default ActionNeededPage;

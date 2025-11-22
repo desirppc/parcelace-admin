@@ -13,7 +13,8 @@ import {
   MapPin,
   ExternalLink,
   MessageCircle,
-  Building
+  Building,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +51,7 @@ interface PhoneNumber {
 interface FieldExecutive {
   id: string;
   feName: string;
-  role: 'FE' | 'TL'; // Field Executive or Team Leader
+  role: 'FE' | 'TL' | 'Hub Manager'; // Field Executive, Team Leader, or Hub Manager
   phoneNumbers: PhoneNumber[];
   status: 'active' | 'inactive' | 'verified';
 }
@@ -90,12 +101,78 @@ interface WarehouseFEDetail {
   };
 }
 
+// API Response interfaces
+interface FEDetail {
+  id: number;
+  user_id: number;
+  warehouse_fe_id: number;
+  name: string;
+  number: string;
+  role: string;
+  confidence: string;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+interface FEData {
+  id: number;
+  user_id: number;
+  warehouse_id: number;
+  awb: string;
+  courier_partner: string;
+  warehouse_name: string;
+  city: string;
+  hub_name: string;
+  gmap: string;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  details: FEDetail[];
+}
+
+interface APIResponse {
+  status: boolean;
+  message: string;
+  data: {
+    fes_data: FEData[];
+    pagination: {
+      current_page: number;
+      last_page: number;
+      total_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
+  error: null | any;
+}
+
+// Transformed FE data for table display
+interface FERowData {
+  id: string;
+  awb: string;
+  courierPartner: string;
+  warehouseName: string;
+  city: string;
+  hubName: string;
+  gmap: string;
+  name: string;
+  number: string;
+  role: string;
+  confidence: string;
+  remarks: string | null;
+  warehouseFeId: number;
+  detailId: number;
+}
+
 // Generate mock data - Warehouse based structure
 const generateMockData = (): { warehouses: Warehouse[], courierBoys: CourierBoy[] } => {
   const hubs = ['Mumbai Hub', 'Delhi Hub', 'Bangalore Hub', 'Chennai Hub', 'Kolkata Hub'];
   const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Pune', 'Hyderabad', 'Ahmedabad'];
   const courierPartners = ['Delhivery', 'BlueDart', 'FedEx', 'DTDC', 'XpressBees'];
-  const feRoles: ('FE' | 'TL')[] = ['FE', 'TL'];
+  const feRoles: ('FE' | 'TL' | 'Hub Manager')[] = ['FE', 'TL', 'Hub Manager'];
   const statuses: ('active' | 'inactive' | 'verified')[] = ['active', 'inactive', 'verified'];
   const names = [
     'Rajesh Kumar', 'Amit Sharma', 'Vikash Singh', 'Priya Patel', 'Suresh Yadav',
@@ -145,10 +222,16 @@ const generateMockData = (): { warehouses: Warehouse[], courierBoys: CourierBoy[
       });
 
       // Also create CourierBoy for table display
+      const roleDisplayMap: { [key: string]: string } = {
+        'FE': 'Field Executive',
+        'TL': 'Team Leader',
+        'Hub Manager': 'Hub Manager'
+      };
+      
       courierBoys.push({
         id: feId,
         feName,
-        role: role === 'FE' ? 'Field Executive' : 'Team Leader',
+        role: roleDisplayMap[role] || role,
         hub,
         city,
         courierPartner,
@@ -179,7 +262,13 @@ const FENumberPage = () => {
   const [courierBoys, setCourierBoys] = useState<CourierBoy[]>([]);
   const [filteredCourierBoys, setFilteredCourierBoys] = useState<CourierBoy[]>([]);
   const [loading, setLoading] = useState(false);
+  const [feRowsData, setFeRowsData] = useState<FERowData[]>([]);
+  const [filteredFeRowsData, setFilteredFeRowsData] = useState<FERowData[]>([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
+  const [loadingFEDetails, setLoadingFEDetails] = useState(false);
+  const [currentFEData, setCurrentFEData] = useState<FEData | null>(null); // Store current FE data for adding new FE
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [feToDelete, setFeToDelete] = useState<{ detailId: number; feName: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourierPartner, setSelectedCourierPartner] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -204,7 +293,7 @@ const FENumberPage = () => {
   const [newFEName, setNewFEName] = useState<string>('');
   const [newFENumber, setNewFENumber] = useState<string>('');
   const [newFEWhatsapp, setNewFEWhatsapp] = useState<string>('');
-  const [newFERole, setNewFERole] = useState<'FE' | 'TL'>('FE');
+  const [newFERole, setNewFERole] = useState<'FE' | 'TL' | 'Hub Manager'>('FE');
   const [newFEConfidence, setNewFEConfidence] = useState<number>(50);
   const [newFEIsPrimary, setNewFEIsPrimary] = useState<boolean>(true);
   // Add FE Number dialog state
@@ -216,13 +305,23 @@ const FENumberPage = () => {
   const [feCourierPartner, setFeCourierPartner] = useState<string>('');
   const [feWarehouseName, setFeWarehouseName] = useState<string>('');
   const [feCity, setFeCity] = useState<string>('');
+  const [feCustomerName, setFeCustomerName] = useState<string>('');
+  const [feCustomerCity, setFeCustomerCity] = useState<string>('');
   const [feHubName, setFeHubName] = useState<string>('');
   const [feGmapLocation, setFeGmapLocation] = useState<string>('');
   const [feName, setFeName] = useState<string>('');
   const [feNumber, setFeNumber] = useState<string>('');
+  const [feRole, setFeRole] = useState<'FE' | 'TL' | 'Hub Manager'>('FE');
   const [feWhatsappNumber, setFeWhatsappNumber] = useState<string>('');
   const [feConfidence, setFeConfidence] = useState<number>(50);
   const [feRemarks, setFeRemarks] = useState<string>('');
+  const [feWarehouseId, setFeWarehouseId] = useState<number | null>(null);
+  const [savingFENumber, setSavingFENumber] = useState<boolean>(false);
+  // Data type selection (customer or warehouse)
+  const [dataType, setDataType] = useState<'warehouse' | 'customer'>('warehouse');
+  // Courier partner dropdown state
+  const [feCourierPartnerSelect, setFeCourierPartnerSelect] = useState<string>('');
+  const [feCourierPartnerOther, setFeCourierPartnerOther] = useState<string>('');
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('all-details');
   // Warehouse FE Details state
@@ -258,16 +357,389 @@ const FENumberPage = () => {
   const hubs = ['Mumbai Hub', 'Delhi Hub', 'Bangalore Hub', 'Chennai Hub', 'Kolkata Hub'];
   const statuses = ['active', 'inactive', 'verified'];
 
-  useEffect(() => {
+  // Fetch FE data from API
+  const fetchFEData = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const { warehouses: mockWarehouses, courierBoys: mockCourierBoys } = generateMockData();
-      setWarehouses(mockWarehouses);
-      setCourierBoys(mockCourierBoys);
-      setFilteredCourierBoys(mockCourierBoys);
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
       setLoading(false);
-    }, 500);
-  }, []);
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      const data: APIResponse = await response.json();
+      
+      if (response.ok && data.status && data.data && data.data.fes_data) {
+        // Transform API data to FERowData format
+        const transformedData: FERowData[] = [];
+        
+        data.data.fes_data.forEach((fe) => {
+          // If there are details, create a row for each detail
+          if (fe.details && fe.details.length > 0) {
+            fe.details.forEach((detail) => {
+              transformedData.push({
+                id: `fe-${fe.id}-detail-${detail.id}`,
+                awb: fe.awb,
+                courierPartner: fe.courier_partner,
+                warehouseName: fe.warehouse_name,
+                city: fe.city,
+                hubName: fe.hub_name,
+                gmap: fe.gmap,
+                name: detail.name,
+                number: detail.number,
+                role: detail.role,
+                confidence: detail.confidence,
+                remarks: detail.remarks || fe.remarks,
+                warehouseFeId: fe.id,
+                detailId: detail.id,
+              });
+            });
+          } else {
+            // If no details, still create a row with FE-level data
+            transformedData.push({
+              id: `fe-${fe.id}`,
+              awb: fe.awb,
+              courierPartner: fe.courier_partner,
+              warehouseName: fe.warehouse_name,
+              city: fe.city,
+              hubName: fe.hub_name,
+              gmap: fe.gmap,
+              name: '',
+              number: '',
+              role: '',
+              confidence: '',
+              remarks: fe.remarks,
+              warehouseFeId: fe.id,
+              detailId: 0,
+            });
+          }
+        });
+        
+        setFeRowsData(transformedData);
+        setFilteredFeRowsData(transformedData);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to fetch FE data.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching FE data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch FE data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch FE data when component loads or when All Details tab is active
+    if (activeTab === 'all-details') {
+      fetchFEData();
+    }
+  }, [activeTab]);
+
+  // Fetch FE details by ID from API
+  const fetchFEDetailsById = async (feId: number) => {
+    setLoadingFEDetails(true);
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
+        setLoadingFEDetails(false);
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe/${feId}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      // Handle different response structures
+      let feData: FEData | null = null;
+      
+      if (response.ok && data.status) {
+        // Check if response has fes_data array
+        if (data.data && data.data.fes_data && Array.isArray(data.data.fes_data) && data.data.fes_data.length > 0) {
+          feData = data.data.fes_data[0];
+        }
+        // Check if response has direct fe_data object
+        else if (data.data && data.data.fe_data) {
+          feData = data.data.fe_data;
+        }
+        // Check if response data is directly the FE object
+        else if (data.data && data.data.id && data.data.awb) {
+          feData = data.data;
+        }
+      }
+      
+      if (feData) {
+        
+        // Transform API data to Warehouse structure for the modal
+        const warehouse: Warehouse = {
+          id: `wh-${feData.id}`,
+          warehouseId: feData.warehouse_name,
+          hub: feData.hub_name,
+          city: feData.city,
+          courierPartner: feData.courier_partner,
+          googleMapsLink: feData.gmap,
+          remarks: feData.remarks || undefined,
+          fieldExecutives: feData.details.map((detail) => ({
+            id: `fe-${feData.id}-detail-${detail.id}`,
+            feName: detail.name,
+            role: (detail.role === 'Delivery Boy' ? 'FE' : detail.role === 'Team Leader' ? 'TL' : 'Hub Manager') as 'FE' | 'TL' | 'Hub Manager',
+            phoneNumbers: [{
+              number: detail.number,
+              confidence: parseFloat(detail.confidence) || 0,
+              isPrimary: true,
+              whatsappNumber: undefined
+            }],
+            status: 'active'
+          }))
+        };
+        
+        // Also create CourierBoy entries for compatibility
+        const courierBoysData: CourierBoy[] = feData.details.map((detail) => ({
+          id: `fe-${feData.id}-detail-${detail.id}`,
+          feName: detail.name,
+          role: detail.role,
+          hub: feData.hub_name,
+          city: feData.city,
+          courierPartner: feData.courier_partner,
+          phoneNumbers: [{
+            number: detail.number,
+            confidence: parseFloat(detail.confidence) || 0,
+            isPrimary: true
+          }],
+          warehouseId: feData.warehouse_name,
+          awbNumber: feData.awb,
+          status: 'active',
+          googleMapsLink: feData.gmap,
+          remarks: detail.remarks || feData.remarks || undefined
+        }));
+        
+        // Update state
+        setWarehouses(prev => {
+          const exists = prev.find(w => w.id === warehouse.id);
+          if (!exists) {
+            return [...prev, warehouse];
+          }
+          return prev.map(w => w.id === warehouse.id ? warehouse : w);
+        });
+        
+        setCourierBoys(prev => {
+          const newCourierBoys = courierBoysData.filter(cb => !prev.find(p => p.id === cb.id));
+          return [...prev, ...newCourierBoys];
+        });
+        
+        setSelectedWarehouse(warehouse);
+        setCurrentFEData(feData); // Store FE data for later use when adding new FE
+        setViewAllModalOpen(true);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "FE details not found.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching FE details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch FE details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingFEDetails(false);
+    }
+  };
+
+  // Delete individual FE detail
+  const deleteFEDetail = async (detailId: number) => {
+    if (!currentFEData) {
+      toast({
+        title: "Error",
+        description: "FE data not found.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Deleting FE detail:', { detailId, currentFEDataId: currentFEData.id, totalDetails: currentFEData.details.length });
+
+      // Remove the deleted FE detail from the list
+      const remainingFEDetails = currentFEData.details
+        .filter(detail => detail.id !== detailId)
+        .map(detail => ({
+          name: detail.name,
+          number: detail.number,
+          role: detail.role,
+          confidence: parseFloat(detail.confidence) || 0,
+          remarks: detail.remarks || ''
+        }));
+
+      console.log('Remaining FE details:', remainingFEDetails.length);
+
+      // If no FE details remain, delete the entire warehouse FE entry
+      if (remainingFEDetails.length === 0) {
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe/${currentFEData.id}`;
+        
+        console.log('Deleting entire warehouse FE entry:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+          },
+        });
+
+        console.log('Delete response status:', response.status, response.ok);
+
+        // Handle empty response (204 No Content) or JSON response
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          // For 204 No Content or empty responses, consider it successful
+          if (response.ok || response.status === 204) {
+            data = { status: true, message: 'FE deleted successfully' };
+          } else {
+            data = { status: false, message: 'Failed to delete FE' };
+          }
+        }
+
+        console.log('Delete response data:', data);
+
+        if (response.ok || response.status === 204 || data.status) {
+          toast({
+            title: "Success",
+            description: data.message || "FE deleted successfully",
+          });
+
+          // Close the modal
+          setViewAllModalOpen(false);
+          setCurrentFEData(null);
+          setSelectedWarehouse(null);
+
+          // Refresh the FE list
+          if (activeTab === 'all-details') {
+            await fetchFEData();
+          }
+        } else {
+          const errorMessage = data.error?.message || data.message || `Failed to delete FE. Status: ${response.status}`;
+          console.error('Delete error:', errorMessage, data);
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Update warehouse FE with remaining FE details
+        const payload = {
+          warehouse_id: currentFEData.warehouse_id,
+          awb: currentFEData.awb,
+          courier_partner: currentFEData.courier_partner,
+          warehouse_name: currentFEData.warehouse_name,
+          city: currentFEData.city,
+          hub_name: currentFEData.hub_name,
+          gmap: currentFEData.gmap,
+          remarks: currentFEData.remarks || '',
+          fe_details: remainingFEDetails
+        };
+
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe`;
+        
+        console.log('Updating warehouse FE with remaining details:', apiUrl, payload);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        console.log('Update response:', response.status, data);
+
+        if (response.ok && data.status) {
+          toast({
+            title: "Success",
+            description: data.message || "FE detail deleted successfully",
+          });
+
+          // Refresh FE data to show updated list
+          if (currentFEData.id) {
+            await fetchFEDetailsById(currentFEData.id);
+          }
+        } else {
+          const errorMessage = data.error?.message || data.message || `Failed to delete FE detail. Status: ${response.status}`;
+          console.error('Update error:', errorMessage, data);
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting FE detail:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred while deleting FE detail. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch warehouse FE details
   useEffect(() => {
@@ -355,19 +827,20 @@ const FENumberPage = () => {
     }
   };
 
-  // Filter data
+  // Filter FE rows data based on search and filters
   useEffect(() => {
-    let filtered = [...courierBoys];
+    let filtered = [...feRowsData];
 
-    // Search filter (AWB, City, Hub, Warehouse ID)
+    // Search filter (AWB, City, Hub, Warehouse Name, Name, Number)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
-        item.awbNumber.toLowerCase().includes(searchLower) ||
+        item.awb.toLowerCase().includes(searchLower) ||
         item.city.toLowerCase().includes(searchLower) ||
-        item.hub.toLowerCase().includes(searchLower) ||
-        item.warehouseId.toLowerCase().includes(searchLower) ||
-        item.feName.toLowerCase().includes(searchLower)
+        item.hubName.toLowerCase().includes(searchLower) ||
+        item.warehouseName.toLowerCase().includes(searchLower) ||
+        item.name.toLowerCase().includes(searchLower) ||
+        item.number.toLowerCase().includes(searchLower)
       );
     }
 
@@ -381,13 +854,8 @@ const FENumberPage = () => {
       filtered = filtered.filter(item => item.city === selectedCity);
     }
 
-    // Status filter
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(item => item.status === selectedStatus);
-    }
-
-    setFilteredCourierBoys(filtered);
-  }, [searchTerm, selectedCourierPartner, selectedCity, selectedStatus, courierBoys]);
+    setFilteredFeRowsData(filtered);
+  }, [searchTerm, selectedCourierPartner, selectedCity, feRowsData]);
 
   const handleViewAll = (courierBoy: CourierBoy) => {
     // Find the warehouse and FE for this courier boy
@@ -480,7 +948,7 @@ const FENumberPage = () => {
     setAddFEModalOpen(true);
   };
 
-  const handleSaveNewFE = () => {
+  const handleSaveNewFE = async () => {
     if (!selectedWarehouse || !newFEName.trim() || !newFENumber.trim()) {
       toast({
         title: "Invalid Input",
@@ -490,51 +958,96 @@ const FENumberPage = () => {
       return;
     }
 
-    const newFEId = `fe-${selectedWarehouse.id}-${Date.now()}`;
-    const newPhoneNumber: PhoneNumber = {
-      number: newFENumber.trim(),
-      confidence: newFEConfidence,
-      isPrimary: newFEIsPrimary,
-      whatsappNumber: newFEWhatsapp.trim() || undefined
+    // Check if we have current FE data (from View FE modal)
+    if (!currentFEData) {
+      toast({
+        title: "Error",
+        description: "FE data not found. Please view FE details first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Map role to API format
+    const roleMap: { [key: string]: string } = {
+      'FE': 'Delivery Boy',
+      'TL': 'Team Leader',
+      'Hub Manager': 'Hub Manager'
     };
 
-    const newFE: FieldExecutive = {
-      id: newFEId,
-      feName: newFEName.trim(),
-      role: newFERole,
-      phoneNumbers: [newPhoneNumber],
-      status: 'active'
-    };
-
-    // Add to warehouse
-    setWarehouses(prev => prev.map(wh => {
-      if (wh.id === selectedWarehouse.id) {
-        return { ...wh, fieldExecutives: [...wh.fieldExecutives, newFE] };
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
+        return;
       }
-      return wh;
-    }));
 
-    // Also add to courierBoys for table display
-    const newCourierBoy: CourierBoy = {
-      id: newFEId,
-      feName: newFEName.trim(),
-      role: newFERole === 'FE' ? 'Field Executive' : 'Team Leader',
-      hub: selectedWarehouse.hub,
-      city: selectedWarehouse.city,
-      courierPartner: selectedWarehouse.courierPartner,
-      phoneNumbers: [newPhoneNumber],
-      warehouseId: selectedWarehouse.warehouseId,
-      awbNumber: `AWB${String(Math.floor(Math.random() * 9000000) + 1000000)}`,
-      status: 'active'
-    };
+      // Get existing FE details
+      const existingFEDetails = currentFEData.details.map(detail => ({
+        name: detail.name,
+        number: detail.number,
+        role: detail.role,
+        confidence: parseFloat(detail.confidence) || 0,
+        remarks: detail.remarks || ''
+      }));
 
-    setCourierBoys(prev => [...prev, newCourierBoy]);
+      // Add new FE detail
+      const newFEDetail = {
+        name: newFEName.trim(),
+        number: newFENumber.trim(),
+        role: roleMap[newFERole] || newFERole,
+        confidence: newFEConfidence,
+        remarks: ''
+      };
 
+      // Combine existing and new FE details
+      const allFEDetails = [...existingFEDetails, newFEDetail];
+
+      // Prepare API payload with existing warehouse FE data plus new FE detail
+      const payload = {
+        warehouse_id: currentFEData.warehouse_id,
+        awb: currentFEData.awb,
+        courier_partner: currentFEData.courier_partner,
+        warehouse_name: currentFEData.warehouse_name,
+        city: currentFEData.city,
+        hub_name: currentFEData.hub_name,
+        gmap: currentFEData.gmap,
+        remarks: currentFEData.remarks || '',
+        fe_details: allFEDetails
+      };
+
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status) {
     toast({
-      title: "FE Added",
-      description: "Field Executive has been added successfully.",
-    });
+          title: "Success",
+          description: data.message || "FE added successfully",
+        });
 
+        // Refresh FE data to show the new FE (keep modal open)
+        if (currentFEData.id) {
+          // Refresh the data but keep the modal open
+          await fetchFEDetailsById(currentFEData.id);
+        }
+
+        // Reset form
     setAddFEModalOpen(false);
     setNewFEName('');
     setNewFENumber('');
@@ -542,6 +1055,22 @@ const FENumberPage = () => {
     setNewFERole('FE');
     setNewFEConfidence(50);
     setNewFEIsPrimary(true);
+      } else {
+        const errorMessage = data.error?.message || data.message || "Failed to add FE. Please try again.";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error adding FE:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while adding FE. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditFE = (courierBoy: CourierBoy) => {
@@ -839,21 +1368,28 @@ const FENumberPage = () => {
         
         // Auto-populate fields from API response
         setFeAWB(awbNumber.trim());
-        setFeCourierPartner(data.data.order_details?.delivery_partner || '');
+        const apiCourierPartner = data.data.order_details?.delivery_partner || '';
         
-        // For reverse shipments, use customer shipping details instead of warehouse details
-        if (isReverse) {
-          // Use customer shipping details for warehouse fields
-          const shippingName = data.data.customer_details?.shipping_first_name || '';
-          const shippingAddress = data.data.customer_details?.shipping_address1 || '';
-          // Construct warehouse name from shipping details
-          const warehouseName = shippingName ? `${shippingName} - ${shippingAddress}` : shippingAddress || '';
-          setFeWarehouseName(warehouseName);
-          setFeCity(data.data.customer_details?.shipping_city || '');
+        // Map API courier partner to dropdown options
+        const courierPartnerOptions = ['Delhivery', 'Xbee', 'DTDC', 'Bluedart', 'Professional', 'Maruti', 'Anjani'];
+        const normalizedApiPartner = apiCourierPartner.trim();
+        const matchedOption = courierPartnerOptions.find(opt => 
+          opt.toLowerCase() === normalizedApiPartner.toLowerCase() ||
+          normalizedApiPartner.toLowerCase().includes(opt.toLowerCase()) ||
+          opt.toLowerCase().includes(normalizedApiPartner.toLowerCase())
+        );
+        
+        if (matchedOption) {
+          setFeCourierPartnerSelect(matchedOption);
+          setFeCourierPartner(matchedOption);
+        } else if (normalizedApiPartner) {
+          // If API value doesn't match any option, set to "Other" and populate the other field
+          setFeCourierPartnerSelect('Other');
+          setFeCourierPartnerOther(normalizedApiPartner);
+          setFeCourierPartner(normalizedApiPartner);
         } else {
-          // Normal shipment - use warehouse details
-          setFeWarehouseName(data.data.warehouse_details?.warehouse_name || '');
-          setFeCity(data.data.warehouse_details?.city || data.data.customer_details?.shipping_city || '');
+          setFeCourierPartnerSelect('');
+          setFeCourierPartner('');
         }
         
         // Find the first tracking entry where status = "Booked"
@@ -877,12 +1413,31 @@ const FENumberPage = () => {
           const hubIndex = isReverse && sortedTracking.length > 1 ? 1 : 0;
           setFeHubName(sortedTracking[hubIndex]?.location || '');
         }
+        
+        // Set default data type based on shipment type, but allow user to change
+        // Default to warehouse for normal shipments, but user can switch
+        setDataType('warehouse');
+        
+        // Populate both warehouse and customer data (user will choose which to use)
+        // Warehouse data
+        const warehouseName = data.data.warehouse_details?.warehouse_name || '';
+        const warehouseCity = data.data.warehouse_details?.city || '';
+        const warehouseId = data.data.warehouse_details?.id || data.data.warehouse_details?.warehouse_id || null;
+        setFeWarehouseName(warehouseName);
+        setFeCity(warehouseCity);
+        setFeWarehouseId(warehouseId ? parseInt(warehouseId.toString()) : null);
+        
+        // Customer data
+        const customerFirstName = data.data.customer_details?.shipping_first_name || '';
+        const customerLastName = data.data.customer_details?.shipping_last_name || '';
+        const customerName = `${customerFirstName} ${customerLastName}`.trim() || customerFirstName || '';
+        const customerCity = data.data.customer_details?.shipping_city || '';
+        setFeCustomerName(customerName);
+        setFeCustomerCity(customerCity);
 
         toast({
           title: "Data Fetched",
-          description: isReverse 
-            ? "Reverse shipment detected. Using customer shipping details and 2nd oldest hub."
-            : "Shipment details have been auto-populated.",
+          description: "Shipment details have been auto-populated. Please select data type (Warehouse/Customer).",
         });
       } else {
         // Data not found - allow manual entry
@@ -907,100 +1462,139 @@ const FENumberPage = () => {
     }
   };
 
-  const handleSaveFENumber = () => {
-    if (!feAWB.trim() || !feName.trim() || !feNumber.trim()) {
+  const handleSaveFENumber = async () => {
+    if (!feAWB.trim() || !feName.trim() || !feNumber.trim() || !feRole) {
       toast({
         title: "Required Fields Missing",
-        description: "Please fill in AWB, Name, and Number fields.",
+        description: "Please fill in AWB, Name, Number, and Role fields.",
         variant: "destructive",
       });
       return;
     }
 
-    // Create new FE entry
-    const newFEId = `fe-${Date.now()}`;
-    const newPhoneNumber: PhoneNumber = {
-      number: feNumber.trim(),
-      confidence: feConfidence,
-      isPrimary: true,
-      whatsappNumber: feWhatsappNumber.trim() || undefined
-    };
+    // Use the appropriate fields based on data type
+    const warehouseName = dataType === 'warehouse' ? feWarehouseName : feCustomerName;
+    const city = dataType === 'warehouse' ? feCity : feCustomerCity;
+    // If customer data is selected, warehouse_id should be null
+    const warehouseId = dataType === 'warehouse' ? feWarehouseId : null;
 
-    const newFE: FieldExecutive = {
-      id: newFEId,
-      feName: feName.trim(),
-      role: 'FE',
-      phoneNumbers: [newPhoneNumber],
-      status: 'active'
-    };
-
-    // Check if warehouse exists, if not create one
-    let warehouse = warehouses.find(wh => 
-      wh.warehouseId === feWarehouseName || 
-      wh.hub === feHubName
-    );
-
-    if (!warehouse) {
-      // Create new warehouse
-      const newWarehouseId = `WH${String(Math.floor(Math.random() * 900) + 100)}`;
-      warehouse = {
-        id: `wh-${Date.now()}`,
-        warehouseId: newWarehouseId,
-        hub: feHubName || 'Unknown Hub',
-        city: feCity || 'Unknown City',
-        courierPartner: feCourierPartner || 'Unknown',
-        googleMapsLink: feGmapLocation || undefined,
-        remarks: feRemarks || undefined,
-        fieldExecutives: [newFE]
-      };
-      setWarehouses(prev => [...prev, warehouse!]);
-    } else {
-      // Add FE to existing warehouse
-      setWarehouses(prev => prev.map(wh => {
-        if (wh.id === warehouse!.id) {
-          return { ...wh, fieldExecutives: [...wh.fieldExecutives, newFE] };
-        }
-        return wh;
-      }));
+    if (!warehouseName.trim() || !city.trim()) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in Warehouse/Customer Name and City fields.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Also add to courierBoys for table display
-    const newCourierBoy: CourierBoy = {
-      id: newFEId,
-      feName: feName.trim(),
-      role: 'Field Executive',
-      hub: warehouse.hub,
-      city: warehouse.city,
-      courierPartner: warehouse.courierPartner,
-      phoneNumbers: [newPhoneNumber],
-      warehouseId: warehouse.warehouseId,
-      awbNumber: feAWB.trim(),
-      status: 'active',
-      googleMapsLink: feGmapLocation || undefined,
-      remarks: feRemarks || undefined
-    };
+    setSavingFENumber(true);
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
+        setSavingFENumber(false);
+        return;
+      }
 
-    setCourierBoys(prev => [...prev, newCourierBoy]);
+      // Map role to API format
+      const roleMap: { [key: string]: string } = {
+        'FE': 'Delivery Boy',
+        'TL': 'Team Leader',
+        'Hub Manager': 'Hub Manager'
+      };
 
-    toast({
-      title: "FE Number Added",
-      description: "Field Executive has been added successfully.",
-    });
+      // Prepare API payload
+      const payload = {
+        warehouse_id: warehouseId,
+        awb: feAWB.trim(),
+        courier_partner: feCourierPartner.trim() || '',
+        warehouse_name: warehouseName.trim(),
+        city: city.trim(),
+        hub_name: feHubName.trim() || '',
+        gmap: feGmapLocation.trim() || '',
+        remarks: feRemarks.trim() || '',
+        fe_details: [
+          {
+            name: feName.trim(),
+            number: feNumber.trim(),
+            role: roleMap[feRole] || feRole,
+            confidence: feConfidence,
+            remarks: feRemarks.trim() || ''
+          }
+        ]
+      };
 
-    // Reset and close
-    setAddFENumberModalOpen(false);
-    setAwbNumber('');
-    setFeAWB('');
-    setFeCourierPartner('');
-    setFeWarehouseName('');
-    setFeCity('');
-    setFeHubName('');
-    setFeGmapLocation('');
-    setFeName('');
-    setFeNumber('');
-    setFeWhatsappNumber('');
-    setFeConfidence(50);
-    setFeRemarks('');
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/warehouse-fe`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status) {
+        // Show API message
+        toast({
+          title: "Success",
+          description: data.message || data.data?.message || "FE created successfully",
+        });
+
+        // Reset and close
+        setAddFENumberModalOpen(false);
+        setAwbNumber('');
+        setFeAWB('');
+        setFeCourierPartner('');
+        setFeCourierPartnerSelect('');
+        setFeCourierPartnerOther('');
+        setFeWarehouseName('');
+        setFeCity('');
+        setFeCustomerName('');
+        setFeCustomerCity('');
+        setFeHubName('');
+        setFeGmapLocation('');
+        setFeName('');
+        setFeNumber('');
+        setFeRole('FE');
+        setFeWhatsappNumber('');
+        setFeConfidence(50);
+        setFeRemarks('');
+        setFeWarehouseId(null);
+        setDataType('warehouse');
+        
+        // Refresh the FE data
+        if (activeTab === 'all-details') {
+          fetchFEData();
+        }
+      } else {
+        // Extract error message from API response
+        const errorMessage = data.error?.message || data.message || "Failed to create FE. Please try again.";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating FE:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while creating FE. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingFENumber(false);
+    }
   };
 
   // Filter warehouse FE details
@@ -1059,15 +1653,22 @@ const FENumberPage = () => {
               setAwbNumber('');
               setFeAWB('');
               setFeCourierPartner('');
+              setFeCourierPartnerSelect('');
+              setFeCourierPartnerOther('');
               setFeWarehouseName('');
               setFeCity('');
+              setFeCustomerName('');
+              setFeCustomerCity('');
               setFeHubName('');
               setFeGmapLocation('');
               setFeName('');
               setFeNumber('');
+              setFeRole('FE');
               setFeWhatsappNumber('');
               setFeConfidence(50);
               setFeRemarks('');
+              setFeWarehouseId(null);
+              setDataType('warehouse');
             }}
             className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
           >
@@ -1082,7 +1683,7 @@ const FENumberPage = () => {
         <div className="relative flex-[0.3]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <Input
-            placeholder="Search by AWB / City / Hub / Warehouse"
+            placeholder="Search by AWB / City / Hub / Warehouse / Name / Number"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-12 text-base"
@@ -1126,129 +1727,148 @@ const FENumberPage = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-32">AWB</TableHead>
-              <TableHead className="w-48">Sender Name</TableHead>
+              <TableHead className="w-32">Courier Partner</TableHead>
               <TableHead className="w-32">Warehouse Name</TableHead>
               <TableHead className="w-32">City</TableHead>
-              <TableHead className="w-32">Courier Partner</TableHead>
-              <TableHead className="w-40">Phone Number</TableHead>
+              <TableHead className="w-32">Hub Name</TableHead>
+              <TableHead className="w-24">Location</TableHead>
+              <TableHead className="w-48">Name</TableHead>
+              <TableHead className="w-40">Number</TableHead>
+              <TableHead className="w-32">Role</TableHead>
               <TableHead className="w-48">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex items-center justify-center space-x-2">
                     <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>Loading courier boys...</span>
+                    <span>Loading FE data...</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredCourierBoys.length === 0 ? (
+            ) : filteredFeRowsData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="text-gray-500">
                     <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
-                    <p>No courier boys found</p>
+                    <p>No FE data found</p>
                     <p className="text-sm mt-1">Try adjusting your search or filters</p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredCourierBoys.map((courierBoy) => (
-                <TableRow key={courierBoy.id}>
+              filteredFeRowsData.map((feRow) => (
+                <TableRow key={feRow.id}>
                   <TableCell>
-                    <span className="font-mono text-sm">{courierBoy.awbNumber}</span>
+                    <span className="font-mono text-sm">{feRow.awb}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{feRow.courierPartner}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{feRow.warehouseName}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{feRow.city}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{feRow.hubName}</span>
+                  </TableCell>
+                  <TableCell>
+                    {feRow.gmap && (
+                      <a
+                        href={feRow.gmap}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center"
+                        title="View Location"
+                      >
+                        <MapPin className="w-4 h-4 text-blue-600 hover:text-blue-800" />
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">{courierBoy.feName}</span>
+                      <span className="font-medium">{feRow.name || '-'}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{courierBoy.warehouseId}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{courierBoy.city}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{courierBoy.courierPartner}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-2">
-                      {courierBoy.phoneNumbers.length > 0 && (() => {
-                        const primaryPhone = courierBoy.phoneNumbers.find(p => p.isPrimary) || courierBoy.phoneNumbers[0];
-                        const primaryIndex = courierBoy.phoneNumbers.findIndex(p => p === primaryPhone);
-                        return (
-                          <div className="space-y-1.5">
+                    {feRow.number ? (
                             <div className="flex items-center gap-2">
                               <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="font-mono text-sm">{primaryPhone.number}</span>
-                              <Star 
-                                className={`w-3.5 h-3.5 transition-colors ${
-                                  primaryPhone.isPrimary 
-                                    ? 'text-yellow-500 fill-yellow-500' 
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                              <span className={`text-xs font-semibold ml-auto px-2 py-0.5 rounded ${getConfidenceTextColor(primaryPhone.confidence)} text-white`}>
-                                {primaryPhone.confidence}%
+                        <span className="font-mono text-sm">{feRow.number}</span>
+                        {feRow.confidence && feRow.confidence.trim() !== '' && !isNaN(parseFloat(feRow.confidence)) && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${getConfidenceTextColor(parseFloat(feRow.confidence))} text-white`}>
+                            {feRow.confidence}%
                               </span>
+                        )}
                             </div>
-                            <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                              <div
-                                className={`h-full transition-all ${getConfidenceColor(primaryPhone.confidence)}`}
-                                style={{ width: `${primaryPhone.confidence}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{feRow.role || '-'}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
-                      {courierBoy.phoneNumbers.length > 0 && (() => {
-                        const primaryPhone = courierBoy.phoneNumbers.find(p => p.isPrimary) || courierBoy.phoneNumbers[0];
-                        const primaryIndex = courierBoy.phoneNumbers.findIndex(p => p === primaryPhone);
-                        return (
-                          <>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleVerify(courierBoy, primaryIndex)}
+                        onClick={() => {
+                          // Keep existing action button behavior
+                          const mockCourierBoy: CourierBoy = {
+                            id: feRow.id,
+                            feName: feRow.name,
+                            role: feRow.role,
+                            hub: feRow.hubName,
+                            city: feRow.city,
+                            courierPartner: feRow.courierPartner,
+                            phoneNumbers: feRow.number ? [{
+                              number: feRow.number,
+                              confidence: parseFloat(feRow.confidence) || 0,
+                              isPrimary: true
+                            }] : [],
+                            warehouseId: feRow.warehouseName,
+                            awbNumber: feRow.awb,
+                            status: 'active',
+                            googleMapsLink: feRow.gmap,
+                            remarks: feRow.remarks || undefined
+                          };
+                          handleVerify(mockCourierBoy, 0);
+                        }}
                               className="h-8 text-xs px-3"
                               title="Verify"
                             >
                               <CheckCircle className="w-3.5 h-3.5 mr-1" />
                               Verify
                             </Button>
-                            {courierBoy.phoneNumbers.length > 1 && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleViewAll(courierBoy)}
+                        onClick={() => {
+                          // Fetch FE details from API using warehouse_fe_id
+                          fetchFEDetailsById(feRow.warehouseFeId);
+                        }}
                                 className="h-8 text-xs px-3"
-                                title="View All Numbers"
-                              >
-                                <Eye className="w-3.5 h-3.5 mr-1" />
-                                View All
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewAll(courierBoy)}
-                              className="h-8 text-xs px-3"
-                              title="View Warehouse Details"
-                            >
-                              <Edit className="w-3.5 h-3.5 mr-1" />
-                              Edit FE
-                            </Button>
+                        title="View FE Details"
+                        disabled={loadingFEDetails}
+                      >
+                        {loadingFEDetails ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            Loading...
                           </>
-                        );
-                      })()}
+                        ) : (
+                          <>
+                                <Eye className="w-3.5 h-3.5 mr-1" />
+                            View FE
+                          </>
+                        )}
+                            </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1356,19 +1976,46 @@ const FENumberPage = () => {
                             <span className="font-semibold">{fe.feName}</span>
                             <Badge variant="outline" className="text-xs">{fe.role}</Badge>
                           </div>
-                          {courierBoy && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                handleEditFE(courierBoy);
-                              }}
-                              className="h-7 text-xs px-2"
-                            >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edit FE
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {courierBoy && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  handleEditFE(courierBoy);
+                                }}
+                                className="h-7 text-xs px-2"
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit FE
+                              </Button>
+                            )}
+                            {currentFEData && (() => {
+                              // Find the detail ID from the FE id (format: fe-{warehouseFeId}-detail-{detailId})
+                              const detailIdMatch = fe.id.match(/detail-(\d+)$/);
+                              if (detailIdMatch) {
+                                const detailId = parseInt(detailIdMatch[1]);
+                                const detail = currentFEData.details.find(d => d.id === detailId);
+                                if (detail) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        setFeToDelete({ detailId, feName: fe.feName });
+                                        setDeleteConfirmOpen(true);
+                                      }}
+                                      className="h-7 text-xs px-2"
+                                    >
+                                      <Trash2 className="w-3 h-3 mr-1" />
+                                      Delete
+                                    </Button>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
                         {/* Phone Numbers for this FE */}
                         {fe.phoneNumbers.map((phone, index) => {
@@ -1725,13 +2372,14 @@ const FENumberPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="feRole">Role *</Label>
-                  <Select value={newFERole} onValueChange={(value: 'FE' | 'TL') => setNewFERole(value)}>
+                  <Select value={newFERole} onValueChange={(value: 'FE' | 'TL' | 'Hub Manager') => setNewFERole(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="FE">Field Executive (FE)</SelectItem>
                       <SelectItem value="TL">Team Leader (TL)</SelectItem>
+                      <SelectItem value="Hub Manager">Hub Manager</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1825,6 +2473,29 @@ const FENumberPage = () => {
             </div>
 
             <div className="border-t pt-4 space-y-4">
+              {/* Data Type Selection - Show after data is fetched */}
+              {feAWB && (
+                <div className="space-y-2">
+                  <Label>Data Type *</Label>
+                  <RadioGroup value={dataType} onValueChange={(value: 'warehouse' | 'customer') => setDataType(value)}>
+                    <div className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="warehouse" id="dataType-warehouse" />
+                        <Label htmlFor="dataType-warehouse" className="cursor-pointer">
+                          Warehouse Data
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="customer" id="dataType-customer" />
+                        <Label htmlFor="dataType-customer" className="cursor-pointer">
+                          Customer Data
+                        </Label>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="feAWB">AWB *</Label>
@@ -1838,31 +2509,87 @@ const FENumberPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="feCourierPartner">Courier Partner</Label>
-                  <Input
-                    id="feCourierPartner"
-                    value={feCourierPartner}
-                    onChange={(e) => setFeCourierPartner(e.target.value)}
-                    placeholder="Courier Partner"
-                  />
+                  <Select
+                    value={feCourierPartnerSelect || feCourierPartner}
+                    onValueChange={(value) => {
+                      setFeCourierPartnerSelect(value);
+                      if (value === 'Other') {
+                        setFeCourierPartner(feCourierPartnerOther || '');
+                      } else {
+                        setFeCourierPartner(value);
+                        setFeCourierPartnerOther('');
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Courier Partner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Delhivery">Delhivery</SelectItem>
+                      <SelectItem value="Xbee">Xbee</SelectItem>
+                      <SelectItem value="DTDC">DTDC</SelectItem>
+                      <SelectItem value="Bluedart">Bluedart</SelectItem>
+                      <SelectItem value="Professional">Professional</SelectItem>
+                      <SelectItem value="Maruti">Maruti</SelectItem>
+                      <SelectItem value="Anjani">Anjani</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {feCourierPartnerSelect === 'Other' && (
+                    <Input
+                      value={feCourierPartnerOther}
+                      onChange={(e) => {
+                        setFeCourierPartnerOther(e.target.value);
+                        setFeCourierPartner(e.target.value);
+                      }}
+                      placeholder="Enter courier partner name"
+                      className="mt-2"
+                    />
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feWarehouseName">Warehouse Name</Label>
-                  <Input
-                    id="feWarehouseName"
-                    value={feWarehouseName}
-                    onChange={(e) => setFeWarehouseName(e.target.value)}
-                    placeholder="Warehouse Name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feCity">City</Label>
-                  <Input
-                    id="feCity"
-                    value={feCity}
-                    onChange={(e) => setFeCity(e.target.value)}
-                    placeholder="City"
-                  />
-                </div>
+                {dataType === 'warehouse' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="feWarehouseName">Warehouse Name</Label>
+                      <Input
+                        id="feWarehouseName"
+                        value={feWarehouseName}
+                        onChange={(e) => setFeWarehouseName(e.target.value)}
+                        placeholder="Warehouse Name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="feCity">City</Label>
+                      <Input
+                        id="feCity"
+                        value={feCity}
+                        onChange={(e) => setFeCity(e.target.value)}
+                        placeholder="City"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="feCustomerName">Customer Name</Label>
+                      <Input
+                        id="feCustomerName"
+                        value={feCustomerName}
+                        onChange={(e) => setFeCustomerName(e.target.value)}
+                        placeholder="Customer Name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="feCustomerCity">Customer City</Label>
+                      <Input
+                        id="feCustomerCity"
+                        value={feCustomerCity}
+                        onChange={(e) => setFeCustomerCity(e.target.value)}
+                        placeholder="Customer City"
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="feHubName">Hub Name</Label>
                   <Input
@@ -1901,6 +2628,22 @@ const FENumberPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="feRole">Role *</Label>
+                  <Select
+                    value={feRole}
+                    onValueChange={(value: 'FE' | 'TL' | 'Hub Manager') => setFeRole(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FE">FE</SelectItem>
+                      <SelectItem value="TL">TL</SelectItem>
+                      <SelectItem value="Hub Manager">Hub Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="feWhatsappNumber">WhatsApp Number (Optional)</Label>
                   <Input
                     id="feWhatsappNumber"
@@ -1908,18 +2651,6 @@ const FENumberPage = () => {
                     onChange={(e) => setFeWhatsappNumber(e.target.value)}
                     placeholder="WhatsApp Number"
                     className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="feConfidence">Confidence</Label>
-                  <Input
-                    id="feConfidence"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={feConfidence}
-                    onChange={(e) => setFeConfidence(parseInt(e.target.value) || 0)}
-                    placeholder="Confidence (0-100)"
                   />
                 </div>
               </div>
@@ -1943,24 +2674,39 @@ const FENumberPage = () => {
                   setAwbNumber('');
                   setFeAWB('');
                   setFeCourierPartner('');
+                  setFeCourierPartnerSelect('');
+                  setFeCourierPartnerOther('');
                   setFeWarehouseName('');
                   setFeCity('');
+                  setFeCustomerName('');
+                  setFeCustomerCity('');
                   setFeHubName('');
                   setFeGmapLocation('');
                   setFeName('');
                   setFeNumber('');
+                  setFeRole('FE');
                   setFeWhatsappNumber('');
                   setFeConfidence(50);
                   setFeRemarks('');
+                  setFeWarehouseId(null);
+                  setDataType('warehouse');
                 }}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveFENumber}
+                disabled={savingFENumber}
                 className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
               >
-                Save FE Number
+                {savingFENumber ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save FE Number'
+                )}
               </Button>
             </div>
           </div>
@@ -2419,6 +3165,41 @@ const FENumberPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete FE Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete Field Executive
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{feToDelete?.feName}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteConfirmOpen(false);
+              setFeToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (feToDelete) {
+                  deleteFEDetail(feToDelete.detailId);
+                  setDeleteConfirmOpen(false);
+                  setFeToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

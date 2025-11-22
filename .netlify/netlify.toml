@@ -1,18 +1,20 @@
+headersOrigin = "config"
+redirectsOrigin = "config"
 plugins = []
-headers = []
-redirects = []
 
 [functions]
 
 [functions."*"]
 
 [build]
-publish = "/Users/prateeksharma/Desktop/parcelace react prod/dist"
-publishOrigin = "ui"
-commandOrigin = "ui"
-command = "npm run build"
+publish = "/Users/prateeksharma/Desktop/ParcelAce Admin/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build:production"
 
 [build.environment]
+VITE_API_URL = "https://parcelace.in/"
+NODE_ENV = "production"
 
 [build.processing]
 
@@ -25,3 +27,24 @@ command = "npm run build"
 [build.processing.js]
 
 [build.services]
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

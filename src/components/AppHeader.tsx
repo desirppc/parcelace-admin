@@ -194,7 +194,7 @@ const AppHeader: React.FC = () => {
     
     if (result.awb) {
       // Navigate to shipment details if AWB exists
-      navigate(`/dashboard/shipments/${result.id}`);
+      navigate(`/dashboard/shipment/${result.awb}`);
     } else {
       // Navigate to order details if no AWB
       navigate(`/dashboard/orders/${result.store_order_id}`);

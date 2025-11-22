@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { vendorService, Vendor } from '@/services/vendorService';
 import { supportUserService, SupportUser } from '@/services/supportUserService';
 import API_CONFIG from '@/config/api';
-import { getAuthHeaders } from '@/config/api';
+import { getAuthHeaders, apiRequest } from '@/config/api';
 
 interface AssignVendorsToSupportDialogProps {
   onAssignmentComplete: () => void;
@@ -81,10 +82,22 @@ const AssignVendorsToSupportDialog: React.FC<AssignVendorsToSupportDialogProps> 
   const loadVendors = async () => {
     setLoading(true);
     try {
-      const response = await vendorService.getVendors();
-      if (response.status) {
-        setVendors(response.data.vendor_users);
-        setFilteredVendors(response.data.vendor_users);
+      const response = await apiRequest(API_CONFIG.ENDPOINTS.VENDORS, 'GET');
+      
+      if (response.success && response.data) {
+        // Map API response fields to Vendor interface
+        const mappedVendors = (response.data.vendor_users || []).map((vendor: any) => ({
+          id: vendor.vendor_id || vendor.id,
+          name: vendor.vendor_name || vendor.name,
+          email: vendor.vendor_email || vendor.email,
+          phone: vendor.vendor_phone || vendor.phone,
+          created_at: vendor.created_at,
+          support_user_count: vendor.support_user_count || 0,
+          support_users: vendor.support_users || []
+        }));
+        
+        setVendors(mappedVendors);
+        setFilteredVendors(mappedVendors);
       } else {
         toast({
           title: "Error",
@@ -278,26 +291,60 @@ const AssignVendorsToSupportDialog: React.FC<AssignVendorsToSupportDialogProps> 
               </div>
             ) : (
               <div className="divide-y">
-                {filteredVendors.map((vendor) => (
-                  <div
-                    key={vendor.id}
-                    className="flex items-center space-x-3 p-3 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => handleVendorToggle(vendor.id)}
-                  >
-                    <Checkbox
-                      id={`vendor-${vendor.id}`}
-                      checked={selectedVendorIds.includes(vendor.id)}
-                      onCheckedChange={() => handleVendorToggle(vendor.id)}
-                    />
-                    <label
-                      htmlFor={`vendor-${vendor.id}`}
-                      className="flex-1 cursor-pointer text-sm"
+                {filteredVendors.map((vendor) => {
+                  const hasSupportUsers = vendor.support_user_count && vendor.support_user_count > 0 && vendor.support_users && vendor.support_users.length > 0;
+                  const supportUserCount = vendor.support_user_count || 0;
+                  
+                  // Get support user names by matching IDs
+                  const getSupportUserName = (supportUserId: number) => {
+                    const supportUser = supportUsers.find(su => su.id === supportUserId);
+                    return supportUser?.name || supportUser?.email || '';
+                  };
+                  
+                  return (
+                    <div
+                      key={vendor.id}
+                      className="flex items-center space-x-3 p-3 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => handleVendorToggle(vendor.id)}
                     >
-                      <span className="font-medium">{vendor.name}</span>
-                      <span className="text-muted-foreground"> - {vendor.email}</span>
-                    </label>
-                  </div>
-                ))}
+                      <Checkbox
+                        id={`vendor-${vendor.id}`}
+                        checked={selectedVendorIds.includes(vendor.id)}
+                        onCheckedChange={() => handleVendorToggle(vendor.id)}
+                      />
+                      <label
+                        htmlFor={`vendor-${vendor.id}`}
+                        className="flex-1 cursor-pointer text-sm"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{vendor.name}</span>
+                          <span className="text-muted-foreground"> - {vendor.email}</span>
+                          {hasSupportUsers && (
+                            <>
+                              <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
+                                Assigned
+                              </Badge>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                {vendor.support_users?.map((su, index) => {
+                                  const supportUserName = getSupportUserName(su.id);
+                                  return (
+                                    <span key={su.id}>
+                                      {supportUserName || su.email}
+                                      {index < (vendor.support_users?.length || 0) - 1 && ', '}
+                                    </span>
+                                  );
+                                })}
+                                {supportUserCount > 1 && (
+                                  <span className="ml-1">({supportUserCount})</span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dialog";
 
 const ViewShipment = () => {
-  const { shipmentId } = useParams<{ shipmentId: string }>();
+  const { awb } = useParams<{ awb: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [shipmentData, setShipmentData] = useState<any>(null);
@@ -66,8 +66,8 @@ const ViewShipment = () => {
 
   // Load shipment data from API
   useEffect(() => {
-    if (!shipmentId) {
-      setError('Shipment ID is required');
+    if (!awb) {
+      setError('AWB is required');
       setLoading(false);
       return;
     }
@@ -86,9 +86,9 @@ const ViewShipment = () => {
         }
 
         // Call the real-time shipments API
-        const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/${shipmentId}/view-web`;
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/shipments/${awb}/view-web`;
         console.log('Fetching shipment data from:', apiUrl);
-        console.log('Shipment ID from URL params:', shipmentId);
+        console.log('AWB from URL params:', awb);
         
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -125,11 +125,11 @@ const ViewShipment = () => {
     };
 
     fetchShipmentData();
-  }, [shipmentId, toast]);
+  }, [awb, toast]);
 
   // Mock shipment data - used when API data is not available
   const mockShipment = {
-    orderId: shipmentId || 'SHIP-001',
+    orderId: awb || 'SHIP-001',
     orderType: 'Standard',
     parcelType: 'COD',
     status: 'In Transit',
@@ -251,7 +251,7 @@ const ViewShipment = () => {
 
   // Use API data if available, otherwise use mock data
   const shipment = shipmentData?.data ? {
-    orderId: shipmentData.data.order_details?.awb || shipmentId || 'SHIP-001',
+    orderId: shipmentData.data.order_details?.awb || awb || 'SHIP-001',
     orderType: shipmentData.data.order_details?.shipment_mod || 'Standard',
     parcelType: shipmentData.data.order_details?.parcel_type || 'COD',
     status: shipmentData.data.order_details?.shipment_status || 'In Transit',
@@ -469,7 +469,7 @@ const ViewShipment = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Error Loading Shipment</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Shipment #{shipmentId}</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Shipment #{awb}</p>
             </div>
           </div>
           <Card className="shadow-sm border-0 bg-white">
