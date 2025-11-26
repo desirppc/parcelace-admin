@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/UserContext';
 import { isUserAuthorized, getUserRoleNames, getAuthorizationErrorMessage } from '@/utils/roleUtils';
-import { getApiUrl, API_CONFIG } from '@/config/api';
+import API_CONFIG, { getApiUrl } from '@/config/api';
 
 const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack, onNavigateToOnboarding }: { 
   onNavigateToSignUp: () => void;
