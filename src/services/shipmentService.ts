@@ -942,6 +942,67 @@ class ShipmentService {
       };
     }
   }
+
+  async updateEwayBill(awb: string, dcn: string, ewbn: string): Promise<{ success: boolean; message: string; data?: any; error?: string }> {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      if (!awb || !dcn || !ewbn) {
+        throw new Error('AWB, Invoice Number (DCN), and Eway Number (EWBN) are required');
+      }
+
+      // Validate eway number is 12 digits
+      if (ewbn.length !== 12 || !/^\d+$/.test(ewbn)) {
+        throw new Error('Eway Number must be exactly 12 digits');
+      }
+
+      const url = `${API_CONFIG.BASE_URL}api/shipments/update-eway-bill`;
+      console.log('Update eway bill API URL:', url);
+      console.log('Update eway bill payload:', { awb, dcn, ewbn });
+
+      // Create FormData for multipart/form-data
+      const formData = new FormData();
+      formData.append('awb', awb);
+      formData.append('dcn', dcn);
+      formData.append('ewbn', ewbn);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: formData
+      });
+
+      console.log('Update eway bill API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Update eway bill API error response:', errorData);
+        throw new Error(errorData.message || `Failed to update eway bill (${response.status})`);
+      }
+
+      const result = await response.json();
+      console.log('Update eway bill API response:', result);
+      
+      return {
+        success: true,
+        message: result.message || 'Eway bill updated successfully',
+        data: result.data
+      };
+    } catch (error) {
+      console.error('Error updating eway bill:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update eway bill'
+      };
+    }
+  }
 }
 
 export const shipmentService = new ShipmentService(); 

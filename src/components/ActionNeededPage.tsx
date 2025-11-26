@@ -197,6 +197,12 @@ const ActionNeededPage = () => {
   const [otherRemark, setOtherRemark] = useState<string>('');
   const [updatingRemark, setUpdatingRemark] = useState(false);
   
+  // Update Eway states
+  const [ewayAWB, setEwayAWB] = useState<string>('');
+  const [ewayDCN, setEwayDCN] = useState<string>('');
+  const [ewayEWBN, setEwayEWBN] = useState<string>('');
+  const [updatingEway, setUpdatingEway] = useState(false);
+  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -521,18 +527,18 @@ const ActionNeededPage = () => {
   const getStatusBadge = (status: string) => {
     const statusLower = (status || '').toLowerCase();
     const statusConfig = {
-      'booked': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
-      'pending': { variant: 'outline', icon: Clock, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
-      'in_transit': { variant: 'secondary', icon: Truck, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
-      'out_for_delivery': { variant: 'secondary', icon: Car, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
-      'delivered': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
-      'pickup_failed': { variant: 'destructive', icon: XCircle, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'ndr': { variant: 'destructive', icon: AlertTriangle, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' },
-      'rto_in_transit': { variant: 'destructive', icon: RotateCcw, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'rto_delivered': { variant: 'destructive', icon: Home, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'cancelled': { variant: 'destructive', icon: X, color: 'bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-200 font-bold' }
+      'booked': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800' },
+      'pending': { variant: 'outline', icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
+      'in_transit': { variant: 'secondary', icon: Truck, color: 'bg-blue-100 text-blue-800' },
+      'out_for_delivery': { variant: 'secondary', icon: Car, color: 'bg-purple-100 text-purple-800' },
+      'delivered': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800' },
+      'pickup_failed': { variant: 'destructive', icon: XCircle, color: 'bg-red-100 text-red-800' },
+      'ndr': { variant: 'destructive', icon: AlertTriangle, color: 'bg-orange-100 text-orange-800' },
+      'rto_in_transit': { variant: 'destructive', icon: RotateCcw, color: 'bg-red-100 text-red-800' },
+      'rto_delivered': { variant: 'destructive', icon: Home, color: 'bg-red-100 text-red-800' },
+      'cancelled': { variant: 'destructive', icon: X, color: 'bg-red-200 text-red-900 font-bold' }
     };
-    const config = statusConfig[statusLower] || { variant: 'default', icon: Package, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' };
+    const config = statusConfig[statusLower] || { variant: 'default', icon: Package, color: 'bg-gray-100 text-gray-800' };
     const IconComponent = config.icon;
     return (
       <Badge className={`${config.color} border-0`}>
@@ -547,7 +553,7 @@ const ActionNeededPage = () => {
     const modeLower = (mode || '').toLowerCase();
     const isPrepaid = modeLower === 'prepaid';
     return (
-      <Badge variant={isPrepaid ? 'default' : 'secondary'} className={isPrepaid ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'}>
+      <Badge variant={isPrepaid ? 'default' : 'secondary'} className={isPrepaid ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}>
         {capitalizeWords(mode)}
       </Badge>
     );
@@ -1297,6 +1303,58 @@ const ActionNeededPage = () => {
     }
   };
 
+  const handleUpdateEway = async () => {
+    if (!ewayAWB || !ewayDCN || !ewayEWBN) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields (AWB, Invoice Number, and Eway Number).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate eway number is 12 digits
+    if (ewayEWBN.length !== 12 || !/^\d+$/.test(ewayEWBN)) {
+      toast({
+        title: "Error",
+        description: "Eway Number must be exactly 12 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUpdatingEway(true);
+      const result = await shipmentService.updateEwayBill(ewayAWB, ewayDCN, ewayEWBN);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || "Eway bill updated successfully!",
+        });
+        // Reset form
+        setEwayAWB('');
+        setEwayDCN('');
+        setEwayEWBN('');
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to update eway bill.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating eway bill:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update eway bill. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingEway(false);
+    }
+  };
+
   // Debug log
   console.log('Current shipments state:', shipments);
   console.log('Current filtered shipments:', filteredShipments);
@@ -1607,6 +1665,12 @@ const ActionNeededPage = () => {
       {selectedShipments.length === 0 && (
         <Tabs value={activeTab} onValueChange={async (value) => {
           setActiveTab(value);
+          
+          // Don't fetch shipments if switching to update-eway tab
+          if (value === 'update-eway') {
+            return;
+          }
+          
           resetPagination(); // Reset to first page when changing tabs
           
           // Build order_type based on page type
@@ -1647,6 +1711,9 @@ const ActionNeededPage = () => {
         }}>
           <TabsList className="inline-flex py-1 text-xs" style={{ fontSize: '80%', padding: '0.25rem 0' }}>
             <TabsTrigger value="all">All Orders</TabsTrigger>
+            {currentPageType === 'action-needed' && (
+              <TabsTrigger value="update-eway">Update Eway</TabsTrigger>
+            )}
             {(currentPageType === 'action-needed' ? ACTION_NEEDED_STATUSES : ALL_TRACKING_STATUSES).map((statusKey) => {
               // Use label from filterOptions if available, otherwise use capitalized status key
               const statusLabel = filterOptions[statusKey] || statusKey.split('_').map(word => 
@@ -1665,16 +1732,111 @@ const ActionNeededPage = () => {
               );
             })}
           </TabsList>
+          
+          {/* Update Eway Tab Content */}
+          {currentPageType === 'action-needed' && (
+            <TabsContent value="update-eway" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">Update Eway Bill</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Enter the AWB number, Invoice Number (DCN), and Eway Number (EWBN) to update the eway bill.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">
+                        AWB Number <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        placeholder="Enter AWB number"
+                        value={ewayAWB}
+                        onChange={(e) => setEwayAWB(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">
+                        Invoice Number (DCN) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        placeholder="Enter Invoice Number"
+                        value={ewayDCN}
+                        onChange={(e) => setEwayDCN(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">
+                        Eway Number (EWBN) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        placeholder="Enter 12-digit Eway Number"
+                        value={ewayEWBN}
+                        onChange={(e) => {
+                          // Only allow digits and limit to 12 characters
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                          setEwayEWBN(value);
+                        }}
+                        maxLength={12}
+                        className="h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Eway Number must be exactly 12 digits
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEwayAWB('');
+                        setEwayDCN('');
+                        setEwayEWBN('');
+                      }}
+                      disabled={updatingEway}
+                      className="min-w-[100px]"
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      onClick={handleUpdateEway}
+                      disabled={updatingEway || !ewayAWB || !ewayDCN || !ewayEWBN}
+                      className="min-w-[140px] bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
+                    >
+                      {updatingEway ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Update Eway
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+          
         </Tabs>
       )}
 
-      {/* Enhanced Shipments Table */}
-      <Card>
+      {/* Enhanced Shipments Table - Only show when not on Update Eway tab */}
+      {activeTab !== 'update-eway' && (
+        <Card>
         {selectedShipments.length > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                <span className="font-semibold text-blue-900">
                   {selectedShipments.length} selected
                 </span>
                 <div className="flex space-x-2">
@@ -1702,7 +1864,7 @@ const ActionNeededPage = () => {
                       
                       handleDownloadShippingLabels(selectedAwbs);
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Bulk Label
@@ -1731,7 +1893,7 @@ const ActionNeededPage = () => {
                       
                       handleDownloadInvoice(selectedAwbs);
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Download Invoice
@@ -1746,7 +1908,7 @@ const ActionNeededPage = () => {
                         description: "Print Pick List functionality coming soon!",
                       });
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Print Pick List
@@ -1761,7 +1923,7 @@ const ActionNeededPage = () => {
                         description: "Pickup functionality coming soon!",
                       });
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <Package className="w-4 h-4 mr-2" />
                     Pickup
@@ -1770,7 +1932,7 @@ const ActionNeededPage = () => {
                     size="sm"
                     variant="outline"
                     onClick={handleBulkCancel}
-                    className="bg-white hover:bg-red-50 border-red-300 text-red-700 hover:text-red-800 dark:bg-red-900 dark:hover:bg-red-800 dark:border-blue-600 dark:text-red-300 dark:hover:text-red-200"
+                    className="bg-white hover:bg-red-50 border-red-300 text-red-700 hover:text-red-800"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Cancel
@@ -1872,7 +2034,7 @@ const ActionNeededPage = () => {
                         {getFirstProductName(shipment)}
                       </div>
                       {shipment.user?.email && (
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        <div className="text-sm font-semibold text-blue-600">
                           <User className="w-3 h-3 inline mr-1" />
                           {shipment.user.email}
                         </div>
@@ -1913,13 +2075,13 @@ const ActionNeededPage = () => {
                   <div className="space-y-1">
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-gray-700">
                         {capitalizeWords(shipment.warehouse?.warehouse_name || '')} - {shipment.warehouse?.pincode || 'N/A'}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-gray-700">
                         <span className="font-semibold">{shipment.customer_name}</span> - {shipment.pincode}
                       </span>
                     </div>
@@ -1932,7 +2094,7 @@ const ActionNeededPage = () => {
                       variant="outline" 
                       title={`View Details (ID: ${shipment.id})`}
                       onClick={() => navigate(`/dashboard/shipment/${shipment.awb}`)}
-                      className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
+                      className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors duration-200"
                     >
                       <Eye className="w-3 h-3" />
                     </Button>
@@ -1941,7 +2103,7 @@ const ActionNeededPage = () => {
                       variant="outline" 
                       title="Download Label"
                       onClick={() => handleDownloadShippingLabels([shipment.awb])}
-                      className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-900 dark:hover:border-green-600 dark:hover:text-green-300 transition-colors duration-200"
+                      className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors duration-200"
                     >
                       <Download className="w-3 h-3" />
                     </Button>
@@ -1958,7 +2120,7 @@ const ActionNeededPage = () => {
                         setCourierPartnerIssue('');
                         setOtherRemark('');
                       }}
-                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors duration-200"
                     >
                       <MessageSquare className="w-3 h-3" />
                     </Button>
@@ -1966,7 +2128,7 @@ const ActionNeededPage = () => {
                       size="sm" 
                       variant="outline" 
                       title="Duplicate Order"
-                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                      className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors duration-200"
                     >
                       <Copy className="w-3 h-3" />
                     </Button>
@@ -1974,7 +2136,7 @@ const ActionNeededPage = () => {
                       size="sm" 
                       variant="outline" 
                       title="Return Package"
-                      className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-900 dark:hover:border-orange-600 dark:hover:text-orange-300 transition-colors duration-200"
+                      className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-colors duration-200"
                     >
                       <RotateCcw className="w-3 h-3" />
                     </Button>
@@ -1983,7 +2145,7 @@ const ActionNeededPage = () => {
                       variant="outline" 
                       title="Cancel Shipment"
                       onClick={() => handleCancelShipment(shipment)}
-                      className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-900 dark:hover:border-red-600 dark:hover:text-red-300 transition-colors duration-200"
+                      className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200"
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -2073,6 +2235,7 @@ const ActionNeededPage = () => {
           </div>
         )}
       </Card>
+      )}
 
       {/* Enhanced Shipment Hover Popup */}
       {hoveredShipment && (() => {
@@ -2081,10 +2244,10 @@ const ActionNeededPage = () => {
         
         return (
           <div className="fixed z-50 pointer-events-none">
-            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 p-4 animate-fade-in">
+            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 p-4 animate-fade-in">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium text-purple-600 dark:text-purple-400">
+                  <div className="font-medium text-purple-600">
                     <div>ID: {shipment.id}</div>
                     <div className="text-xs text-gray-500">AWB: {shipment.awb}</div>
                   </div>

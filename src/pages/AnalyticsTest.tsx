@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { analyticsService } from '@/services/analyticsService';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { BarChart3, Search, Sparkles, TrendingUp, Loader2, CheckCircle2, XCircle, Info } from 'lucide-react';
 
 const AnalyticsTest = () => {
   const [query, setQuery] = useState('');
@@ -10,12 +11,12 @@ const AnalyticsTest = () => {
   const [loading, setLoading] = useState(false);
 
   const sampleQueries = [
-    'What is my return rate?',
-    'Show me total orders',
-    'What is my delivery rate?',
-    'Check my wallet balance',
-    'How many RTO orders do I have?',
-    'What is my average order value?'
+    { text: 'What is my return rate?', icon: TrendingUp },
+    { text: 'Show me total orders', icon: BarChart3 },
+    { text: 'What is my delivery rate?', icon: CheckCircle2 },
+    { text: 'Check my wallet balance', icon: Sparkles },
+    { text: 'How many RTO orders do I have?', icon: XCircle },
+    { text: 'What is my average order value?', icon: TrendingUp }
   ];
 
   const handleQuery = async (queryText: string) => {
@@ -36,44 +37,83 @@ const AnalyticsTest = () => {
 
   const formatResult = (result: any) => {
     if (result?.error) {
-      return <div className="text-red-500">Error: {String(result.error)}</div>;
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <XCircle className="w-6 h-6 text-red-600" />
+            <h3 className="text-lg font-semibold text-red-800">Error</h3>
+          </div>
+          <p className="text-red-700">{String(result.error)}</p>
+        </div>
+      );
     }
 
     if (!result) {
-      return <div className="text-gray-500">No result found</div>;
+      return (
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
+          <Info className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+          <p className="text-gray-600">No result found</p>
+        </div>
+      );
     }
 
     const { metric, value, unit, description, calculation, data_points } = result;
     
     return (
-      <div className="space-y-4">
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-            📊 {metric}
-          </h3>
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-300">
-                    {Number(value).toFixed(2)} {unit}
-                  </p>
+      <div className="space-y-6">
+        {/* Main Metric Display */}
+        <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border border-green-200 rounded-2xl p-6 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+              <BarChart3 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-green-800">
+                {metric}
+              </h3>
+            </div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-green-100">
+            <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {Number(value).toFixed(2)} <span className="text-2xl text-gray-600">{unit}</span>
+            </p>
+          </div>
         </div>
         
-        <div className="space-y-2">
-          <div>
-            <span className="font-medium">Description:</span> {description}
+        {/* Details Section */}
+        <div className="space-y-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-gray-200">
+            <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Description
+            </h4>
+            <p className="text-gray-700 leading-relaxed">{description}</p>
           </div>
-          <div>
-            <span className="font-medium">Calculation:</span> {calculation}
+          
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-gray-200">
+            <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Calculation
+            </h4>
+            <p className="text-gray-700 font-mono text-sm bg-gray-50 p-3 rounded-lg border border-gray-200">
+              {calculation}
+            </p>
           </div>
           
           {Object.keys(data_points).length > 0 && (
-            <div>
-              <span className="font-medium">Data Points:</span>
-              <ul className="list-disc list-inside mt-1 space-y-1">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-gray-200">
+              <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Data Points
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Object.entries(data_points).map(([key, value]) => (
-                  <li key={key} className="text-sm">
-                    {key}: {String(value)}
-                  </li>
+                  <div key={key} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+                    <div className="text-xs font-medium text-blue-600 mb-1">{key}</div>
+                    <div className="text-sm font-semibold text-gray-800">{String(value)}</div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
@@ -82,97 +122,157 @@ const AnalyticsTest = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Analytics Service Test
+    <div className="min-h-screen p-6">
+      <div className="relative max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl mb-6 shadow-lg">
+            <BarChart3 className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+            Analytics Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Test the analytics service with sample queries
+          <p className="text-gray-600 text-lg">
+            Get insights into your shipping operations with AI-powered analytics
           </p>
         </div>
 
-        <Card className="p-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Enter Query
+        {/* Query Input Card */}
+        <Card className="bg-white/80 backdrop-blur-xl border-white/30 shadow-2xl rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-gray-200">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <Search className="w-6 h-6 text-blue-600" />
+              Ask Your Question
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Enter your analytics query
               </label>
-              <div className="flex space-x-2">
+              <div className="flex gap-3">
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && query.trim() && !loading) {
+                      handleQuery(query);
+                    }
+                  }}
                   placeholder="e.g., What is my return rate?"
-                  className="flex-1"
+                  className="flex-1 h-12 text-base border-2 focus:border-blue-400 rounded-xl"
                 />
                 <Button 
                   onClick={() => handleQuery(query)}
                   disabled={!query.trim() || loading}
+                  className="h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  {loading ? 'Processing...' : 'Query'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Query
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Sample Queries
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Quick Sample Queries
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {sampleQueries.map((sampleQuery, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    onClick={() => handleQuery(sampleQuery)}
-                    disabled={loading}
-                    className="justify-start text-left h-auto p-3"
-                  >
-                    {sampleQuery}
-                  </Button>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {sampleQueries.map((sampleQuery, index) => {
+                  const Icon = sampleQuery.icon;
+                  return (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      onClick={() => handleQuery(sampleQuery.text)}
+                      disabled={loading}
+                      className="justify-start text-left h-auto p-4 bg-white/60 hover:bg-blue-50 border-2 hover:border-blue-300 rounded-xl transition-all duration-200 group"
+                    >
+                      <Icon className="w-5 h-5 mr-3 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-medium">{sampleQuery.text}</span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
 
+        {/* Result Card */}
         {result && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Result</h2>
-            {formatResult(result)}
+          <Card className="bg-white/80 backdrop-blur-xl border-white/30 shadow-2xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-gray-200">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                Query Result
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {formatResult(result)}
+            </CardContent>
           </Card>
         )}
 
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Available Metrics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analyticsService.getAvailableMetrics().map((metric, index) => (
-              <div key={index} className="p-3 border rounded-lg">
-                <h3 className="font-medium">{metric.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {metric.description}
-                </p>
-                <div className="mt-2">
-                  <span className="text-xs text-gray-500">Aliases:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+        {/* Available Metrics Card */}
+        <Card className="bg-white/80 backdrop-blur-xl border-white/30 shadow-2xl rounded-3xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-gray-200">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <Sparkles className="w-6 h-6 text-purple-600" />
+              Available Metrics
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-2">
+              Click on any metric to learn more about what analytics are available
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {analyticsService.getAvailableMetrics().map((metric, index) => (
+                <div 
+                  key={index} 
+                  className="p-5 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-lg transition-all duration-200 group cursor-pointer"
+                  onClick={() => handleQuery(`Show me ${metric.name.toLowerCase()}`)}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <BarChart3 className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {metric.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    {metric.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
                     {metric.aliases.slice(0, 3).map((alias, aliasIndex) => (
                       <span
                         key={aliasIndex}
-                        className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded"
+                        className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-md border border-blue-200"
                       >
                         {alias}
                       </span>
                     ))}
                     {metric.aliases.length > 3 && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 px-2 py-1">
                         +{metric.aliases.length - 3} more
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

@@ -150,11 +150,26 @@ All colors MUST be HSL.
   }
 }
 
-/* Force light theme - disable all dark mode classes */
+/* Force light theme - disable all dark mode classes and system preferences */
 @media (prefers-color-scheme: dark) {
-  /* Override system dark mode preference */
+  /* Override system dark mode preference - always use light */
   :root {
-    color-scheme: light;
+    color-scheme: light !important;
+  }
+  
+  html {
+    color-scheme: light !important;
+  }
+  
+  body {
+    color-scheme: light !important;
+  }
+}
+
+/* Force light theme regardless of system preference */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light !important;
   }
 }
 

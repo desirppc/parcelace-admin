@@ -22,14 +22,21 @@ export const ENVIRONMENT = {
     
     if (envApiUrl) {
       let apiUrl = String(envApiUrl).trim();
-      // Ensure URL has protocol
+      
+      // Remove any malformed or correct protocol prefixes completely
+      // This handles: https://, http://, https:/, http:/, https//, http//, https/, http/
+      apiUrl = apiUrl.replace(/^https?[:/]*\/*/, '');
+      
+      // Ensure URL has proper protocol (always use https)
       if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
         apiUrl = 'https://' + apiUrl;
       }
+      
       // Ensure URL ends with a trailing slash
       if (!apiUrl.endsWith('/')) {
         apiUrl += '/';
       }
+      
       console.log('🔗 Using VITE_API_URL from environment:', apiUrl);
       return apiUrl;
     }

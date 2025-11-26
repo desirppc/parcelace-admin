@@ -73,6 +73,7 @@ const API_CONFIG = {
     SHIPMENT_FEEDBACK_VIEW: 'api/shipments/feedback-view',
     AWB_SEARCH: 'api/shipments/awb-search',
     UPDATE_REMARKS: 'api/shipment/update-remarks',
+    UPDATE_EWAY_BILL: 'api/shipments/update-eway-bill',
     
     // Bulk Booking
     BULK_BOOKING_REQUEST: 'api/shipments/bulk-booking-request',

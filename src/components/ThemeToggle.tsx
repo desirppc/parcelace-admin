@@ -26,13 +26,13 @@ export function ThemeToggle() {
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => setTheme("light")} disabled className="cursor-not-allowed opacity-50">
           <Moon className="mr-2 h-4 w-4" />
-          <span>Dark</span>
+          <span>Dark (Disabled)</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => setTheme("light")} disabled className="cursor-not-allowed opacity-50">
           <Monitor className="mr-2 h-4 w-4" />
-          <span>System</span>
+          <span>System (Disabled)</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

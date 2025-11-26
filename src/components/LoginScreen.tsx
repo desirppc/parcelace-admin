@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/UserContext';
 import { isUserAuthorized, getUserRoleNames, getAuthorizationErrorMessage } from '@/utils/roleUtils';
+import { getApiUrl, API_CONFIG } from '@/config/api';
 
 const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigateBack, onNavigateToOnboarding }: { 
   onNavigateToSignUp: () => void;
@@ -22,7 +23,8 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
   const handleLogin = async () => {
     if (!email || !password) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'}api/login`, {
+      const loginUrl = getApiUrl(API_CONFIG.ENDPOINTS.LOGIN);
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

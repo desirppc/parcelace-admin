@@ -526,18 +526,18 @@ const ShipmentPage = () => {
   const getStatusBadge = (status: string) => {
     const statusLower = (status || '').toLowerCase();
     const statusConfig = {
-      'booked': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
-      'pending': { variant: 'outline', icon: Clock, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' },
-      'in_transit': { variant: 'secondary', icon: Truck, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
-      'out_for_delivery': { variant: 'secondary', icon: Car, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' },
-      'delivered': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
-      'pickup_failed': { variant: 'destructive', icon: XCircle, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'ndr': { variant: 'destructive', icon: AlertTriangle, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' },
-      'rto_in_transit': { variant: 'destructive', icon: RotateCcw, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'rto_delivered': { variant: 'destructive', icon: Home, color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' },
-      'cancelled': { variant: 'destructive', icon: X, color: 'bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-200 font-bold' }
+      'booked': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800' },
+      'pending': { variant: 'outline', icon: Clock, color: 'bg-yellow-100 text-yellow-800' },
+      'in_transit': { variant: 'secondary', icon: Truck, color: 'bg-blue-100 text-blue-800' },
+      'out_for_delivery': { variant: 'secondary', icon: Car, color: 'bg-purple-100 text-purple-800' },
+      'delivered': { variant: 'default', icon: CheckCircle, color: 'bg-green-100 text-green-800' },
+      'pickup_failed': { variant: 'destructive', icon: XCircle, color: 'bg-red-100 text-red-800' },
+      'ndr': { variant: 'destructive', icon: AlertTriangle, color: 'bg-orange-100 text-orange-800' },
+      'rto_in_transit': { variant: 'destructive', icon: RotateCcw, color: 'bg-red-100 text-red-800' },
+      'rto_delivered': { variant: 'destructive', icon: Home, color: 'bg-red-100 text-red-800' },
+      'cancelled': { variant: 'destructive', icon: X, color: 'bg-red-200 text-red-900 font-bold' }
     };
-    const config = statusConfig[statusLower] || { variant: 'default', icon: Package, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' };
+    const config = statusConfig[statusLower] || { variant: 'default', icon: Package, color: 'bg-gray-100 text-gray-800' };
     const IconComponent = config.icon;
     return (
       <Badge className={`${config.color} border-0`}>
@@ -552,7 +552,7 @@ const ShipmentPage = () => {
     const modeLower = (mode || '').toLowerCase();
     const isPrepaid = modeLower === 'prepaid';
     return (
-      <Badge variant={isPrepaid ? 'default' : 'secondary'} className={isPrepaid ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'}>
+      <Badge variant={isPrepaid ? 'default' : 'secondary'} className={isPrepaid ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}>
         {capitalizeWords(mode)}
       </Badge>
     );
@@ -1746,10 +1746,10 @@ const ShipmentPage = () => {
       {/* Enhanced Shipments Table */}
       <Card>
         {selectedShipments.length > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                <span className="font-semibold text-blue-900">
                   {selectedShipments.length} selected
                 </span>
                 <div className="flex space-x-2">
@@ -1777,7 +1777,7 @@ const ShipmentPage = () => {
                       
                       handleDownloadShippingLabels(selectedAwbs);
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Bulk Label
@@ -1806,7 +1806,7 @@ const ShipmentPage = () => {
                       
                       handleDownloadInvoice(selectedAwbs);
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Download Invoice
@@ -1821,7 +1821,7 @@ const ShipmentPage = () => {
                         description: "Print Pick List functionality coming soon!",
                       });
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Print Pick List
@@ -1836,7 +1836,7 @@ const ShipmentPage = () => {
                         description: "Pickup functionality coming soon!",
                       });
                     }}
-                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                    className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
                     <Package className="w-4 h-4 mr-2" />
                     Pickup
@@ -1845,7 +1845,7 @@ const ShipmentPage = () => {
                     size="sm"
                     variant="outline"
                     onClick={handleBulkCancel}
-                    className="bg-white hover:bg-red-50 border-red-300 text-red-700 hover:text-red-800 dark:bg-red-900 dark:hover:bg-red-800 dark:border-blue-600 dark:text-red-300 dark:hover:text-red-200"
+                    className="bg-white hover:bg-red-50 border-red-300 text-red-700 hover:text-red-800"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Cancel
@@ -1947,7 +1947,7 @@ const ShipmentPage = () => {
                         {getFirstProductName(shipment)}
                       </div>
                       {shipment.user?.email && (
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        <div className="text-sm font-semibold text-blue-600">
                           <User className="w-3 h-3 inline mr-1" />
                           {shipment.user.email}
                         </div>
@@ -1988,13 +1988,13 @@ const ShipmentPage = () => {
                   <div className="space-y-1">
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-gray-700">
                         {capitalizeWords(shipment.warehouse?.warehouse_name || '')} - {shipment.warehouse?.pincode || 'N/A'}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-3 h-3 inline mr-1" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-gray-700">
                         <span className="font-semibold">{shipment.customer_name}</span> - {shipment.pincode}
                       </span>
                     </div>
@@ -2009,7 +2009,7 @@ const ShipmentPage = () => {
                             size="sm" 
                             variant="outline" 
                             onClick={() => navigate(`/dashboard/shipment/${shipment.awb}`)}
-                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 dark:hover:bg-blue-900 dark:hover:border-blue-600 dark:hover:text-blue-300 transition-colors duration-200"
+                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors duration-200"
                           >
                             <Eye className="w-3 h-3" />
                           </Button>
@@ -2024,7 +2024,7 @@ const ShipmentPage = () => {
                             size="sm" 
                             variant="outline" 
                             onClick={() => handleDownloadShippingLabels([shipment.awb])}
-                            className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 dark:hover:bg-green-900 dark:hover:border-green-600 dark:hover:text-green-300 transition-colors duration-200"
+                            className="hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors duration-200"
                           >
                             <Download className="w-3 h-3" />
                           </Button>
@@ -2047,7 +2047,7 @@ const ShipmentPage = () => {
                               setCourierPartnerIssue('');
                               setOtherRemark('');
                             }}
-                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors duration-200"
                           >
                             <MessageSquare className="w-3 h-3" />
                           </Button>
@@ -2061,7 +2061,7 @@ const ShipmentPage = () => {
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 dark:hover:bg-purple-900 dark:hover:border-purple-600 dark:hover:text-purple-300 transition-colors duration-200"
+                            className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors duration-200"
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
@@ -2075,7 +2075,7 @@ const ShipmentPage = () => {
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 dark:hover:bg-orange-900 dark:hover:border-orange-600 dark:hover:text-orange-300 transition-colors duration-200"
+                            className="hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-colors duration-200"
                           >
                             <RotateCcw className="w-3 h-3" />
                           </Button>
@@ -2098,7 +2098,7 @@ const ShipmentPage = () => {
                               setFeHubName(shipment.warehouse?.warehouse_name || '');
                               setAddFENumberModalOpen(true);
                             }}
-                            className="hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:hover:bg-indigo-900 dark:hover:border-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
+                            className="hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors duration-200"
                           >
                             <UserPlus className="w-3 h-3" />
                           </Button>
@@ -2113,7 +2113,7 @@ const ShipmentPage = () => {
                             size="sm" 
                             variant="outline" 
                             onClick={() => handleCancelShipment(shipment)}
-                            className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-900 dark:hover:border-red-600 dark:hover:text-red-300 transition-colors duration-200"
+                            className="text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors duration-200"
                           >
                             <X className="w-3 h-3" />
                           </Button>
@@ -2217,10 +2217,10 @@ const ShipmentPage = () => {
         
         return (
           <div className="fixed z-50 pointer-events-none">
-            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 dark:border-purple-800/30 p-4 animate-fade-in">
+            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 p-4 animate-fade-in">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium text-purple-600 dark:text-purple-400">
+                  <div className="font-medium text-purple-600">
                     <div>ID: {shipment.id}</div>
                     <div className="text-xs text-gray-500">AWB: {shipment.awb}</div>
                   </div>

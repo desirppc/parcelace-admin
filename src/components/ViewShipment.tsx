@@ -414,15 +414,15 @@ const ViewShipment = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'delivered':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        return 'bg-green-100 text-green-800';
       case 'in transit':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+        return 'bg-blue-100 text-blue-800';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+        return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -437,7 +437,7 @@ const ViewShipment = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <Button variant="outline" onClick={handleGoBack}>
@@ -445,8 +445,8 @@ const ViewShipment = () => {
               Back to Shipments
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Loading Shipment...</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Please wait while we fetch the shipment data</p>
+              <h1 className="text-2xl font-bold text-gray-900">Loading Shipment...</h1>
+              <p className="text-gray-600 mt-1">Please wait while we fetch the shipment data</p>
             </div>
           </div>
           <div className="flex items-center justify-center py-20">
@@ -460,7 +460,7 @@ const ViewShipment = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <Button variant="outline" onClick={handleGoBack}>
@@ -468,8 +468,8 @@ const ViewShipment = () => {
               Back to Shipments
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Error Loading Shipment</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Shipment #{awb}</p>
+              <h1 className="text-2xl font-bold text-gray-900">Error Loading Shipment</h1>
+              <p className="text-gray-600 mt-1">Shipment #{awb}</p>
             </div>
           </div>
           <Card className="shadow-sm border-0 bg-white">
@@ -501,18 +501,18 @@ const ViewShipment = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Shipment #{shipment.trackingId}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Shipment #{shipment.trackingId}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Badge className={getStatusColor(shipment.status)}>
                   {shipment.status}
                 </Badge>
                 {shipment.isDelayed && (
-                  <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                  <Badge className="bg-red-100 text-red-800">
                     <Clock className="h-3 w-3 mr-1" />
                     Delayed
                   </Badge>
                 )}
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-sm text-gray-600">
                   Created {new Date(shipment.createdAt).toLocaleDateString()}
                 </span>
               </div>
@@ -622,51 +622,51 @@ const ViewShipment = () => {
               <CardContent className="pt-0">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Order ID</p>
+                    <p className="text-gray-500 text-xs">Order ID</p>
                     <p className="font-medium text-sm">{shipmentData?.data?.order_details?.order_id || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Shipment Mode</p>
+                    <p className="text-gray-500 text-xs">Shipment Mode</p>
                     <p className="font-medium text-sm">{shipmentData?.data?.order_details?.shipment_mod || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Parcel Type</p>
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 font-semibold">
+                    <p className="text-gray-500 text-xs">Parcel Type</p>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 font-semibold">
                       {shipment.parcelType}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Products</p>
+                    <p className="text-gray-500 text-xs">Products</p>
                     <p className="font-medium text-sm">{shipment.products.length} items</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Estimated Pickup</p>
+                    <p className="text-gray-500 text-xs">Estimated Pickup</p>
                     <p className="font-medium text-sm">{shipmentData?.data?.order_details?.estimated_pickup_date || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Estimated Delivery</p>
+                    <p className="text-gray-500 text-xs">Estimated Delivery</p>
                     <p className="font-medium text-sm">{shipmentData?.data?.order_details?.estimated_delivery_date || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Shipment Date</p>
+                    <p className="text-gray-500 text-xs">Shipment Date</p>
                     <p className="font-medium text-sm">{shipmentData?.data?.order_details?.shipment_date_time || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Total Amount</p>
+                    <p className="text-gray-500 text-xs">Total Amount</p>
                     <p className="font-medium text-sm">₹{shipment.charges.collectableAmount}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Courier Partner</p>
+                    <p className="text-gray-500 text-xs">Courier Partner</p>
                     <p className="font-medium text-sm">{shipment.courierPartner.name || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">AWB Number</p>
+                    <p className="text-gray-500 text-xs">AWB Number</p>
                     <p className="font-medium text-sm font-mono">{shipment.trackingId || 'N/A'}</p>
                   </div>
                 </div>
@@ -709,7 +709,7 @@ const ViewShipment = () => {
                       <div className="text-xs leading-relaxed">
                         <p>{shipment.customer.address}</p>
                         {shipment.customer.city && shipment.customer.pin && (
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-gray-600">
                             {shipment.customer.city} - {shipment.customer.pin}
                           </p>
                         )}
@@ -717,7 +717,7 @@ const ViewShipment = () => {
                     </div>
                   )}
                   {!shipment.customer.name && !shipment.customer.phone && !shipment.customer.email && !shipment.customer.address && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-4 text-gray-500">
                       <p className="text-sm">No customer information available</p>
                     </div>
                   )}
@@ -744,7 +744,7 @@ const ViewShipment = () => {
                       <div className="text-xs leading-relaxed">
                         <p>{shipment.pickupWarehouse.address}</p>
                         {shipment.pickupWarehouse.city && shipment.pickupWarehouse.pin && (
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-gray-600">
                             {shipment.pickupWarehouse.city} - {shipment.pickupWarehouse.pin}
                           </p>
                         )}
@@ -758,7 +758,7 @@ const ViewShipment = () => {
                     </div>
                   )}
                   {!shipment.pickupWarehouse.name && !shipment.pickupWarehouse.address && !shipment.pickupWarehouse.contact && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-4 text-gray-500">
                       <p className="text-sm">No warehouse information available</p>
                     </div>
                   )}
@@ -782,7 +782,7 @@ const ViewShipment = () => {
                         <div className="flex flex-col items-center">
                           <div className={`w-2.5 h-2.5 rounded-full ${getTrackingDotColor(event)}`} />
                           {index < shipment.tracking.length - 1 && (
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mt-1" />
+                            <div className="w-px h-6 bg-gray-200 mt-1" />
                           )}
                         </div>
                         <div className="flex-1 pb-2">
@@ -791,7 +791,7 @@ const ViewShipment = () => {
                             {event.isActive && <CheckCircle className="h-3 w-3 text-blue-500" />}
                             {event.isCompleted && <CheckCircle className="h-3 w-3 text-green-500" />}
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{event.description}</p>
+                          <p className="text-xs text-gray-600 mb-1">{event.description}</p>
                           <div className="flex items-center gap-3 text-xs text-gray-500">
                             {event.timestamp && (
                               <span className="flex items-center gap-1">
@@ -827,16 +827,16 @@ const ViewShipment = () => {
                             <img 
                               src={product.image} 
                               alt={product.name}
-                              className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-gray-800"
+                              className="w-12 h-12 rounded-lg object-cover bg-gray-100"
                             />
                             <div className="flex-1">
                               <h4 className="font-medium text-sm">{product.name}</h4>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1 text-xs text-gray-600">
                                 <span>Qty: {product.quantity}</span>
                                 <span>{formatCurrency(product.price)}</span>
                                 <span>Tax: {product.taxRate}%</span>
                               </div>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1 text-xs text-gray-500">
                                 {product.sku && <span>SKU: {product.sku}</span>}
                                 {product.hsnCode && <span>HSN: {product.hsnCode}</span>}
                                 {product.totalTax > 0 && <span>Tax: {formatCurrency(product.totalTax)}</span>}
@@ -855,7 +855,7 @@ const ViewShipment = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-gray-500">
                     <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                     <p className="text-sm">No products available</p>
                   </div>
@@ -876,14 +876,14 @@ const ViewShipment = () => {
               </CardHeader>
               <CardContent className="pt-0 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                  <span className="flex items-center gap-1 text-gray-600">
                     <Weight className="h-3 w-3" />
                     Weight
                   </span>
                   <span className="font-medium">{shipment.dimensions.weight} gm</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                  <span className="flex items-center gap-1 text-gray-600">
                     <Ruler className="h-3 w-3" />
                     Size
                   </span>
@@ -891,20 +891,20 @@ const ViewShipment = () => {
                     {shipment.dimensions.length}×{shipment.dimensions.width}×{shipment.dimensions.height} cm
                   </span>
                 </div>
-                <div className="flex justify-between text-sm p-2 bg-orange-50 dark:bg-orange-900/20 rounded-md border border-orange-200 dark:border-orange-800">
-                  <span className="flex items-center gap-1 text-orange-700 dark:text-orange-300 font-medium">
+                <div className="flex justify-between text-sm p-2 bg-orange-50 rounded-md border border-orange-200">
+                  <span className="flex items-center gap-1 text-orange-700 font-medium">
                     <AlertCircle className="h-3 w-3" />
                     Vol. Weight
                   </span>
-                  <span className="font-bold text-orange-700 dark:text-orange-300">{shipment.dimensions.volumetricWeight.toFixed(2)} kg</span>
+                  <span className="font-bold text-orange-700">{shipment.dimensions.volumetricWeight.toFixed(2)} kg</span>
                 </div>
-                <div className="text-xs text-gray-500 text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                <div className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-md">
                   <span className="font-medium">
                     Formula: L×B×H÷4000 = {shipment.dimensions.length}×{shipment.dimensions.width}×{shipment.dimensions.height}÷4000 = {shipment.dimensions.volumetricWeight.toFixed(2)} kg
                   </span>
                 </div>
                 {shipment.dimensions.weight > 0 && (
-                  <div className="text-xs text-blue-500 text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                  <div className="text-xs text-blue-500 text-center p-2 bg-blue-50 rounded-md border border-blue-200">
                     <span className="font-medium">
                       Weight Comparison: Actual: {shipment.dimensions.weight} gm | Volumetric: {(shipment.dimensions.volumetricWeight * 1000).toFixed(0)} gm
                     </span>
@@ -923,15 +923,15 @@ const ViewShipment = () => {
               </CardHeader>
               <CardContent className="pt-0 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Freight</span>
+                  <span className="text-gray-600">Freight</span>
                   <span className="font-medium">₹{shipment.charges.freight}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">COD Charges</span>
+                  <span className="text-gray-600">COD Charges</span>
                   <span className="font-medium">₹{shipment.charges.cod}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-sm font-medium bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
+                <div className="flex justify-between text-sm font-medium bg-blue-50 p-2 rounded-md">
                   <span>Total Charges</span>
                   <span>₹{shipment.charges.totalCharges}</span>
                 </div>
@@ -948,15 +948,15 @@ const ViewShipment = () => {
               </CardHeader>
               <CardContent className="pt-0 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Product Total</span>
+                  <span className="text-gray-600">Product Total</span>
                   <span>₹{shipment.charges.productTotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                  <span className="text-gray-600">Shipping</span>
                   <span>₹{shipment.charges.shipping}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                  <span className="text-gray-600">Tax</span>
                   <span>₹{shipment.charges.tax}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -967,7 +967,7 @@ const ViewShipment = () => {
                   </div>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-bold text-base p-2 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-md">
+                <div className="flex justify-between font-bold text-base p-2 bg-gradient-to-r from-green-50 to-blue-50 rounded-md">
                   <span>Total Amount</span>
                   <span className="text-green-600">₹{shipment.charges.collectableAmount}</span>
                 </div>
@@ -986,7 +986,7 @@ const ViewShipment = () => {
                 <ScrollArea className="h-48">
                   <div className="space-y-3">
                     {shipment.notifications.map((notification, index) => (
-                      <div key={index} className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                      <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                         <div className="flex-shrink-0">
                           <MessageCircle className="h-4 w-4 text-green-600" />
                         </div>

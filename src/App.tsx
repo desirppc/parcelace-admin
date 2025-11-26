@@ -65,13 +65,32 @@ const App = () => {
     };
   }, []);
 
-  // Force light theme - remove dark class from HTML if present
+  // Force light theme - remove dark class from HTML and prevent system theme detection
   useEffect(() => {
-    // Remove dark class from html element
     if (typeof document !== 'undefined') {
+      // Force light theme immediately
       document.documentElement.classList.remove('dark');
       document.documentElement.setAttribute('data-theme', 'light');
-      // Prevent dark class from being added
+      document.documentElement.style.colorScheme = 'light';
+      
+      // Prevent system theme detection by blocking media query changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleThemeChange = () => {
+        // Always force light theme regardless of system preference
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.style.colorScheme = 'light';
+      };
+      
+      // Listen for system theme changes and override them
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleThemeChange);
+      } else {
+        // Fallback for older browsers
+        mediaQuery.addListener(handleThemeChange);
+      }
+      
+      // Prevent dark class from being added via MutationObserver
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -79,13 +98,28 @@ const App = () => {
               document.documentElement.classList.remove('dark');
             }
           }
+          // Also watch for style changes
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            if (document.documentElement.style.colorScheme === 'dark') {
+              document.documentElement.style.colorScheme = 'light';
+            }
+          }
         });
       });
+      
       observer.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['class']
+        attributeFilter: ['class', 'style']
       });
-      return () => observer.disconnect();
+      
+      return () => {
+        observer.disconnect();
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener('change', handleThemeChange);
+        } else {
+          mediaQuery.removeListener(handleThemeChange);
+        }
+      };
     }
   }, []);
 
