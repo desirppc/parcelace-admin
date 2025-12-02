@@ -185,3 +185,90 @@ html[class*="dark"] {
   /* All dark: classes are disabled via tailwind.config.ts darkMode: false */
   /* This ensures no dark styles are applied even if dark class exists */
 }
+
+/* Email content styling - preserve email HTML formatting */
+.email-content {
+  /* Base container styles */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  /* Prevent prose from overriding email styles */
+  font-size: 14px;
+}
+
+/* Preserve all inline styles from email HTML */
+.email-content [style] {
+  /* Inline styles take precedence */
+}
+
+/* Images in emails */
+.email-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Tables in emails */
+.email-content table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1rem 0 !important;
+  border-spacing: 0 !important;
+}
+
+.email-content table td,
+.email-content table th {
+  padding: 0.5rem !important;
+  border: 1px solid #ddd !important;
+  vertical-align: top !important;
+}
+
+/* Links */
+.email-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Paragraphs */
+.email-content p {
+  margin: 0.5rem 0;
+}
+
+/* Email signatures - preserve layout */
+.email-content table[role="presentation"],
+.email-content .email-signature {
+  margin: 1rem 0 !important;
+  width: 100% !important;
+}
+
+/* Preserve email HTML structure */
+.email-content div,
+.email-content span {
+  /* Allow email's own styles to work */
+  box-sizing: border-box;
+}
+
+/* Code and pre blocks */
+.email-content pre,
+.email-content code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+}
+
+/* Reset any prose overrides that might interfere */
+.email-content h1,
+.email-content h2,
+.email-content h3,
+.email-content h4,
+.email-content h5,
+.email-content h6 {
+  font-weight: inherit;
+  margin: inherit;
+}
+
+/* Ensure email HTML can use its own colors and fonts */
+.email-content * {
+  max-width: 100%;
+  box-sizing: border-box;
+}

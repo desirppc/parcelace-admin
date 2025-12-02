@@ -135,6 +135,9 @@ const API_CONFIG = {
     SUPPORT_TICKET_ASSIGN: 'api/support-user/ticket-assign',
     SUPPORT_TICKET_UPDATE_STATUS: 'api/support-ticket/update-status',
     
+    // Email Responses
+    // (No email APIs available)
+    
     // Shipping Label Settings
     SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',
     SHIPPING_LABEL_SETTINGS_UPDATE: 'api/shipping-label-settings/update',

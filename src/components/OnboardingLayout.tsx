@@ -117,6 +117,12 @@ const OnboardingLayout = () => {
       route: '/dashboard/support/support-dashboard'
     },
     {
+      id: 'email-responses',
+      title: 'Email Responses',
+      icon: Mail,
+      route: '/dashboard/email-responses'
+    },
+    {
       id: 'ai',
       title: 'AI Assistant',
       icon: MessageCircle,
@@ -151,6 +157,7 @@ const OnboardingLayout = () => {
     'reverse-shipments': '/dashboard/reverse-shipments',
     'action-needed': '/dashboard/action-needed',
     'support': '/dashboard/support/support-dashboard',
+    'email-responses': '/dashboard/email-responses',
     'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
     'users': '/dashboard/support-user',
@@ -412,9 +419,7 @@ const OnboardingLayout = () => {
         {/* Header */}
         <AppHeader />
         {/* Main Content Area */}
-        <div className="p-6">
           <Outlet />
-        </div>
       </div>
 
       {/* Click outside to close dropdowns */}

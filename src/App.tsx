@@ -35,6 +35,7 @@ const FENumberPage = lazy(() => import("./components/FENumberPage"));
 const UsersPage = lazy(() => import("./components/UsersPage"));
 const VendorsPage = lazy(() => import("./components/VendorsPage"));
 const SupportTicketsPage = lazy(() => import("./components/SupportTicketsPage"));
+const EmailResponsePage = lazy(() => import("./components/EmailResponsePage"));
 const ParcelAceAI = lazy(() => import('./components/ParcelAceAI'));
 const AnalyticsTest = lazy(() => import('./pages/AnalyticsTest'));
 const PublicTracking = lazy(() => import('./pages/PublicTracking'));
@@ -161,6 +162,7 @@ const App = () => {
                 <Route path="/dashboard/vendors" element={<Suspense fallback={<LoadingSpinner />}><VendorsPage /></Suspense>} />
                 <Route path="/dashboard/support" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/support/support-dashboard" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
+                <Route path="/dashboard/email-responses" element={<Suspense fallback={<LoadingSpinner />}><EmailResponsePage /></Suspense>} />
                 <Route path="/dashboard/ai" element={<Suspense fallback={<LoadingSpinner />}><ParcelAceAI /></Suspense>} />
                 <Route path="/dashboard/analytics" element={<Suspense fallback={<LoadingSpinner />}><AnalyticsTest /></Suspense>} />
                 
