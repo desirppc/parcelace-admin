@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { MultiSelectFilter } from './MultiSelectFilter';
 import { useToast } from '@/hooks/use-toast';
 import { emailResponseService } from '@/services/emailResponseService';
 import {
@@ -68,6 +68,7 @@ const EmailResponsePage = () => {
     page: 1,
     per_page: 50
   });
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -107,6 +108,16 @@ const EmailResponsePage = () => {
     loadCannedResponses();
   }, [filters]);
 
+  // Reload threads when multi-select status values change
+  useEffect(() => {
+    // Trigger a reload by updating filters (but we'll filter client-side in loadThreads)
+    setFilters(prev => ({
+      ...prev,
+      page: 1
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatuses]);
+
   // Load thread details when a thread is selected
   useEffect(() => {
     if (selectedThread) {
@@ -132,9 +143,25 @@ const EmailResponsePage = () => {
   const loadThreads = async () => {
     setLoading(true);
     try {
-      const response = await emailResponseService.getEmailThreads(filters);
+      // Build filters - if multi-select has values, filter client-side
+      const baseFilters = { ...filters };
+      if (selectedStatuses.length > 0) {
+        // Remove status from API call, we'll filter client-side
+        delete baseFilters.status;
+      }
+      
+      const response = await emailResponseService.getEmailThreads(baseFilters);
       if (response.status) {
-        setThreads(response.data.threads);
+        let filteredThreads = response.data.threads;
+        
+        // Apply client-side filtering for multi-select status
+        if (selectedStatuses.length > 0) {
+          filteredThreads = filteredThreads.filter(thread => 
+            thread.status && selectedStatuses.includes(thread.status)
+          );
+        }
+        
+        setThreads(filteredThreads);
         setPagination(response.data.pagination);
       } else {
         toast({
@@ -527,6 +554,96 @@ const EmailResponsePage = () => {
     }
   };
 
+  const getAttachmentPriority = (filename: string): number => {
+    const lowerFilename = filename.toLowerCase();
+    const extension = lowerFilename.split('.').pop() || '';
+    
+    // Priority order: PDF (1), CSV (2), Excel (3), PNG (last), Others (4)
+    if (extension === 'pdf') return 1;
+    if (extension === 'csv') return 2;
+    if (extension === 'xls' || extension === 'xlsx') return 3;
+    if (extension === 'png') return 5; // PNG last
+    return 4; // Other files
+  };
+
+  const sortAttachmentsByPriority = (attachments: any[]) => {
+    return [...attachments].sort((a, b) => {
+      const priorityA = getAttachmentPriority(a.filename || '');
+      const priorityB = getAttachmentPriority(b.filename || '');
+      return priorityA - priorityB;
+    });
+  };
+
+  const cleanEmailPreview = (html: string, maxLength: number = 100): string => {
+    if (!html) return '';
+    
+    let text = html;
+    
+    // Remove style tags and their content (including all CSS inside)
+    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
+    // Remove script tags and their content
+    text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    
+    // Remove all HTML tags first
+    text = text.replace(/<[^>]*>/g, '');
+    
+    // Remove CSS at-rules that might be in the text (e.g., @font-face, @media, @keyframes)
+    // Handle @font-face with multiline content - match everything until closing brace
+    text = text.replace(/@font-face\s*\{[^}]*\}/gis, '');
+    // Handle @font-face that might span multiple lines with nested content
+    text = text.replace(/@font-face[^{]*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gis, '');
+    // Handle other @rules with single braces
+    text = text.replace(/@[a-z-]+\s*\{[^}]*\}/gi, '');
+    // Handle nested CSS rules
+    text = text.replace(/@[a-z-]+\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, '');
+    // Handle @rules that might not have braces
+    text = text.replace(/@[a-z-]+\s+[^;{]+;?/gi, '');
+    // Remove any remaining @font-face patterns that might be split across lines
+    text = text.replace(/@font-face[^}]*/gi, '');
+    
+    // Remove CSS-like patterns (e.g., "P {margin-top:0;margin-bottom:0;}")
+    text = text.replace(/[A-Za-z#.][A-Za-z0-9#._-]*\s*\{[^}]*\}/g, '');
+    
+    // Remove any remaining CSS property patterns (property: value;)
+    text = text.replace(/[a-z-]+\s*:\s*[^;]+;/gi, '');
+    
+    // Decode HTML entities
+    text = text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'");
+    
+    // Remove extra whitespace, newlines, and normalize
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    // Remove any remaining CSS artifacts (like "font-family:", "src:", etc. at start)
+    text = text.replace(/^(font-family|src|local|url|font-style|font-weight|font-size|color|background|margin|padding|border|display|position|width|height|line-height|text-align|vertical-align|white-space|overflow|text-decoration|text-transform|letter-spacing|word-spacing|opacity|z-index|float|clear|visibility|cursor|outline|box-shadow|text-shadow|transform|transition|animation|@import|@charset|@namespace|@page|@supports|@document|@viewport):\s*/gim, '');
+    
+    // Remove any text that starts with CSS keywords or @font-face
+    text = text.replace(/^(Amazon|@font-face|@media|@keyframes|@import)\s+/gi, '');
+    
+    // Remove any remaining @ symbols followed by text (CSS at-rules) - be more aggressive
+    text = text.replace(/@[a-z-]+[^@]*/gi, '');
+    
+    // Remove any text starting with "Amazon" followed by @font-face
+    text = text.replace(/^Amazon\s+@font-face[^@]*/gi, '');
+    
+    // Clean up any remaining artifacts
+    text = text.replace(/^\s*[{};]\s*/g, ''); // Remove leading braces/semicolons
+    
+    // Truncate if needed
+    if (text.length > maxLength) {
+      text = text.substring(0, maxLength).trim() + '...';
+    }
+    
+    return text;
+  };
+
   const formatStatusLabel = (status: string) => {
     switch (status) {
       case 'open':
@@ -611,19 +728,31 @@ const EmailResponsePage = () => {
         {/* Left Sidebar - Email List */}
         <div className="w-1/3 border-r border-gray-200 bg-white flex flex-col">
           {/* Filters */}
-          <div className="p-4 border-b border-gray-200 space-y-3">
-            {/* Status Filter Tabs */}
-            <Tabs
-              value={filters.status || 'all'}
-              onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
-            >
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                <TabsTrigger value="open" className="text-xs">Open</TabsTrigger>
-                <TabsTrigger value="answered" className="text-xs">Answered</TabsTrigger>
-                <TabsTrigger value="closed" className="text-xs">Close</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Filter className="w-4 h-4" />
+                <span>Filter:</span>
+              </div>
+              
+              <MultiSelectFilter
+                options={[
+                  { value: 'open', label: 'Open' },
+                  { value: 'answered', label: 'Answered' },
+                  { value: 'closed', label: 'Close' }
+                ]}
+                selectedValues={selectedStatuses}
+                onValueChange={setSelectedStatuses}
+                placeholder="All Status"
+                className="w-32"
+              />
+
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {threads.length} email{threads.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
 
             {/* Status Counts */}
             <div className="flex items-center justify-between text-xs text-gray-600">
@@ -687,7 +816,7 @@ const EmailResponsePage = () => {
                         {thread.subject}
                       </p>
                       <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                        {thread.body.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                        {cleanEmailPreview(thread.body_html || thread.body, 100)}
                       </p>
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span className="text-gray-400">Created: {formatDate(thread.created_at)}</span>
@@ -748,271 +877,311 @@ const EmailResponsePage = () => {
               ) : (
                 <>
                   {/* Email Header */}
-                  <div className="border-b border-gray-200 p-4">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                      {selectedThread.subject}
-                    </h2>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-700 w-12">From:</span>
-                        <span>{selectedThread.from_name || selectedThread.from_email}</span>
-                        <span className="text-gray-400">&lt;{selectedThread.from_email}&gt;</span>
+                  <div className="border-b border-gray-200 bg-white">
+                    <div className="p-6">
+                      {/* Subject and Actions Row */}
+                      <div className="flex items-start justify-between mb-4">
+                        <h2 className="text-xl font-semibold text-gray-900 flex-1 pr-4">
+                          {selectedThread.subject}
+                        </h2>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={selectedThread.status}
+                            onValueChange={(value: 'open' | 'closed' | 'answered') => {
+                              handleStatusUpdate(value);
+                            }}
+                          >
+                            <SelectTrigger className="w-28 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="open">Open</SelectItem>
+                              <SelectItem value="answered">Answered</SelectItem>
+                              <SelectItem value="closed">Close</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {selectedThread.priority && (
+                            <Badge className={getPriorityBadgeColor(selectedThread.priority)} variant="outline">
+                              {selectedThread.priority}
+                            </Badge>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setStatusForm({
+                                  status: selectedThread.status,
+                                  priority: selectedThread.priority || 'medium',
+                                  note: ''
+                                });
+                                setStatusDialogOpen(true);
+                              }}>
+                                <Edit3 className="w-4 h-4 mr-2" />
+                                Change Status & Priority
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setNoteDialogOpen(true)}>
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Add Internal Note
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                      {selectedThread.to_email && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-700 w-12">To:</span>
-                          <span>{selectedThread.to_email}</span>
+
+                      {/* Email Metadata */}
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 w-16">From:</span>
+                          <span className="text-gray-900">{selectedThread.from_name || selectedThread.from_email}</span>
+                          <span className="text-gray-500 ml-1">&lt;{selectedThread.from_email}&gt;</span>
                         </div>
-                      )}
-                      {selectedThread.cc && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-700 w-12">CC:</span>
-                          <span>{selectedThread.cc}</span>
+                        {selectedThread.to_email && (
+                          <div className="flex items-center">
+                            <span className="font-medium text-gray-700 w-16">To:</span>
+                            <span className="text-gray-900">{selectedThread.to_email}</span>
+                          </div>
+                        )}
+                        {selectedThread.cc && (
+                          <div className="flex items-center">
+                            <span className="font-medium text-gray-700 w-16">CC:</span>
+                            <span className="text-gray-900">{selectedThread.cc}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center text-gray-500">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          <span>{formatDate(selectedThread.created_at)}</span>
                         </div>
-                      )}
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(selectedThread.created_at)}</span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
+                        <Button
+                          onClick={() => {
+                            setIsNewEmail(false);
+                            setReplyDialogOpen(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Reply
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setNoteDialogOpen(true)}
+                          size="sm"
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Add Note
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setCannedResponseDialogOpen(true)}
+                          size="sm"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Canned Response
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Select
-                      value={selectedThread.status}
-                      onValueChange={(value: 'open' | 'closed' | 'answered') => {
-                        handleStatusUpdate(value);
-                      }}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="answered">Answered</SelectItem>
-                        <SelectItem value="closed">Close</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {selectedThread.priority && (
-                      <Badge className={getPriorityBadgeColor(selectedThread.priority)} variant="outline">
-                        {selectedThread.priority}
-                      </Badge>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {
-                          setStatusForm({
-                            status: selectedThread.status,
-                            priority: selectedThread.priority || 'medium',
-                            note: ''
-                          });
-                          setStatusDialogOpen(true);
-                        }}>
-                          <Edit3 className="w-4 h-4 mr-2" />
-                          Change Status & Priority
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteDialogOpen(true)}>
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Add Internal Note
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    onClick={() => {
-                      setIsNewEmail(false);
-                      setReplyDialogOpen(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Reply
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setNoteDialogOpen(true)}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Add Note
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCannedResponseDialogOpen(true)}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Canned Response
-                  </Button>
-                </div>
-              </div>
 
               {/* Email Content */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
+              <ScrollArea className="flex-1 bg-gray-50">
+                <div className="p-6 space-y-4">
                   {/* Show all messages including the first one */}
                   {threadResponses.length > 0 ? (
                     threadResponses.map((response, index) => (
-                      <Card key={response.id} className={response.is_internal ? 'bg-yellow-50' : index === 0 ? 'border-2 border-blue-200' : ''}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
+                      <div
+                        key={response.id}
+                        className={`bg-white rounded-lg border ${
+                          response.is_internal
+                            ? 'border-yellow-200 bg-yellow-50'
+                            : index === 0
+                            ? 'border-blue-200 border-2'
+                            : 'border-gray-200'
+                        } overflow-hidden`}
+                      >
+                        {/* Email Header */}
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                          <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="space-y-1">
-                                {response.is_internal ? (
-                                  <CardTitle className="text-sm">Internal Note</CardTitle>
-                                ) : (
-                                  <>
+                              {response.is_internal ? (
+                                <div className="flex items-center space-x-2">
+                                  <MessageSquare className="w-4 h-4 text-yellow-600" />
+                                  <span className="text-sm font-semibold text-gray-900">Internal Note</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="text-sm">
+                                    <span className="font-medium text-gray-700">From: </span>
+                                    <span className="text-gray-900">{response.from_name || response.from_email}</span>
+                                    {response.from_email && (
+                                      <span className="text-gray-500"> &lt;{response.from_email}&gt;</span>
+                                    )}
+                                  </div>
+                                  {response.to_email && (
                                     <div className="text-sm">
-                                      <span className="font-medium text-gray-700">From: </span>
-                                      <span>{response.from_name || response.from_email}</span>
-                                      {response.from_email && (
-                                        <span className="text-gray-400"> &lt;{response.from_email}&gt;</span>
-                                      )}
+                                      <span className="font-medium text-gray-700">To: </span>
+                                      <span className="text-gray-900">{response.to_email}</span>
                                     </div>
-                                    {response.to_email && (
-                                      <div className="text-sm">
-                                        <span className="font-medium text-gray-700">To: </span>
-                                        <span>{response.to_email}</span>
-                                      </div>
-                                    )}
-                                    {response.cc && (
-                                      <div className="text-sm">
-                                        <span className="font-medium text-gray-700">CC: </span>
-                                        <span>{response.cc}</span>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {formatDate(response.created_at)}
-                                </p>
+                                  )}
+                                  {response.cc && (
+                                    <div className="text-sm">
+                                      <span className="font-medium text-gray-700">CC: </span>
+                                      <span className="text-gray-900">{response.cc}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{formatDate(response.created_at)}</span>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 ml-4">
                               {index === 0 && (
-                                <Badge variant="outline">Original</Badge>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  Original
+                                </Badge>
                               )}
                               {response.is_internal && (
-                                <Badge variant="outline" className="bg-yellow-100">Internal</Badge>
+                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                  Internal
+                                </Badge>
                               )}
                             </div>
                           </div>
-                        </CardHeader>
-                      <CardContent>
-                        <div
-                          className="email-content"
-                          style={{
-                            wordWrap: 'break-word',
-                            overflowWrap: 'break-word',
-                            padding: '1rem',
-                            backgroundColor: '#fff',
-                            borderRadius: '0.5rem'
-                          }}
-                          dangerouslySetInnerHTML={{ __html: response.body_html || response.body }}
-                        />
-                        {response.attachments && response.attachments.length > 0 && (
-                          <div className="mt-4 pt-4 border-t">
-                            <p className="text-sm font-medium mb-2">Attachments:</p>
-                            <div className="space-y-2">
-                              {response.attachments.map((attachment) => (
-                                <div key={attachment.id} className="flex items-center space-x-2 text-sm">
-                                  <Paperclip className="w-4 h-4 text-gray-400" />
-                                  <a
-                                    href={attachment.file_path}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    {attachment.filename}
-                                  </a>
+                        </div>
+
+                        {/* Email Body */}
+                        <div className="px-6 py-4">
+                          <div
+                            className="email-content prose prose-sm max-w-none"
+                            style={{
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              color: '#374151'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: response.body_html || response.body }}
+                          />
+                          
+                          {/* Attachments */}
+                          {response.attachments && response.attachments.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-gray-200">
+                              <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                                <div className="flex items-center space-x-1">
+                                  <Paperclip className="w-4 h-4 text-gray-500" />
+                                  <span className="text-sm font-medium text-gray-700">Attachments:</span>
                                 </div>
-                              ))}
+                                {sortAttachmentsByPriority(response.attachments).map((attachment, idx, sortedAttachments) => (
+                                  <React.Fragment key={attachment.id}>
+                                    <a
+                                      href={attachment.file_path}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      {attachment.filename}
+                                    </a>
+                                    {idx < sortedAttachments.length - 1 && (
+                                      <span className="text-gray-400">,</span>
+                                    )}
+                                  </React.Fragment>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        </CardContent>
-                      </Card>
+                          )}
+                        </div>
+                      </div>
                     ))
                   ) : (
                     // Fallback to selectedThread if no responses loaded yet
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
+                    <div className="bg-white rounded-lg border-2 border-blue-200 overflow-hidden">
+                      {/* Email Header */}
+                      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                               <div className="text-sm">
                                 <span className="font-medium text-gray-700">From: </span>
-                                <span>{selectedThread.from_name || selectedThread.from_email}</span>
-                                <span className="text-gray-400"> &lt;{selectedThread.from_email}&gt;</span>
+                                <span className="text-gray-900">{selectedThread.from_name || selectedThread.from_email}</span>
+                                <span className="text-gray-500"> &lt;{selectedThread.from_email}&gt;</span>
                               </div>
                               {selectedThread.to_email && (
                                 <div className="text-sm">
                                   <span className="font-medium text-gray-700">To: </span>
-                                  <span>{selectedThread.to_email}</span>
+                                  <span className="text-gray-900">{selectedThread.to_email}</span>
                                 </div>
                               )}
                               {selectedThread.cc && (
                                 <div className="text-sm">
                                   <span className="font-medium text-gray-700">CC: </span>
-                                  <span>{selectedThread.cc}</span>
+                                  <span className="text-gray-900">{selectedThread.cc}</span>
                                 </div>
                               )}
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(selectedThread.created_at)}
-                              </p>
+                            </div>
+                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{formatDate(selectedThread.created_at)}</span>
+                              </div>
                             </div>
                           </div>
-                          <Badge variant="outline">Original</Badge>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            Original
+                          </Badge>
                         </div>
-                      </CardHeader>
-                      <CardContent>
+                      </div>
+
+                      {/* Email Body */}
+                      <div className="px-6 py-4">
                         <div
-                          className="email-content"
+                          className="email-content prose prose-sm max-w-none"
                           style={{
                             wordWrap: 'break-word',
                             overflowWrap: 'break-word',
-                            padding: '1rem',
-                            backgroundColor: '#fff',
-                            borderRadius: '0.5rem'
+                            color: '#374151'
                           }}
                           dangerouslySetInnerHTML={{ __html: selectedThread.body_html || selectedThread.body }}
                         />
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   )}
 
                   {/* Internal Notes */}
                   {internalNotes.length > 0 && (
-                    <div className="mt-4">
-                      <Separator className="my-4" />
-                      <h3 className="text-sm font-semibold mb-3 flex items-center">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Internal Notes
-                      </h3>
+                    <div className="mt-6">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <MessageSquare className="w-5 h-5 text-gray-600" />
+                        <h3 className="text-base font-semibold text-gray-900">Internal Notes</h3>
+                      </div>
                       <div className="space-y-3">
                         {internalNotes.map((note) => (
-                          <Card key={note.id} className="bg-yellow-50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-2">
+                          <div key={note.id} className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
+                            <div className="px-4 py-3 border-b border-yellow-200 bg-yellow-100">
+                              <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                  <span className="text-sm font-medium">
+                                  <User className="w-4 h-4 text-yellow-700" />
+                                  <span className="text-sm font-medium text-gray-900">
                                     {note.user?.name || 'Unknown User'}
                                   </span>
                                 </div>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-600">
                                   {formatDate(note.created_at)}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.note}</p>
-                            </CardContent>
-                          </Card>
+                            </div>
+                            <div className="px-4 py-3">
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{note.note}</p>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>

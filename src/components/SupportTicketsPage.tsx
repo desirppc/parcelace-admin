@@ -9,13 +9,15 @@ import {
   CheckCircle,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supportTicketService } from '@/services/supportTicketService';
 import { 
@@ -27,6 +29,8 @@ import { useUser } from '@/contexts/UserContext';
 import { hasRole } from '@/utils/roleUtils';
 import AssignTicketDialog from './AssignTicketDialog';
 import UpdateStatusDialog from './UpdateStatusDialog';
+import { TicketCard } from './TicketCard';
+import { MultiSelectFilter } from './MultiSelectFilter';
 
 const SupportTicketsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +55,9 @@ const SupportTicketsPage = () => {
     page: 1,
     per_page: 50
   });
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [allTickets, setAllTickets] = useState<SupportTicket[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -85,13 +92,74 @@ const SupportTicketsPage = () => {
     loadTickets();
   }, [filters]);
 
+  // Reload tickets when multi-select values change
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      page: 1
+    }));
+    // loadTickets will be called by the filters useEffect
+  }, [selectedStatuses, selectedPriorities]);
+
   const loadTickets = async () => {
     setLoading(true);
     try {
-      const response = await supportTicketService.getSupportTickets(filters);
+      // Load all tickets first (or use current filters if API supports it)
+      const baseFilters = { ...filters };
+      // Remove status and priority from base filters as we'll filter client-side
+      delete baseFilters.status;
+      delete baseFilters.priority;
+      
+      const response = await supportTicketService.getSupportTickets({ ...baseFilters, per_page: 1000 });
       if (response.status) {
-        setTickets(response.data.tickets);
-        setPagination(response.data.pagination);
+        let filteredTickets = response.data.tickets;
+        
+        // Apply client-side filtering for multi-select
+        if (selectedStatuses.length > 0) {
+          filteredTickets = filteredTickets.filter(ticket => 
+            ticket.status && selectedStatuses.includes(ticket.status)
+          );
+        }
+        
+        if (selectedPriorities.length > 0) {
+          filteredTickets = filteredTickets.filter(ticket => 
+            ticket.priority && selectedPriorities.includes(ticket.priority)
+          );
+        }
+        
+        // Apply other filters (search, category) if they exist
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          filteredTickets = filteredTickets.filter(ticket =>
+            ticket.id.toString().includes(searchLower) ||
+            ticket.user.name.toLowerCase().includes(searchLower) ||
+            ticket.user.email.toLowerCase().includes(searchLower) ||
+            ticket.remark.toLowerCase().includes(searchLower) ||
+            ticket.details.some(detail => detail.awb.toLowerCase().includes(searchLower))
+          );
+        }
+        
+        if (filters.category) {
+          filteredTickets = filteredTickets.filter(ticket => ticket.category === filters.category);
+        }
+        
+        // Update pagination based on filtered results
+        const total = filteredTickets.length;
+        const perPage = filters.per_page || 50;
+        const currentPage = filters.page || 1;
+        const startIndex = (currentPage - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
+        
+        setAllTickets(filteredTickets);
+        setTickets(paginatedTickets);
+        setPagination({
+          current_page: currentPage,
+          last_page: Math.ceil(total / perPage),
+          total_page: Math.ceil(total / perPage),
+          per_page: perPage,
+          total: total
+        });
       } else {
         toast({
           title: "Error",
@@ -203,6 +271,72 @@ const SupportTicketsPage = () => {
     }
   };
 
+  const getPriorityBadgeColor = (priority: string | null) => {
+    switch (priority) {
+      case 'urgent':
+        return 'bg-red-500 hover:bg-red-600 text-white';
+      case 'high':
+        return 'bg-orange-500 hover:bg-orange-600 text-white';
+      case 'medium':
+        return 'bg-yellow-500 hover:bg-yellow-600 text-white';
+      case 'low':
+        return 'bg-green-500 hover:bg-green-600 text-white';
+      default:
+        return 'bg-gray-500 hover:bg-gray-600 text-white';
+    }
+  };
+
+  const getPriorityBarColor = (priority: string | null) => {
+    switch (priority) {
+      case 'urgent':
+        return 'bg-gradient-to-b from-red-500 to-red-600';
+      case 'high':
+        return 'bg-gradient-to-b from-orange-500 to-orange-600';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return 'just now';
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+      } else if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000);
+        return `${months} month${months > 1 ? 's' : ''} ago`;
+      } else {
+        const years = Math.floor(diffInSeconds / 31536000);
+        return `almost ${years} year${years > 1 ? 's' : ''} ago`;
+      }
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatStatusLabel = (status: string | null) => {
+    if (!status) return 'Open';
+    return status.split('-').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -311,259 +445,155 @@ const SupportTicketsPage = () => {
         </Card>
       </div>
 
-      {/* Recent Tickets Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Recent Tickets</h2>
-        
-        {/* Search and Filter */}
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search by ticket ID, AWB, or description..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-            />
+      {/* Ticket Listing Section */}
+      <div className="flex flex-col border border-gray-200 rounded-lg bg-white overflow-hidden" style={{ minHeight: '600px', maxHeight: 'calc(100vh - 500px)' }}>
+        {/* Filters */}
+        <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Filter className="w-4 h-4" />
+            <span>Filter:</span>
           </div>
-          <Button variant="outline" onClick={handleFilter}>
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-          </Button>
+          
+          <MultiSelectFilter
+            options={[
+              { value: 'open', label: 'Open' },
+              { value: 'in-progress', label: 'In Progress' },
+              { value: 'awaiting-response', label: 'Awaiting Response' },
+              { value: 'resolved', label: 'Resolved' }
+            ]}
+            selectedValues={selectedStatuses}
+            onValueChange={setSelectedStatuses}
+            placeholder="All Status"
+            className="w-32"
+          />
+
+          <MultiSelectFilter
+            options={[
+              { value: 'urgent', label: 'Urgent' },
+              { value: 'high', label: 'High' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'low', label: 'Low' }
+            ]}
+            selectedValues={selectedPriorities}
+            onValueChange={setSelectedPriorities}
+            placeholder="All Priority"
+            className="w-32"
+          />
+
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              {pagination.total} ticket{pagination.total !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-800">Filter Tickets</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-blue-700 mb-2 block">Status</label>
-                  <select 
-                    className="w-full p-2 border border-blue-300 rounded-md bg-white"
-                    value={filters.status || ''}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="open">Open</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="awaiting-response">Awaiting Response</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-blue-700 mb-2 block">Category</label>
-                  <select 
-                    className="w-full p-2 border border-blue-300 rounded-md bg-white"
-                    value={filters.category || ''}
-                    onChange={(e) => handleFilterChange('category', e.target.value)}
-                  >
-                    <option value="">All Categories</option>
-                    <option value="Technical Support">Technical Support</option>
-                    <option value="Delivery Issue">Delivery Issue</option>
-                    <option value="Billing">Billing</option>
-                    <option value="General">General</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-blue-700 mb-2 block">Priority</label>
-                  <select 
-                    className="w-full p-2 border border-blue-300 rounded-md bg-white"
-                    value={filters.priority || ''}
-                    onChange={(e) => handleFilterChange('priority', e.target.value)}
-                  >
-                    <option value="">All Priorities</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
+        {/* Ticket List */}
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <span className="text-gray-600">Loading tickets...</span>
+              </div>
+            </div>
+          ) : tickets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <Filter className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="font-medium text-gray-900 mb-1">No tickets found</h3>
+              <p className="text-sm text-gray-600">
+                Try adjusting your filters
+              </p>
+            </div>
+          ) : (
+            tickets.map((ticket) => (
+              <div key={ticket.id} className="group relative">
+                <TicketCard
+                  ticket={ticket}
+                  isSelected={false}
+                  onClick={() => {
+                    // Handle ticket selection if needed
+                  }}
+                  getStatusBadgeVariant={getStatusBadgeVariant}
+                  getStatusBadgeColor={getStatusBadgeColor}
+                  getPriorityBadgeColor={getPriorityBadgeColor}
+                  getPriorityBarColor={getPriorityBarColor}
+                  formatDate={formatDate}
+                  formatStatusLabel={formatStatusLabel}
+                />
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 z-10">
+                  {finalIsSuperAdmin && (
+                    <AssignTicketDialog
+                      ticketId={ticket.id}
+                      onAssignmentComplete={handleAssignmentComplete}
+                    />
+                  )}
+                  <UpdateStatusDialog
+                    ticketId={ticket.id}
+                    currentStatus={ticket.status}
+                    currentPriority={ticket.priority}
+                    currentExpectedClosureDate={ticket.expected_closure_date}
+                    currentCloseDate={ticket.close_date}
+                    onStatusUpdate={handleStatusUpdate}
+                  />
                 </div>
               </div>
-              <div className="flex space-x-3">
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={applyFilters}
-                >
-                  Apply Filters
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowFilters(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tickets Table */}
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ticket ID</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Sub Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>AWB Numbers</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expected Closure</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
-                    <div className="flex items-center justify-center space-x-2">
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                      <span>Loading tickets...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : tickets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12">
-                    <div className="space-y-4">
-                      <div className="text-gray-500">
-                        <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No support tickets found</h3>
-                        <p className="text-gray-600 mb-6">
-                          You haven't created any support tickets yet. Create your first ticket to get started.
-                        </p>
-                        <Button 
-                          onClick={handleCreateTicket}
-                          size="lg"
-                          className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white shadow-lg"
-                        >
-                          <Plus className="w-5 h-5 mr-2" />
-                          Create Your First Ticket
-                        </Button>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">#{ticket.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{ticket.user.name}</div>
-                        <div className="text-sm text-gray-500">{ticket.user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{ticket.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{ticket.sub_category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={getStatusBadgeVariant(ticket.status)}
-                        className={getStatusBadgeColor(ticket.status)}
-                      >
-                        {ticket.status || 'Open'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {ticket.details.map((detail, index) => (
-                          <div key={index} className="text-sm font-mono">
-                            {detail.awb}
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{ticket.created_at}</TableCell>
-                    <TableCell>{ticket.expected_closure_date || 'Not set'}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {/* Only superadmin can assign tickets */}
-                        {finalIsSuperAdmin && (
-                          <AssignTicketDialog
-                            ticketId={ticket.id}
-                            onAssignmentComplete={handleAssignmentComplete}
-                          />
-                        )}
-                        {/* Both superadmin and support can update status */}
-                        <UpdateStatusDialog
-                          ticketId={ticket.id}
-                          currentStatus={ticket.status}
-                          currentPriority={ticket.priority}
-                          currentExpectedClosureDate={ticket.expected_closure_date}
-                          currentCloseDate={ticket.close_date}
-                          onStatusUpdate={handleStatusUpdate}
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+            ))
+          )}
+        </div>
 
         {/* Pagination */}
         {pagination.total > 0 && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to{' '}
-                  {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
-                  {pagination.total} tickets
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(pagination.current_page - 1)}
-                    disabled={pagination.current_page <= 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                      const pageNum = Math.max(1, pagination.current_page - 2) + i;
-                      if (pageNum > pagination.last_page) return null;
-                      
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={pageNum === pagination.current_page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          className={pageNum === pagination.current_page ? "bg-blue-600 hover:bg-blue-700" : ""}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(pagination.current_page + 1)}
-                    disabled={pagination.current_page >= pagination.last_page}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to{' '}
+                {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                {pagination.total} tickets
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.current_page - 1)}
+                  disabled={pagination.current_page <= 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
+                    const pageNum = Math.max(1, pagination.current_page - 2) + i;
+                    if (pageNum > pagination.last_page) return null;
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pageNum === pagination.current_page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className={pageNum === pagination.current_page ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.current_page + 1)}
+                  disabled={pagination.current_page >= pagination.last_page}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
