@@ -96,9 +96,9 @@ class VendorService {
         // Map API response fields to Vendor interface
         const mappedVendors = (response.data.vendor_users || []).map((vendor: any) => ({
           id: vendor.vendor_id || vendor.id,
-          name: vendor.vendor_name || vendor.name,
-          email: vendor.vendor_email || vendor.email,
-          phone: vendor.vendor_phone || vendor.phone,
+          name: (vendor.vendor_name || vendor.name || '').toString(),
+          email: (vendor.vendor_email || vendor.email || '').toString(),
+          phone: (vendor.vendor_phone || vendor.phone || '').toString(),
           created_at: vendor.created_at,
           support_user_count: vendor.support_user_count || 0,
           support_users: vendor.support_users || []

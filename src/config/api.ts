@@ -63,7 +63,7 @@ const API_CONFIG = {
     CREATE_SHIPMENT: 'api/shipments/create',
     UPDATE_SHIPMENT: 'api/shipments/update',
     DELETE_SHIPMENT: 'api/shipments/delete',
-    SHIPMENT_CANCEL: 'api/shipments/cancel',
+    SHIPMENT_CANCEL: 'api/shipments/bulk-cancel',
     SHIPMENT_LABEL: 'api/shipments/label',
     BULK_SHIPMENT_LABELS: 'api/shipments/bulk-shipment-labels',
     BULK_SHIPMENT_INVOICE: 'api/shipments/bulk-shipment-invoice',
@@ -74,6 +74,7 @@ const API_CONFIG = {
     AWB_SEARCH: 'api/shipments/awb-search',
     UPDATE_REMARKS: 'api/shipment/update-remarks',
     UPDATE_EWAY_BILL: 'api/shipments/update-eway-bill',
+    PICKUP_REQUEST: 'api/shipments/pickup-request',
     
     // Bulk Booking
     BULK_BOOKING_REQUEST: 'api/shipments/bulk-booking-request',
@@ -88,6 +89,10 @@ const API_CONFIG = {
     WALLET_TRANSACTIONS: 'api/wallet/transactions',
     WALLET_RECHARGE: 'api/wallet/recharge',
     COD_REMITTANCE: 'api/cod-remittance',
+    COD_REMITTANCE_FILTER: 'api/cod-remittances/filter',
+    COD_PLANS_LIST: 'api/cod-plans/list',
+    COD_PLANS_INSERT: 'api/cod-plans/insert',
+    COD_PLANS_DELETE: 'api/cod-plans/delete',
     
     // Notifications
     NOTIFICATIONS: 'api/notifications',
@@ -125,6 +130,9 @@ const API_CONFIG = {
     // Support Users
     SUPPORT_USERS: 'api/support-user',
     
+    // Manage User
+    MANAGE_USER_SHIPMENT_FILTER: 'api/manage-user/shipment-filter',
+    
     // Vendors
     VENDORS: 'api/support-user/vendor',
     ASSIGN_VENDORS: 'api/support-user/assign',
@@ -138,10 +146,18 @@ const API_CONFIG = {
     // Email Responses
     // (No email APIs available)
     
+    // Gmail OAuth
+    GMAIL_OAUTH_INIT: 'api/gmail/oauth/init',
+    GMAIL_OAUTH_CALLBACK: 'api/gmail/oauth/callback',
+    GMAIL_CONNECTIONS: 'api/gmail/connections',
+    
     // Shipping Label Settings
     SHIPPING_LABEL_SETTINGS: 'api/shipping-label-settings',
     SHIPPING_LABEL_SETTINGS_UPDATE: 'api/shipping-label-settings/update',
     SHIPPING_LABEL_BRAND_LOGO: 'api/shipping-label-settings/brand-logo',
+    
+    // Warehouse FE
+    WAREHOUSE_FE: 'api/warehouse-fe',
   },
   METHODS: {
     GET: 'GET',

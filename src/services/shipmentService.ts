@@ -1003,6 +1003,61 @@ class ShipmentService {
       };
     }
   }
+
+  async regeneratePickup(awb: string): Promise<{ success: boolean; message: string; data?: any; error?: string }> {
+    try {
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      if (!awb) {
+        throw new Error('AWB is required');
+      }
+
+      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PICKUP_REQUEST}`;
+      console.log('Regenerate pickup API URL:', url);
+      console.log('Regenerate pickup payload:', { awb });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ awb })
+      });
+
+      console.log('Regenerate pickup API response status:', response.status);
+      
+      const result = await response.json();
+      console.log('Regenerate pickup API response:', result);
+      
+      // The API returns status: false even on success, with message in error.message
+      // Extract message from error.message or message field
+      const apiMessage = result.error?.message || result.message || 'Pickup request processed';
+      
+      // Determine success: API returns status: false but message indicates success
+      // Check if message contains "pickup registered" (case insensitive)
+      const isSuccess = apiMessage.toLowerCase().includes('pickup registered') || 
+                       apiMessage.toLowerCase().includes('pickup') && response.ok;
+      
+      return {
+        success: isSuccess,
+        message: apiMessage,
+        data: result.data
+      };
+    } catch (error) {
+      console.error('Error regenerating pickup:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to regenerate pickup',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
 }
 
 export const shipmentService = new ShipmentService(); 

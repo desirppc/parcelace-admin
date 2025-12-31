@@ -66,6 +66,7 @@ import { DateRange } from 'react-day-picker';
 import { shipmentService } from '@/services/shipmentService';
 import SmartCache, { CacheStrategies, EnhancedCacheKeys } from '@/utils/smartCache';
 import { usePageMeta, PageMetaConfigs } from '@/hooks/usePageMeta';
+import { vendorService, Vendor } from '@/services/vendorService';
 
 interface ShipmentItem {
   id: number;
@@ -149,6 +150,8 @@ type ShipmentFilterRequest = {
   date_range?: string;
   order_type?: string[];
   tracking_status?: string[];
+  user_id?: string | string[];
+  courier_partner_id?: number[];
 };
 
 interface ShipmentsFetchResult {
@@ -181,6 +184,17 @@ const ShipmentPage = () => {
   const [shipmentStatus, setShipmentStatus] = useState<string[]>([]);
   const [filterOptions, setFilterOptions] = useState<Record<string, string>>({});
   const [hoveredShipment, setHoveredShipment] = useState<number | null>(null);
+  
+  // New filter states for user_id (vendor IDs) and courier_partner_id
+  const [selectedVendorIds, setSelectedVendorIds] = useState<number[]>([]);
+  const [selectedCourierPartnerIds, setSelectedCourierPartnerIds] = useState<number[]>([]);
+  const [showVendorSelectDialog, setShowVendorSelectDialog] = useState(false);
+  const [showCourierPartnerSelectDialog, setShowCourierPartnerSelectDialog] = useState(false);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [courierPartners, setCourierPartners] = useState<{ id: number; name: string }[]>([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [loadingCourierPartners, setLoadingCourierPartners] = useState(false);
+  const [vendorSearchTerm, setVendorSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -200,6 +214,9 @@ const ShipmentPage = () => {
   const [courierPartnerIssue, setCourierPartnerIssue] = useState<string>('');
   const [otherRemark, setOtherRemark] = useState<string>('');
   const [updatingRemark, setUpdatingRemark] = useState(false);
+  
+  // Regenerate Pickup states
+  const [regeneratingPickup, setRegeneratingPickup] = useState<string | null>(null);
   
   // Add FE Number modal states
   const [addFENumberModalOpen, setAddFENumberModalOpen] = useState(false);
@@ -473,6 +490,53 @@ const ShipmentPage = () => {
     }
   };
 
+  // Fetch vendors list
+  const fetchVendors = async () => {
+    try {
+      setLoadingVendors(true);
+      const response = await vendorService.getVendors();
+      if (response.status && response.data.vendor_users) {
+        setVendors(response.data.vendor_users);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    } finally {
+      setLoadingVendors(false);
+    }
+  };
+
+  // Extract courier partners from existing shipments
+  const fetchCourierPartners = async () => {
+    try {
+      setLoadingCourierPartners(true);
+      
+      // Extract courier partners from existing shipments
+      if (shipments.length > 0) {
+        const uniquePartners = new Map<number, string>();
+        shipments.forEach(shipment => {
+          if (shipment.courier_partner?.id && shipment.courier_partner?.name) {
+            uniquePartners.set(
+              shipment.courier_partner.id,
+              shipment.courier_partner.name
+            );
+          }
+        });
+        
+        if (uniquePartners.size > 0) {
+          const partnersArray = Array.from(uniquePartners.entries()).map(([id, name]) => ({
+            id,
+            name
+          }));
+          setCourierPartners(partnersArray);
+        }
+      }
+    } catch (error) {
+      console.error('Error extracting courier partners:', error);
+    } finally {
+      setLoadingCourierPartners(false);
+    }
+  };
+
   // Reset all filters when page type changes (e.g., switching between prepaid and reverse)
   useEffect(() => {
     // Reset all filter states
@@ -487,9 +551,24 @@ const ShipmentPage = () => {
       all: true
     });
     setShipmentStatus([]);
+    setSelectedVendorIds([]);
+    setSelectedCourierPartnerIds([]);
     setCurrentPage(1); // Reset to first page
     setShowFilter(false);
   }, [currentPageType]);
+
+  // Load vendors and courier partners when filter dialog opens
+  useEffect(() => {
+    if (showFilter) {
+      if (vendors.length === 0) {
+        fetchVendors();
+      }
+      if (courierPartners.length === 0) {
+        fetchCourierPartners();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFilter]);
 
   // Fetch shipments when page type, page, or page size changes
   useEffect(() => {
@@ -985,16 +1064,27 @@ const ShipmentPage = () => {
       }
       
       // Build the filter request body
-      const filterRequestBody = {
+      const filterRequestBody: ShipmentFilterRequest = {
         date_range: dateRangeStr,
         order_type: orderTypeArray,
         tracking_status: trackingStatusArray
       };
+
+      // Add user_id filter (vendor IDs) - API expects string or array of strings/numbers
+      if (selectedVendorIds.length > 0) {
+        // Send as array of vendor IDs (convert to strings as API might expect strings)
+        filterRequestBody.user_id = selectedVendorIds.map(id => id.toString());
+      }
+
+      // Add courier_partner_id filter
+      if (selectedCourierPartnerIds.length > 0) {
+        filterRequestBody.courier_partner_id = selectedCourierPartnerIds;
+      }
       
       console.log('🔍 Applying filters with request:', JSON.stringify(filterRequestBody, null, 2));
       
-      // Call fetchShipments with custom filters
-      await fetchShipments({ filters: filterRequestBody });
+      // Call fetchShipments with custom filters and force refresh to bypass cache
+      await fetchShipments({ isRefresh: true, filters: filterRequestBody });
       
       setShowFilter(false);
       
@@ -1025,6 +1115,8 @@ const ShipmentPage = () => {
       all: true
     });
     setShipmentStatus([]);
+    setSelectedVendorIds([]);
+    setSelectedCourierPartnerIds([]);
     setActiveTab('all');
     resetPagination(); // Reset pagination when filters are reset
     
@@ -1385,6 +1477,39 @@ const ShipmentPage = () => {
     }
   };
 
+  const handleRegeneratePickup = async (awb: string) => {
+    if (!awb) {
+      toast({
+        title: "Invalid AWB",
+        description: "AWB number is required to regenerate pickup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRegeneratingPickup(awb);
+    
+    try {
+      const result = await shipmentService.regeneratePickup(awb);
+      
+      // Show the API response message in toast
+      toast({
+        title: result.success ? "Pickup Request" : "Pickup Request Failed",
+        description: result.message || "Pickup request processed",
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error('Regenerate pickup error:', error);
+      toast({
+        title: "Pickup Request Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingPickup(null);
+    }
+  };
+
   // Debug log
   console.log('Current shipments state:', shipments);
   console.log('Current filtered shipments:', filteredShipments);
@@ -1426,6 +1551,8 @@ const ShipmentPage = () => {
                 all: true
               });
               setShipmentStatus([]);
+              setSelectedVendorEmails([]);
+              setSelectedCourierPartnerIds([]);
               setCurrentPage(1);
               setShowFilter(false);
               
@@ -1580,9 +1707,38 @@ const ShipmentPage = () => {
                           ))
                         )}
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                      </PopoverContent>
+                    </Popover>
                 </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Vendor Email (User ID)</label>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => setShowVendorSelectDialog(true)}
+                  >
+                    {selectedVendorIds.length > 0 ? (
+                      `${selectedVendorIds.length} vendor${selectedVendorIds.length > 1 ? 's' : ''} selected`
+                    ) : (
+                      "Select vendor emails"
+                    )}
+                  </Button>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Courier Partner</label>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => setShowCourierPartnerSelectDialog(true)}
+                  >
+                    {selectedCourierPartnerIds.length > 0 ? (
+                      `${selectedCourierPartnerIds.length} partner${selectedCourierPartnerIds.length > 1 ? 's' : ''} selected`
+                    ) : (
+                      "Select courier partners"
+                    )}
+                  </Button>
+                </div>
+              </div>
               {dateFilter === 'custom' && (
                 <div className="flex space-x-4">
                   <div className="w-40">
@@ -1631,7 +1787,6 @@ const ShipmentPage = () => {
                   </div>
                 </div>
               )}
-            </div>
             <div>
               <label className="text-sm font-medium mb-3 block">Order Type</label>
               <div className="flex space-x-6">
@@ -1682,6 +1837,202 @@ const ShipmentPage = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Vendor Email Selection Dialog */}
+      <Dialog open={showVendorSelectDialog} onOpenChange={(open) => {
+        setShowVendorSelectDialog(open);
+        if (!open) {
+          setVendorSearchTerm(''); // Clear search when dialog closes
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Vendor Emails (User ID)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search by email or name..."
+                value={vendorSearchTerm}
+                onChange={(e) => setVendorSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            {loadingVendors ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span>Loading vendors...</span>
+              </div>
+            ) : vendors.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No vendors found
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {vendors
+                  .filter((vendor) => {
+                    if (!vendorSearchTerm.trim()) return true;
+                    const searchLower = vendorSearchTerm.toLowerCase();
+                    return (
+                      vendor.email.toLowerCase().includes(searchLower) ||
+                      vendor.name.toLowerCase().includes(searchLower)
+                    );
+                  })
+                  .map((vendor) => {
+                    const isSelected = selectedVendorIds.includes(vendor.id);
+                    return (
+                      <div
+                        key={vendor.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-muted rounded-sm cursor-pointer"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedVendorIds(prev => prev.filter(id => id !== vendor.id));
+                          } else {
+                            setSelectedVendorIds(prev => [...prev, vendor.id]);
+                          }
+                        }}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedVendorIds(prev => [...prev, vendor.id]);
+                            } else {
+                              setSelectedVendorIds(prev => prev.filter(id => id !== vendor.id));
+                            }
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{vendor.name}</div>
+                          <div className="text-xs text-muted-foreground">{vendor.email}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {vendors.filter((vendor) => {
+                  if (!vendorSearchTerm.trim()) return false;
+                  const searchLower = vendorSearchTerm.toLowerCase();
+                  return (
+                    vendor.email.toLowerCase().includes(searchLower) ||
+                    vendor.name.toLowerCase().includes(searchLower)
+                  );
+                }).length === 0 && vendorSearchTerm.trim() && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No vendors found matching "{vendorSearchTerm}"
+                  </div>
+                )}
+              </div>
+            )}
+            {selectedVendorIds.length > 0 && (
+              <div className="pt-4 border-t">
+                <div className="text-sm font-medium mb-2">Selected ({selectedVendorIds.length}):</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedVendorIds.map((vendorId) => {
+                    const vendor = vendors.find(v => v.id === vendorId);
+                    return (
+                      <Badge key={vendorId} variant="secondary" className="flex items-center gap-1">
+                        {vendor ? `${vendor.name} (${vendor.email})` : `ID: ${vendorId}`}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => {
+                            setSelectedVendorIds(prev => prev.filter(id => id !== vendorId));
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowVendorSelectDialog(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Courier Partner Selection Dialog */}
+      <Dialog open={showCourierPartnerSelectDialog} onOpenChange={setShowCourierPartnerSelectDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Courier Partners</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {loadingCourierPartners ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span>Loading courier partners...</span>
+              </div>
+            ) : courierPartners.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No courier partners found
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {courierPartners.map((partner) => {
+                  const isSelected = selectedCourierPartnerIds.includes(partner.id);
+                  return (
+                    <div
+                      key={partner.id}
+                      className="flex items-center space-x-2 p-2 hover:bg-muted rounded-sm cursor-pointer"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedCourierPartnerIds(prev => prev.filter(id => id !== partner.id));
+                        } else {
+                          setSelectedCourierPartnerIds(prev => [...prev, partner.id]);
+                        }
+                      }}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCourierPartnerIds(prev => [...prev, partner.id]);
+                          } else {
+                            setSelectedCourierPartnerIds(prev => prev.filter(id => id !== partner.id));
+                          }
+                        }}
+                      />
+                      <div className="text-sm font-medium">{partner.name}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {selectedCourierPartnerIds.length > 0 && (
+              <div className="pt-4 border-t">
+                <div className="text-sm font-medium mb-2">Selected ({selectedCourierPartnerIds.length}):</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCourierPartnerIds.map((id) => {
+                    const partner = courierPartners.find(p => p.id === id);
+                    return (
+                      <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                        {partner?.name || `ID: ${id}`}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => {
+                            setSelectedCourierPartnerIds(prev => prev.filter(pid => pid !== id));
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowCourierPartnerSelectDialog(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Enhanced Tabs - Hidden when multi-select is active */}
       {selectedShipments.length === 0 && (
@@ -1914,8 +2265,6 @@ const ShipmentPage = () => {
                 <TableRow 
                   key={shipment.id}
                   className="relative"
-                  onMouseEnter={() => setHoveredShipment(shipment.id)}
-                  onMouseLeave={() => setHoveredShipment(null)}
                 >
                   <TableCell>
                     <Checkbox 
@@ -2054,6 +2403,26 @@ const ShipmentPage = () => {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Update Remark</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleRegeneratePickup(shipment.awb)}
+                            disabled={regeneratingPickup === shipment.awb}
+                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors duration-200"
+                          >
+                            {regeneratingPickup === shipment.awb ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Regenerate Pickup</p>
                         </TooltipContent>
                       </Tooltip>
                       <Tooltip>
@@ -2210,53 +2579,6 @@ const ShipmentPage = () => {
         )}
       </Card>
 
-      {/* Enhanced Shipment Hover Popup */}
-      {hoveredShipment && (() => {
-        const shipment = filteredShipments.find(s => s.id === hoveredShipment);
-        if (!shipment) return null;
-        
-        return (
-          <div className="fixed z-50 pointer-events-none">
-            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 p-4 animate-fade-in">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-purple-600">
-                    <div>ID: {shipment.id}</div>
-                    <div className="text-xs text-gray-500">AWB: {shipment.awb}</div>
-                  </div>
-                  {getStatusBadge(shipment.shipment_status)}
-                </div>
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Order:</span>
-                    <span className="ml-2 font-medium">{shipment.store_order?.order_no}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Customer:</span>
-                    <span className="ml-2 font-medium">{shipment.customer_name}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Courier:</span>
-                    <span className="ml-2">{capitalizeWords(shipment.courier_partner?.name || '')}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Amount:</span>
-                    <span className="ml-2 font-medium">₹{shipment.total_amount}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Payment:</span>
-                    <span className="ml-2">{getPaymentModeBadge(shipment.payment_mode)}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Expected:</span>
-                    <span className="ml-2">{calculateExpectedDelivery(shipment.order_date)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Cancel Shipment Confirmation Dialog */}
       <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>

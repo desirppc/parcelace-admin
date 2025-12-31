@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supportTicketService } from '@/services/supportTicketService';
 import { 
@@ -29,7 +29,6 @@ import { useUser } from '@/contexts/UserContext';
 import { hasRole } from '@/utils/roleUtils';
 import AssignTicketDialog from './AssignTicketDialog';
 import UpdateStatusDialog from './UpdateStatusDialog';
-import { TicketCard } from './TicketCard';
 import { MultiSelectFilter } from './MultiSelectFilter';
 
 const SupportTicketsPage = () => {
@@ -69,17 +68,6 @@ const SupportTicketsPage = () => {
 
   // Use the more comprehensive check
   const finalIsSuperAdmin = isSuperAdmin || isSuperAdminFallback;
-
-  // Debug logging
-  console.log('🔍 SupportTicketsPage Debug:', {
-    user: user,
-    userRoles: user?.roles,
-    userRole: user?.user_role,
-    isSuperAdmin: isSuperAdmin,
-    isSuperAdminFallback: isSuperAdminFallback,
-    finalIsSuperAdmin: finalIsSuperAdmin,
-    hasRoleCheck: user ? hasRole(user, 'superadmin') : false
-  });
 
   // Load tickets and counts on component mount
   useEffect(() => {
@@ -330,6 +318,22 @@ const SupportTicketsPage = () => {
     }
   };
 
+  const formatDateAbsolute = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   const formatStatusLabel = (status: string | null) => {
     if (!status) return 'Open';
     return status.split('-').map(word => 
@@ -338,7 +342,7 @@ const SupportTicketsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -346,16 +350,6 @@ const SupportTicketsPage = () => {
             Support Dashboard
           </h1>
           <p className="text-gray-600 mt-1">Manage and track your support tickets</p>
-          {/* Debug info - remove this after testing */}
-          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 shadow-sm">
-            <div className="font-semibold text-amber-900 mb-1">Debug Information:</div>
-            <div className="space-y-1 text-xs">
-              <div><span className="font-medium">User:</span> {user?.name || 'Not loaded'}</div>
-              <div><span className="font-medium">Roles:</span> {user?.roles?.map(r => r.name).join(', ') || 'No roles'}</div>
-              <div><span className="font-medium">User Role:</span> {user?.user_role || 'None'}</div>
-              <div><span className="font-medium">Is SuperAdmin:</span> <span className={`font-bold ${finalIsSuperAdmin ? 'text-green-600' : 'text-red-600'}`}>{finalIsSuperAdmin ? 'Yes' : 'No'}</span></div>
-            </div>
-          </div>
         </div>
         <div className="flex space-x-2">
           <Button 
@@ -364,25 +358,6 @@ const SupportTicketsPage = () => {
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Ticket
-          </Button>
-          {/* Debug button - remove after testing */}
-          <Button 
-            onClick={() => {
-              console.log('🔍 Manual Role Check:', {
-                user: user,
-                roles: user?.roles,
-                userRole: user?.user_role,
-                finalIsSuperAdmin: finalIsSuperAdmin
-              });
-              toast({
-                title: "Role Check",
-                description: `Is SuperAdmin: ${finalIsSuperAdmin ? 'Yes' : 'No'}`,
-              });
-            }}
-            variant="outline"
-            className="bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:border-amber-300"
-          >
-            Test Role
           </Button>
         </div>
       </div>
@@ -445,50 +420,75 @@ const SupportTicketsPage = () => {
         </Card>
       </div>
 
-      {/* Ticket Listing Section */}
-      <div className="flex flex-col border border-gray-200 rounded-lg bg-white overflow-hidden" style={{ minHeight: '600px', maxHeight: 'calc(100vh - 500px)' }}>
-        {/* Filters */}
-        <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Filter className="w-4 h-4" />
-            <span>Filter:</span>
-          </div>
+      {/* Recent Tickets Section */}
+      <div className="flex flex-col border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex-1 min-h-0">
+        {/* Section Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Tickets</h2>
           
-          <MultiSelectFilter
-            options={[
-              { value: 'open', label: 'Open' },
-              { value: 'in-progress', label: 'In Progress' },
-              { value: 'awaiting-response', label: 'Awaiting Response' },
-              { value: 'resolved', label: 'Resolved' }
-            ]}
-            selectedValues={selectedStatuses}
-            onValueChange={setSelectedStatuses}
-            placeholder="All Status"
-            className="w-32"
-          />
-
-          <MultiSelectFilter
-            options={[
-              { value: 'urgent', label: 'Urgent' },
-              { value: 'high', label: 'High' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'low', label: 'Low' }
-            ]}
-            selectedValues={selectedPriorities}
-            onValueChange={setSelectedPriorities}
-            placeholder="All Priority"
-            className="w-32"
-          />
-
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-gray-600">
-              {pagination.total} ticket{pagination.total !== 1 ? 's' : ''}
-            </span>
+          {/* Search and Filter Bar */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by ticket ID, AWB, or description..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleFilter}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </Button>
           </div>
         </div>
 
+        {/* Filter Panel (shown when showFilters is true) */}
+        {showFilters && (
+          <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Filter className="w-4 h-4" />
+                <span>Filter:</span>
+              </div>
+              
+              <MultiSelectFilter
+                options={[
+                  { value: 'open', label: 'Open' },
+                  { value: 'in-progress', label: 'In Progress' },
+                  { value: 'awaiting-response', label: 'Awaiting Response' },
+                  { value: 'resolved', label: 'Resolved' }
+                ]}
+                selectedValues={selectedStatuses}
+                onValueChange={setSelectedStatuses}
+                placeholder="All Status"
+                className="w-32"
+              />
+
+              <MultiSelectFilter
+                options={[
+                  { value: 'urgent', label: 'Urgent' },
+                  { value: 'high', label: 'High' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'low', label: 'Low' }
+                ]}
+                selectedValues={selectedPriorities}
+                onValueChange={setSelectedPriorities}
+                placeholder="All Priority"
+                className="w-32"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Ticket List */}
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center space-x-2">
@@ -498,48 +498,90 @@ const SupportTicketsPage = () => {
             </div>
           ) : tickets.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <Filter className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="font-medium text-gray-900 mb-1">No tickets found</h3>
-              <p className="text-sm text-gray-600">
-                Try adjusting your filters
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No support tickets found</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                You haven't created any support tickets yet. Create your first ticket to get started.
               </p>
+              <Button
+                onClick={handleCreateTicket}
+                className="bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Ticket
+              </Button>
             </div>
           ) : (
-            tickets.map((ticket) => (
-              <div key={ticket.id} className="group relative">
-                <TicketCard
-                  ticket={ticket}
-                  isSelected={false}
-                  onClick={() => {
-                    // Handle ticket selection if needed
-                  }}
-                  getStatusBadgeVariant={getStatusBadgeVariant}
-                  getStatusBadgeColor={getStatusBadgeColor}
-                  getPriorityBadgeColor={getPriorityBadgeColor}
-                  getPriorityBarColor={getPriorityBarColor}
-                  formatDate={formatDate}
-                  formatStatusLabel={formatStatusLabel}
-                />
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 z-10">
-                  {finalIsSuperAdmin && (
-                    <AssignTicketDialog
-                      ticketId={ticket.id}
-                      onAssignmentComplete={handleAssignmentComplete}
-                    />
-                  )}
-                  <UpdateStatusDialog
-                    ticketId={ticket.id}
-                    currentStatus={ticket.status}
-                    currentPriority={ticket.priority}
-                    currentExpectedClosureDate={ticket.expected_closure_date}
-                    currentCloseDate={ticket.close_date}
-                    onStatusUpdate={handleStatusUpdate}
-                  />
-                </div>
-              </div>
-            ))
+            <div className="w-full p-6">
+              <Table>
+                <TableHeader>
+                <TableRow>
+                  <TableHead>Ticket ID</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>AWB Numbers</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Expected Closure</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tickets.map((ticket) => {
+                  const ticketSubject = ticket.remark || `${ticket.category} - ${ticket.sub_category}`;
+                  const awbNumbers = ticket.details?.map(d => d.awb).join(', ') || 'N/A';
+                  
+                  return (
+                    <TableRow key={ticket.id} className="hover:bg-gray-50">
+                      <TableCell className="font-semibold">TKT-{String(ticket.id).padStart(3, '0')}</TableCell>
+                      <TableCell className="max-w-xs truncate" title={ticketSubject}>
+                        {ticketSubject}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          {ticket.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={getStatusBadgeVariant(ticket.status)}
+                          className={`${getStatusBadgeColor(ticket.status)} text-xs`}
+                        >
+                          {formatStatusLabel(ticket.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-sm text-gray-600" title={awbNumbers}>
+                        {awbNumbers}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {formatDateAbsolute(ticket.created_at)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {formatDateAbsolute(ticket.expected_closure_date)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          {finalIsSuperAdmin && (
+                            <AssignTicketDialog
+                              ticketId={ticket.id}
+                              onAssignmentComplete={handleAssignmentComplete}
+                            />
+                          )}
+                          <UpdateStatusDialog
+                            ticketId={ticket.id}
+                            currentStatus={ticket.status}
+                            currentPriority={ticket.priority}
+                            currentExpectedClosureDate={ticket.expected_closure_date}
+                            currentCloseDate={ticket.close_date}
+                            onStatusUpdate={handleStatusUpdate}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            </div>
           )}
         </div>
 

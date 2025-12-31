@@ -36,12 +36,18 @@ const UsersPage = lazy(() => import("./components/UsersPage"));
 const VendorsPage = lazy(() => import("./components/VendorsPage"));
 const SupportTicketsPage = lazy(() => import("./components/SupportTicketsPage"));
 const EmailResponsePage = lazy(() => import("./components/EmailResponsePage"));
+const GmailPage = lazy(() => import("./components/GmailPage"));
 const ParcelAceAI = lazy(() => import('./components/ParcelAceAI'));
 const AnalyticsTest = lazy(() => import('./pages/AnalyticsTest'));
 const PublicTracking = lazy(() => import('./pages/PublicTracking'));
 const TrackingTemplate = lazy(() => import('./pages/TrackingTemplate'));
 const OTPVerification = lazy(() => import('./pages/OTPVerification'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const ManageCODPlanPage = lazy(() => import('./components/ManageCODPlanPage'));
+const CODRemittancePage = lazy(() => import('./components/CODRemittancePage'));
+const CODRemittanceSummaryPage = lazy(() => import('./components/CODRemittanceSummaryPage'));
+const CODRemittanceDetailsPage = lazy(() => import('./components/CODRemittanceDetailsPage'));
+const AddMoney = lazy(() => import('./components/AddMoney'));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -163,8 +169,16 @@ const App = () => {
                 <Route path="/dashboard/support" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/support/support-dashboard" element={<Suspense fallback={<LoadingSpinner />}><SupportTicketsPage /></Suspense>} />
                 <Route path="/dashboard/email-responses" element={<Suspense fallback={<LoadingSpinner />}><EmailResponsePage /></Suspense>} />
+                <Route path="/dashboard/gmail" element={<Suspense fallback={<LoadingSpinner />}><GmailPage /></Suspense>} />
                 <Route path="/dashboard/ai" element={<Suspense fallback={<LoadingSpinner />}><ParcelAceAI /></Suspense>} />
                 <Route path="/dashboard/analytics" element={<Suspense fallback={<LoadingSpinner />}><AnalyticsTest /></Suspense>} />
+                
+                {/* Finance */}
+                <Route path="/dashboard/finance/manage-cod-plan" element={<Suspense fallback={<LoadingSpinner />}><ManageCODPlanPage /></Suspense>} />
+                <Route path="/dashboard/finance/cod-remittance-summary" element={<Suspense fallback={<LoadingSpinner />}><CODRemittanceSummaryPage /></Suspense>} />
+                <Route path="/dashboard/finance/cod-remittance" element={<Suspense fallback={<LoadingSpinner />}><CODRemittancePage /></Suspense>} />
+                <Route path="/dashboard/finance/cod-remittance/:id" element={<Suspense fallback={<LoadingSpinner />}><CODRemittanceDetailsPage /></Suspense>} />
+                <Route path="/dashboard/finance/add-money" element={<Suspense fallback={<LoadingSpinner />}><AddMoney /></Suspense>} />
                 
                 {/* Order Management */}
                 <Route path="/dashboard/orders/add" element={<OnboardingRoute><Suspense fallback={<LoadingSpinner />}><AddOrder /></Suspense></OnboardingRoute>} />

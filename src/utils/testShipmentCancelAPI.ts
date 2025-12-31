@@ -66,8 +66,8 @@ export const testExampleBulkCancel = () => {
 // Function to test the API endpoints directly
 export const testAPIEndpoints = () => {
   console.log('🔗 API Endpoints for Shipment Cancel:');
-  console.log('📡 Single Cancel: POST /api/shipments/cancel');
-  console.log('📡 Bulk Cancel: POST /api/shipments/cancel');
+  console.log('📡 Single Cancel: POST /api/shipments/bulk-cancel');
+  console.log('📡 Bulk Cancel: POST /api/shipments/bulk-cancel');
   console.log('📋 Request Body Format: { "awb": "AWB_NUMBER" }');
   console.log('📋 Bulk Request Body Format: { "awb": ["AWB1", "AWB2", "AWB3"] }');
   console.log('🔑 Authentication: Bearer token required');

@@ -203,6 +203,9 @@ const ActionNeededPage = () => {
   const [ewayEWBN, setEwayEWBN] = useState<string>('');
   const [updatingEway, setUpdatingEway] = useState(false);
   
+  // Regenerate Pickup states
+  const [regeneratingPickup, setRegeneratingPickup] = useState<string | null>(null);
+  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -341,13 +344,29 @@ const ActionNeededPage = () => {
       let authToken = sessionStorage.getItem('auth_token');
       if (!authToken) authToken = localStorage.getItem('auth_token');
 
+      // For action-needed page, use the manage-user/shipment-filter endpoint
+      const isActionNeededPage = currentPageType === 'action-needed';
+      const endpoint = isActionNeededPage 
+        ? 'api/manage-user/shipment-filter'
+        : 'api/shipments/filter';
+      
       const baseUrl = `${
         import.meta.env.VITE_API_URL || 'https://app.parcelace.io/'
-      }api/shipments/filter`;
+      }${endpoint}`;
       const apiUrl = `${baseUrl}?per_page=${pageSize}&page=${currentPage}`;
 
+      // For action-needed page, prepare the request body with specific filters
+      let requestBody = requestFilters;
+      if (isActionNeededPage) {
+        requestBody = {
+          // date_range: "2025-11-10 ~ 2025-11-10", // Commented out as per requirements
+          order_type: ["reverse"],
+          tracking_status: ["cancelled", "booked", "ndr"]
+        };
+      }
+
       console.log('🔍 Fetching shipments with Filter API');
-      console.log('📤 Request Body:', JSON.stringify(requestFilters, null, 2));
+      console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
       console.log('🌐 API URL:', apiUrl);
       console.log('📄 Pagination:', { per_page: pageSize, page: currentPage });
 
@@ -358,7 +377,7 @@ const ActionNeededPage = () => {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify(requestFilters),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('📡 Response Status:', response.status, response.statusText);
@@ -785,6 +804,75 @@ const ActionNeededPage = () => {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleRegeneratePickup = async (awb: string) => {
+    if (!awb) {
+      toast({
+        title: "Invalid AWB",
+        description: "AWB number is required to regenerate pickup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRegeneratingPickup(awb);
+    
+    try {
+      const result = await shipmentService.regeneratePickup(awb);
+      
+      // Show the API response message in toast
+      toast({
+        title: result.success ? "Pickup Request" : "Pickup Request Failed",
+        description: result.message || "Pickup request processed",
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error('Regenerate pickup error:', error);
+      toast({
+        title: "Pickup Request Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingPickup(null);
+    }
+  };
+
+  const handleBulkRegeneratePickup = async () => {
+    const selectedAwbs = filteredShipments
+      .filter(shipment => selectedShipments.includes(shipment.id))
+      .map(shipment => shipment.awb)
+      .filter(awb => awb);
+    
+    if (selectedAwbs.length === 0) {
+      toast({
+        title: "No Shipments Selected",
+        description: "Please select at least one shipment to regenerate pickup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Process each selected shipment
+    for (const awb of selectedAwbs) {
+      try {
+        const result = await shipmentService.regeneratePickup(awb);
+        // Show toast for each result
+        toast({
+          title: result.success ? "Pickup Request" : "Pickup Request Failed",
+          description: `AWB ${awb}: ${result.message || "Pickup request processed"}`,
+          variant: result.success ? "default" : "destructive",
+        });
+      } catch (error) {
+        console.error(`Error regenerating pickup for ${awb}:`, error);
+        toast({
+          title: "Pickup Request Failed",
+          description: `AWB ${awb}: ${error instanceof Error ? error.message : "An unexpected error occurred"}`,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -1916,17 +2004,21 @@ const ActionNeededPage = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      // TODO: Implement Pickup functionality
-                      toast({
-                        title: "Pickup",
-                        description: "Pickup functionality coming soon!",
-                      });
-                    }}
+                    onClick={handleBulkRegeneratePickup}
+                    disabled={regeneratingPickup !== null}
                     className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                   >
-                    <Package className="w-4 h-4 mr-2" />
-                    Pickup
+                    {regeneratingPickup ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Regenerate Pickup
+                      </>
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -2001,8 +2093,6 @@ const ActionNeededPage = () => {
                 <TableRow 
                   key={shipment.id}
                   className="relative"
-                  onMouseEnter={() => setHoveredShipment(shipment.id)}
-                  onMouseLeave={() => setHoveredShipment(null)}
                 >
                   <TableCell>
                     <Checkbox 
@@ -2127,6 +2217,20 @@ const ActionNeededPage = () => {
                     <Button 
                       size="sm" 
                       variant="outline" 
+                      title="Regenerate Pickup"
+                      onClick={() => handleRegeneratePickup(shipment.awb)}
+                      disabled={regeneratingPickup === shipment.awb}
+                      className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors duration-200"
+                    >
+                      {regeneratingPickup === shipment.awb ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
                       title="Duplicate Order"
                       className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors duration-200"
                     >
@@ -2237,53 +2341,6 @@ const ActionNeededPage = () => {
       </Card>
       )}
 
-      {/* Enhanced Shipment Hover Popup */}
-      {hoveredShipment && (() => {
-        const shipment = filteredShipments.find(s => s.id === hoveredShipment);
-        if (!shipment) return null;
-        
-        return (
-          <div className="fixed z-50 pointer-events-none">
-            <div className="absolute left-full top-0 ml-2 w-80 bg-white/95 backdrop-blur-xl rounded-lg shadow-xl border border-purple-200/30 p-4 animate-fade-in">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-purple-600">
-                    <div>ID: {shipment.id}</div>
-                    <div className="text-xs text-gray-500">AWB: {shipment.awb}</div>
-                  </div>
-                  {getStatusBadge(shipment.shipment_status)}
-                </div>
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Order:</span>
-                    <span className="ml-2 font-medium">{shipment.store_order?.order_no}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Customer:</span>
-                    <span className="ml-2 font-medium">{shipment.customer_name}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Courier:</span>
-                    <span className="ml-2">{capitalizeWords(shipment.courier_partner?.name || '')}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Amount:</span>
-                    <span className="ml-2 font-medium">₹{shipment.total_amount}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Payment:</span>
-                    <span className="ml-2">{getPaymentModeBadge(shipment.payment_mode)}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Expected:</span>
-                    <span className="ml-2">{calculateExpectedDelivery(shipment.order_date)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Cancel Shipment Confirmation Dialog */}
       <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>

@@ -35,7 +35,9 @@ import {
   Mail,
   Building,
   Star,
-  User
+  User,
+  Coins,
+  PlusCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,12 +81,6 @@ const OnboardingLayout = () => {
       route: '/dashboard/orders'
     },
     {
-      id: 'fe-number',
-      title: 'FE Number',
-      icon: FileText,
-      route: '/dashboard/fe-number'
-    },
-    {
       id: 'shipments',
       title: 'Shipments',
       icon: Truck,
@@ -117,10 +113,22 @@ const OnboardingLayout = () => {
       route: '/dashboard/support/support-dashboard'
     },
     {
+      id: 'fe-number',
+      title: 'FE Number',
+      icon: FileText,
+      route: '/dashboard/fe-number'
+    },
+    {
       id: 'email-responses',
       title: 'Email Responses',
       icon: Mail,
       route: '/dashboard/email-responses'
+    },
+    {
+      id: 'gmail-test',
+      title: 'Gmail',
+      icon: Mail,
+      route: '/dashboard/gmail'
     },
     {
       id: 'ai',
@@ -145,6 +153,31 @@ const OnboardingLayout = () => {
       title: 'Vendors',
       icon: Building,
       route: '/dashboard/vendors'
+    },
+    {
+      id: 'finance',
+      title: 'Finance',
+      icon: Wallet,
+      subItems: [
+        {
+          id: 'cod-remittance',
+          title: 'COD Remittance',
+          icon: DollarSign,
+          route: '/dashboard/finance/cod-remittance-summary'
+        },
+        {
+          id: 'manage-cod-plan',
+          title: 'Manage COD Plan',
+          icon: Coins,
+          route: '/dashboard/finance/manage-cod-plan'
+        },
+        {
+          id: 'add-money',
+          title: 'Add Money',
+          icon: PlusCircle,
+          route: '/dashboard/finance/add-money'
+        }
+      ]
     }
   ];
 
@@ -158,10 +191,14 @@ const OnboardingLayout = () => {
     'action-needed': '/dashboard/action-needed',
     'support': '/dashboard/support/support-dashboard',
     'email-responses': '/dashboard/email-responses',
+    'gmail-test': '/dashboard/gmail',
     'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
     'users': '/dashboard/support-user',
-    'vendors': '/dashboard/vendors'
+    'vendors': '/dashboard/vendors',
+    'manage-cod-plan': '/dashboard/finance/manage-cod-plan',
+    'cod-remittance': '/dashboard/finance/cod-remittance-summary',
+    'add-money': '/dashboard/finance/add-money'
   };
 
   const toggleMenu = (menuId: string) => {
@@ -274,6 +311,19 @@ const OnboardingLayout = () => {
     }
   }, [location.pathname]);
 
+  // Auto-expand finance menu when on finance pages
+  useEffect(() => {
+    const pathname = location.pathname;
+    if (pathname.includes('/dashboard/finance')) {
+      setExpandedMenus(prev => {
+        if (!prev.includes('finance')) {
+          return [...prev, 'finance'];
+        }
+        return prev;
+      });
+    }
+  }, [location.pathname]);
+
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
@@ -314,8 +364,11 @@ const OnboardingLayout = () => {
             <div key={item.id}>
               <button
                 onClick={() => {
-                  if (item.route) navigate(item.route);
-                  if (item.subItems && item.subItems.length > 0) toggleMenu(item.id);
+                  if (item.subItems && item.subItems.length > 0) {
+                    toggleMenu(item.id);
+                  } else if (item.route) {
+                    navigate(item.route);
+                  }
                 }}
                 className={`w-full flex items-center px-4 py-3 text-left transition-all duration-300 group relative overflow-hidden ${
                   item.route && window.location.pathname === item.route

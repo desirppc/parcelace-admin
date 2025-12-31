@@ -273,6 +273,10 @@ const FENumberPage = () => {
   const [selectedCourierPartner, setSelectedCourierPartner] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  // API Search state
+  const [searchByField, setSearchByField] = useState<string>('awb');
+  const [searchValue, setSearchValue] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [viewAllModalOpen, setViewAllModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -448,6 +452,133 @@ const FENumberPage = () => {
         variant: "destructive",
       });
     } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search FE data by field
+  const searchFEData = async () => {
+    if (!searchValue.trim()) {
+      toast({
+        title: "Search Error",
+        description: "Please enter a search value.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    setLoading(true);
+    try {
+      const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login to continue.",
+          variant: "destructive",
+        });
+        setIsSearching(false);
+        setLoading(false);
+        return;
+      }
+
+      // Map UI field names to API parameter names
+      const fieldMap: { [key: string]: string } = {
+        'awb': 'awb',
+        'courier_partner': 'courier_partner',
+        'warehouse_name': 'warehouse_name',
+        'city': 'city',
+        'hub_name': 'hub_name',
+        'number': 'number'
+      };
+
+      const apiParam = fieldMap[searchByField] || 'awb';
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://app.parcelace.io/';
+      const apiUrl = `${baseUrl}api/warehouse-fe?${apiParam}=${encodeURIComponent(searchValue.trim())}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      const data: APIResponse = await response.json();
+      
+      if (response.ok && data.status && data.data && data.data.fes_data) {
+        // Transform API data to FERowData format
+        const transformedData: FERowData[] = [];
+        
+        data.data.fes_data.forEach((fe) => {
+          // If there are details, create a row for each detail
+          if (fe.details && fe.details.length > 0) {
+            fe.details.forEach((detail) => {
+              transformedData.push({
+                id: `fe-${fe.id}-detail-${detail.id}`,
+                awb: fe.awb,
+                courierPartner: fe.courier_partner,
+                warehouseName: fe.warehouse_name,
+                city: fe.city,
+                hubName: fe.hub_name,
+                gmap: fe.gmap,
+                name: detail.name,
+                number: detail.number,
+                role: detail.role,
+                confidence: detail.confidence,
+                remarks: detail.remarks || fe.remarks,
+                warehouseFeId: fe.id,
+                detailId: detail.id,
+              });
+            });
+          } else {
+            // If no details, still create a row with FE-level data
+            transformedData.push({
+              id: `fe-${fe.id}`,
+              awb: fe.awb,
+              courierPartner: fe.courier_partner,
+              warehouseName: fe.warehouse_name,
+              city: fe.city,
+              hubName: fe.hub_name,
+              gmap: fe.gmap,
+              name: '',
+              number: '',
+              role: '',
+              confidence: '',
+              remarks: fe.remarks,
+              warehouseFeId: fe.id,
+              detailId: 0,
+            });
+          }
+        });
+        
+        setFeRowsData(transformedData);
+        setFilteredFeRowsData(transformedData);
+        
+        toast({
+          title: "Search Complete",
+          description: `Found ${transformedData.length} result(s).`,
+        });
+      } else {
+        toast({
+          title: "Search Error",
+          description: data.message || "No results found.",
+          variant: "destructive",
+        });
+        // Clear results if search fails
+        setFeRowsData([]);
+        setFilteredFeRowsData([]);
+      }
+    } catch (error) {
+      console.error('Error searching FE data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to search FE data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
       setLoading(false);
     }
   };
@@ -1630,7 +1761,7 @@ const FENumberPage = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6 pt-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-blue-600 bg-clip-text text-transparent">
@@ -1680,16 +1811,63 @@ const FENumberPage = () => {
         <TabsContent value="all-details" className="space-y-6">
           {/* Search Bar */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-[0.3]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-          <Input
-            placeholder="Search by AWB / City / Hub / Warehouse / Name / Number"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-12 text-base"
-          />
+        <div className="flex items-center gap-2 flex-1">
+          <Select value={searchByField} onValueChange={setSearchByField}>
+            <SelectTrigger className="w-[200px] h-12">
+              <SelectValue placeholder="Search by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="awb">AWB</SelectItem>
+              <SelectItem value="courier_partner">Courier Partner</SelectItem>
+              <SelectItem value="warehouse_name">Warehouse Name</SelectItem>
+              <SelectItem value="city">City</SelectItem>
+              <SelectItem value="hub_name">Hub Name</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Input
+              placeholder={`Enter ${searchByField === 'awb' ? 'AWB' : searchByField === 'courier_partner' ? 'Courier Partner' : searchByField === 'warehouse_name' ? 'Warehouse Name' : searchByField === 'city' ? 'City' : searchByField === 'hub_name' ? 'Hub Name' : 'Number'} to search`}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  searchFEData();
+                }
+              }}
+              className="pl-10 h-12 text-base"
+            />
+          </div>
+          <Button
+            onClick={searchFEData}
+            disabled={isSearching || !searchValue.trim()}
+            className="h-12 px-6 bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white"
+          >
+            {isSearching ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => {
+              setSearchValue('');
+              setSearchByField('awb');
+              fetchFEData();
+            }}
+            variant="outline"
+            className="h-12 px-4"
+          >
+            Reset
+          </Button>
         </div>
-        <div className="flex-1"></div>
       </div>
 
       {/* Filter Chips */}
