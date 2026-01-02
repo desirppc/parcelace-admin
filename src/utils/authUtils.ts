@@ -1,6 +1,7 @@
 // Authentication utility functions
 
 import { ENVIRONMENT } from '@/config/environment';
+import { shouldBypassVerification } from './roleUtils';
 
 export const isTokenValid = (token: string | null): boolean => {
   if (!token) return false;
@@ -339,12 +340,10 @@ export const shouldBypassOnboarding = (): boolean => {
   const userData = getStoredUserData();
   if (!userData) return false;
   
-  // Import shouldBypassVerification dynamically to avoid circular imports
   try {
-    const { shouldBypassVerification } = require('./roleUtils');
     return shouldBypassVerification(userData);
   } catch (error) {
-    console.error('Error importing shouldBypassVerification:', error);
+    console.error('Error calling shouldBypassVerification:', error);
     return false;
   }
 };

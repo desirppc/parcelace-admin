@@ -234,7 +234,7 @@ const VendorsPage = () => {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          vendor_id: vendor.id
+          user_id: vendor.id
         })
       });
       
@@ -317,18 +317,26 @@ const VendorsPage = () => {
       const transactionId = walletFormData.transactionId || 
         format(walletFormData.paymentDate, 'yyyy-MM-dd-HH-mm-ss');
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}api/vendor-wallet/transaction`, {
+      // Convert type to lowercase format (Credit -> cr, Debit -> dr)
+      const typeMapping: { [key: string]: string } = {
+        'Credit': 'cr',
+        'Debit': 'dr'
+      };
+      const typeValue = typeMapping[walletFormData.type] || walletFormData.type.toLowerCase();
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}api/wallet`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          vendor_id: vendorForWallet?.id,
           amount: parseFloat(walletFormData.amount),
           transaction_id: transactionId,
-          type: walletFormData.type,
+          type: typeValue,
           title: walletFormData.title,
           description: walletFormData.description,
+          payment_status: 'done',
           source: walletFormData.source,
-          payment_date: walletFormData.paymentDate.toISOString()
+          payment_date: format(walletFormData.paymentDate, 'yyyy-MM-dd'),
+          user_id: vendorForWallet?.id
         })
       });
 
@@ -1009,7 +1017,14 @@ const VendorsPage = () => {
                 <Label htmlFor="title">Title *</Label>
                 <Select
                   value={walletFormData.title}
-                  onValueChange={(value) => handleWalletInputChange('title', value)}
+                  onValueChange={(value) => {
+                    handleWalletInputChange('title', value);
+                    // Auto-fill description and source when "Pre Credit Amount" is selected
+                    if (value === 'Pre Credit Amount') {
+                      handleWalletInputChange('description', 'Pre Credit Amount');
+                      handleWalletInputChange('source', 'Admin');
+                    }
+                  }}
                   disabled={walletLoading || !walletFormData.type}
                 >
                   <SelectTrigger>
@@ -1051,6 +1066,7 @@ const VendorsPage = () => {
                   <SelectValue placeholder="Select source" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
                   <SelectItem value="Razorpay">Razorpay</SelectItem>
                   <SelectItem value="Wallet">Wallet</SelectItem>
                 </SelectContent>

@@ -39,6 +39,7 @@ const EmailResponsePage = lazy(() => import("./components/EmailResponsePage"));
 const GmailPage = lazy(() => import("./components/GmailPage"));
 const ParcelAceAI = lazy(() => import('./components/ParcelAceAI'));
 const AnalyticsTest = lazy(() => import('./pages/AnalyticsTest'));
+const Analytics = lazy(() => import('./pages/Analytics'));
 const PublicTracking = lazy(() => import('./pages/PublicTracking'));
 const TrackingTemplate = lazy(() => import('./pages/TrackingTemplate'));
 const OTPVerification = lazy(() => import('./pages/OTPVerification'));
@@ -48,6 +49,8 @@ const CODRemittancePage = lazy(() => import('./components/CODRemittancePage'));
 const CODRemittanceSummaryPage = lazy(() => import('./components/CODRemittanceSummaryPage'));
 const CODRemittanceDetailsPage = lazy(() => import('./components/CODRemittanceDetailsPage'));
 const AddMoney = lazy(() => import('./components/AddMoney'));
+const FailedOrderImportPage = lazy(() => import('./components/FailedOrderImportPage'));
+const FailedOrdersDetailPage = lazy(() => import('./components/FailedOrdersDetailPage'));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -172,6 +175,9 @@ const App = () => {
                 <Route path="/dashboard/gmail" element={<Suspense fallback={<LoadingSpinner />}><GmailPage /></Suspense>} />
                 <Route path="/dashboard/ai" element={<Suspense fallback={<LoadingSpinner />}><ParcelAceAI /></Suspense>} />
                 <Route path="/dashboard/analytics" element={<Suspense fallback={<LoadingSpinner />}><AnalyticsTest /></Suspense>} />
+                <Route path="/dashboard/analytics-query" element={<Suspense fallback={<LoadingSpinner />}><Analytics /></Suspense>} />
+                <Route path="/dashboard/failed-order-import" element={<Suspense fallback={<LoadingSpinner />}><FailedOrderImportPage /></Suspense>} />
+                <Route path="/dashboard/failed-order-import/:importId" element={<Suspense fallback={<LoadingSpinner />}><FailedOrdersDetailPage /></Suspense>} />
                 
                 {/* Finance */}
                 <Route path="/dashboard/finance/manage-cod-plan" element={<Suspense fallback={<LoadingSpinner />}><ManageCODPlanPage /></Suspense>} />

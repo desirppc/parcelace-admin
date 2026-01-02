@@ -160,6 +160,22 @@
         "courier": true
       },
       "friendly_response": "Hey {user_name} - you have {value} delivered shipments for the selected period, fetched on {timestamp}"
+    },
+    "pickup_rate": {
+      "name": "Pickup Rate",
+      "aliases": ["pickup rate", "pickup percentage", "pickup %", "pickup success rate", "pickup success", "pickup completion rate", "pickups", "pickup count", "number of pickups", "how many pickups"],
+      "description": "Percentage or count of successful pickups",
+      "formula": "Picked_Up_Orders / Total_Orders * 100",
+      "unit": "%",
+      "category": "Order Analytics",
+      "calculation_type": "percentage",
+      "api_endpoint": "/api/order",
+      "filters": {
+        "date_range": true,
+        "status": true,
+        "courier": true
+      },
+      "friendly_response": "Hey {user_name} - your pickup rate is {value}% for the selected period, fetched on {timestamp}"
     }
   },
   "data_points": {
@@ -221,6 +237,15 @@
         "status": ["Delivered"]
       },
       "calculation": "COUNT(*) WHERE status = 'Delivered'"
+    },
+    "Picked_Up_Orders": {
+      "name": "Picked Up Orders",
+      "description": "Orders that have been picked up",
+      "api_endpoint": "/api/orders",
+      "filters": {
+        "tracking_status": ["Picked Up", "In Transit", "Out for Delivery", "Delivered"]
+      },
+      "calculation": "COUNT(*) WHERE tracking_status IN ('Picked Up', 'In Transit', 'Out for Delivery', 'Delivered')"
     }
   },
   "api_endpoints": {

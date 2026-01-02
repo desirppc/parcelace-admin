@@ -29,6 +29,7 @@ const API_CONFIG = {
     // Authentication
     LOGIN: 'api/login',
     REGISTER: 'api/register',
+    
     FORGOT_PASSWORD: 'api/forgot-password',
     FORGOT_PASSWORD_VERIFY: 'api/forgot-password/verify',
     RESET_PASSWORD: 'api/forgot-password/reset',
@@ -56,6 +57,8 @@ const API_CONFIG = {
     DELETE_ORDER: 'api/order/delete',
     ORDER_EXPORT: 'api/order/export',
     ORDER_IMPORT: 'api/order/import-bulk-order',
+    IMPORT_EXCEL_LISTING: 'api/import-excel/listing',
+    IMPORT_EXCEL_FAILED_ORDERS: 'api/import-excel/order-failed',
     
     // Shipments
     SHIPMENTS: 'api/shipments/list',
@@ -109,6 +112,12 @@ const API_CONFIG = {
     
     // Analytics & Reports
     ANALYTICS: 'api/analytics',
+    ANALYTICS_METRICS_ADD: 'api/analytics/metrics/add',
+    ANALYTICS_METRICS_LIST: 'api/analytics/metrics/list',
+    ANALYTICS_METRICS_EXECUTE: 'api/analytics/metrics/execute',
+    ACE_ANALYTICS_QUERY: 'api/ace-analytics/query',
+    ACE_ANALYTICS_MATRICES: 'api/ace-analytics/matrices',
+    ACE_ANALYTICS_EXECUTE: 'api/ace-analytics/execute',
     REPORTS: 'api/reports',
     EXPORT_REPORTS: 'api/reports/export',
     

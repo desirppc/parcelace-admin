@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { useNavigate, useLocation } from 'react-router-dom';
 import OnboardingLayout from './OnboardingLayout';
 import { orderService } from '@/services/orderService';
+import { vendorService, Vendor } from '@/services/vendorService';
 import API_CONFIG from '@/config/api';
 import { getApiUrl, getAuthHeaders } from '@/config/api';
 import { testImportAPI, testFileValidation } from '@/utils/testImportAPI';
@@ -93,6 +94,21 @@ const OrdersPage = () => {
   // Filter API states
   const [filterLoading, setFilterLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+
+  // Import Orders tab states
+  const [importOrders, setImportOrders] = useState<any[]>([]);
+  const [importOrdersLoading, setImportOrdersLoading] = useState(false);
+  const [importOrdersCurrentPage, setImportOrdersCurrentPage] = useState(1);
+  const [importOrdersPageSize, setImportOrdersPageSize] = useState(50);
+  const [importOrdersTotal, setImportOrdersTotal] = useState(0);
+  const [importOrdersTotalPages, setImportOrdersTotalPages] = useState(0);
+  
+  // Vendor filter states for import orders
+  const [selectedVendorIds, setSelectedVendorIds] = useState<number[]>([]);
+  const [showVendorSelectDialog, setShowVendorSelectDialog] = useState(false);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [vendorSearchTerm, setVendorSearchTerm] = useState('');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -1331,6 +1347,102 @@ const OrdersPage = () => {
     setCurrentPage(1);
   };
 
+  // Fetch import orders listing
+  const fetchImportOrders = async () => {
+    setImportOrdersLoading(true);
+    try {
+      let authToken = sessionStorage.getItem('auth_token');
+      if (!authToken) authToken = localStorage.getItem('auth_token');
+      
+      // Build URL with pagination and user_id filter
+      const url = new URL(`${import.meta.env.VITE_API_URL || 'https://parcelace.in/'}api/import-excel/listing`);
+      url.searchParams.set('page', importOrdersCurrentPage.toString());
+      url.searchParams.set('per_page', importOrdersPageSize.toString());
+      
+      // Add user_id filter if vendors are selected
+      if (selectedVendorIds.length > 0) {
+        // API expects single user_id, so we'll use the first selected vendor
+        // If multiple are selected, we might need to call API multiple times or modify backend
+        url.searchParams.set('user_id', selectedVendorIds[0].toString());
+      }
+      
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (response.status === 404) {
+        setImportOrders([]);
+        setImportOrdersTotal(0);
+        setImportOrdersTotalPages(0);
+        toast({
+          title: "No Import Orders Found",
+          description: "No import orders data available.",
+          variant: "default",
+        });
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (response.ok && data.status && data.data?.excel_data) {
+        setImportOrders(data.data.excel_data);
+        
+        // Handle pagination if available in response
+        if (data.data.pagination) {
+          setImportOrdersTotal(data.data.pagination.total || data.data.excel_data.length);
+          setImportOrdersTotalPages(data.data.pagination.last_page || Math.ceil((data.data.pagination.total || data.data.excel_data.length) / importOrdersPageSize));
+        } else {
+          setImportOrdersTotal(data.data.excel_data.length);
+          setImportOrdersTotalPages(1);
+        }
+      } else {
+        throw new Error(data?.error?.message || data?.message || 'Failed to fetch import orders');
+      }
+    } catch (error) {
+      console.error('Error fetching import orders:', error);
+      toast({
+        title: "Error Loading Import Orders",
+        description: error instanceof Error ? error.message : "Failed to fetch import orders. Please try again.",
+        variant: "destructive",
+      });
+      setImportOrders([]);
+    } finally {
+      setImportOrdersLoading(false);
+    }
+  };
+
+  // Fetch vendors list for filter
+  const fetchVendors = async () => {
+    try {
+      setLoadingVendors(true);
+      const response = await vendorService.getVendors();
+      if (response.status && response.data.vendor_users) {
+        setVendors(response.data.vendor_users);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    } finally {
+      setLoadingVendors(false);
+    }
+  };
+
+  // Load vendors when vendor dialog opens
+  useEffect(() => {
+    if (showVendorSelectDialog && vendors.length === 0) {
+      fetchVendors();
+    }
+  }, [showVendorSelectDialog]);
+
+  // Fetch import orders when tab is active, page changes, or filter changes
+  useEffect(() => {
+    if (activeTab === 'import-orders') {
+      fetchImportOrders();
+    }
+  }, [activeTab, importOrdersCurrentPage, importOrdersPageSize, selectedVendorIds]);
+
   // API-based filter function
   const fetchFilteredOrders = async (filterPayload: any) => {
     setFilterLoading(true);
@@ -1760,7 +1872,7 @@ const OrdersPage = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-48 grid-cols-2 h-8 bg-gray-100 p-1 rounded-lg">
+          <TabsList className="grid w-72 grid-cols-3 h-8 bg-gray-100 p-1 rounded-lg">
             <TabsTrigger 
               value="all" 
               className={`text-xs px-4 py-2 rounded-md transition-all duration-200 ${
@@ -1782,6 +1894,17 @@ const OrdersPage = () => {
               style={activeTab === 'pending' ? { color: 'white' } : {}}
             >
               Pending
+            </TabsTrigger>
+            <TabsTrigger 
+              value="import-orders" 
+              className={`text-xs px-4 py-2 rounded-md transition-all duration-200 ${
+                activeTab === 'import-orders' 
+                  ? 'bg-gradient-to-r from-pink-500 to-blue-600 text-white shadow-md !text-white' 
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+              }`}
+              style={activeTab === 'import-orders' ? { color: 'white' } : {}}
+            >
+              Import Orders
             </TabsTrigger>
           </TabsList>
 

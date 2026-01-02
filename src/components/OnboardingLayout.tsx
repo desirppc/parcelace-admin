@@ -37,7 +37,8 @@ import {
   Star,
   User,
   Coins,
-  PlusCircle
+  PlusCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,10 +76,10 @@ const OnboardingLayout = () => {
 
   const menuItems: MenuItem[] = [
     {
-      id: 'orders',
-      title: 'Orders',
-      icon: Package,
-      route: '/dashboard/orders'
+      id: 'failed-order-import',
+      title: 'Failed Order Import',
+      icon: FileSpreadsheet,
+      route: '/dashboard/failed-order-import'
     },
     {
       id: 'shipments',
@@ -131,16 +132,29 @@ const OnboardingLayout = () => {
       route: '/dashboard/gmail'
     },
     {
-      id: 'ai',
-      title: 'AI Assistant',
-      icon: MessageCircle,
-      route: '/dashboard/ai'
-    },
-    {
       id: 'analytics',
       title: 'Analytics',
       icon: BarChart3,
-      route: '/dashboard/analytics'
+      subItems: [
+        {
+          id: 'analytics-query',
+          title: 'Add Analytics',
+          icon: BarChart3,
+          route: '/dashboard/analytics-query'
+        },
+        {
+          id: 'view-analytics',
+          title: 'View Analytics',
+          icon: BarChart3,
+          route: '/dashboard/analytics'
+        },
+        {
+          id: 'ai',
+          title: 'AI Assistant',
+          icon: MessageCircle,
+          route: '/dashboard/ai'
+        }
+      ]
     },
     {
       id: 'users',
@@ -183,7 +197,7 @@ const OnboardingLayout = () => {
 
   const routeMapping: { [key: string]: string } = {
     // Dashboard Routes (Primary)
-    'orders': '/dashboard/orders',
+    'failed-order-import': '/dashboard/failed-order-import',
     'fe-number': '/dashboard/fe-number',
     'shipments': '/dashboard/prepaid-shipments',
     'prepaid-shipments': '/dashboard/prepaid-shipments',
@@ -192,8 +206,9 @@ const OnboardingLayout = () => {
     'support': '/dashboard/support/support-dashboard',
     'email-responses': '/dashboard/email-responses',
     'gmail-test': '/dashboard/gmail',
-    'ai': '/dashboard/ai',
     'analytics': '/dashboard/analytics',
+    'view-analytics': '/dashboard/analytics',
+    'ai': '/dashboard/ai',
     'users': '/dashboard/support-user',
     'vendors': '/dashboard/vendors',
     'manage-cod-plan': '/dashboard/finance/manage-cod-plan',

@@ -41,51 +41,169 @@ class AnalyticsService {
   private useMockData = false; // Set to false to use real API data
 
   /**
-   * Parse user query and find matching metric
+   * Calculate similarity between two strings using Levenshtein distance
+   */
+  private calculateSimilarity(str1: string, str2: string): number {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    
+    if (longer.length === 0) return 1.0;
+    
+    const distance = this.levenshteinDistance(longer, shorter);
+    return (longer.length - distance) / longer.length;
+  }
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   */
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix: number[][] = [];
+    
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    
+    return matrix[str2.length][str1.length];
+  }
+
+  /**
+   * Extract keywords from query, removing common stop words
+   */
+  private extractKeywords(query: string): string[] {
+    const stopWords = new Set([
+      'what', 'is', 'my', 'the', 'a', 'an', 'for', 'this', 'that', 'these', 'those',
+      'show', 'me', 'tell', 'give', 'check', 'get', 'find', 'how', 'many', 'much',
+      'can', 'you', 'please', 'i', 'want', 'need', 'to', 'know', 'about', 'of',
+      'in', 'on', 'at', 'by', 'from', 'with', 'as', 'are', 'was', 'were', 'be',
+      'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+      'should', 'may', 'might', 'must', 'shall'
+    ]);
+    
+    const words = query.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+    
+    return words;
+  }
+
+  /**
+   * Calculate match score for a metric against a query
+   */
+  private calculateMatchScore(query: string, metric: Metric, alias: string): number {
+    const normalizedQuery = query.toLowerCase();
+    const normalizedAlias = alias.toLowerCase();
+    let score = 0;
+    
+    // Exact substring match (highest score)
+    if (normalizedQuery.includes(normalizedAlias)) {
+      score += 100;
+    }
+    
+    // Check if all alias words are present in query
+    const aliasWords = normalizedAlias.split(/\s+/);
+    const queryWords = normalizedQuery.split(/\s+/);
+    const matchingWords = aliasWords.filter(aliasWord => 
+      queryWords.some(queryWord => 
+        queryWord.includes(aliasWord) || aliasWord.includes(queryWord)
+      )
+    );
+    
+    if (matchingWords.length === aliasWords.length) {
+      score += 80;
+    } else if (matchingWords.length > 0) {
+      score += (matchingWords.length / aliasWords.length) * 60;
+    }
+    
+    // Fuzzy similarity score
+    const similarity = this.calculateSimilarity(normalizedQuery, normalizedAlias);
+    score += similarity * 40;
+    
+    // Boost score if metric name words are in query
+    const metricNameWords = metric.name.toLowerCase().split(/\s+/);
+    const metricWordsInQuery = metricNameWords.filter(word => 
+      normalizedQuery.includes(word)
+    );
+    if (metricWordsInQuery.length > 0) {
+      score += (metricWordsInQuery.length / metricNameWords.length) * 30;
+    }
+    
+    // Boost score for keyword matches
+    const keywords = this.extractKeywords(query);
+    const aliasKeywords = this.extractKeywords(alias);
+    const matchingKeywords = keywords.filter(kw => 
+      aliasKeywords.some(akw => akw.includes(kw) || kw.includes(akw))
+    );
+    if (matchingKeywords.length > 0) {
+      score += (matchingKeywords.length / Math.max(keywords.length, aliasKeywords.length)) * 20;
+    }
+    
+    return score;
+  }
+
+  /**
+   * Parse user query and find matching metric with improved fuzzy matching
    */
   parseQuery(query: string): Metric | null {
     const normalizedQuery = query.toLowerCase().trim();
     console.log('Parsing query:', normalizedQuery);
     
+    // Remove common query prefixes
+    const cleanedQuery = normalizedQuery
+      .replace(/^(what|what's|what is|show|tell|give|check|get|find|how|can you|please)\s+/i, '')
+      .replace(/\s+(for|in|during|of|this|that|the)\s+(this|that|the|my|me)/gi, ' ')
+      .trim();
+    
+    const matches: Array<{ metric: Metric; key: string; score: number; alias: string }> = [];
+    
     // Search through all metrics and their aliases
     for (const [key, metric] of Object.entries(this.formulas.metrics)) {
-      console.log(`Checking metric: ${key} with aliases:`, metric.aliases);
-      
-      // Check if any alias is contained in the query
-      const hasMatch = metric.aliases.some(alias => {
-        const normalizedAlias = alias.toLowerCase();
+      // Check each alias for this metric
+      for (const alias of metric.aliases) {
+        const score = this.calculateMatchScore(cleanedQuery, metric, alias);
         
-        // Check for exact match first
-        if (normalizedQuery.includes(normalizedAlias)) {
-          console.log(`Exact match found for alias "${normalizedAlias}"`);
-          return true;
+        if (score > 30) { // Threshold for considering a match
+          matches.push({ metric: metric as Metric, key, score, alias });
         }
-        
-        // Check for word-based matching (split by spaces)
-        const queryWords = normalizedQuery.split(/\s+/);
-        const aliasWords = normalizedAlias.split(/\s+/);
-        
-        // Check if all alias words are present in query words
-        const allWordsMatch = aliasWords.every(aliasWord => 
-          queryWords.some(queryWord => queryWord.includes(aliasWord) || aliasWord.includes(queryWord))
-        );
-        
-        if (allWordsMatch) {
-          console.log(`Word-based match found for alias "${normalizedAlias}"`);
-          return true;
-        }
-        
-        return false;
-      });
+      }
       
-      if (hasMatch) {
-        console.log(`Found matching metric: ${key}`);
-        return metric as Metric;
+      // Also check metric name directly
+      const nameScore = this.calculateMatchScore(cleanedQuery, metric, metric.name);
+      if (nameScore > 30) {
+        matches.push({ metric: metric as Metric, key, score: nameScore, alias: metric.name });
       }
     }
     
-    console.log('No matching metric found');
-    return null;
+    if (matches.length === 0) {
+      console.log('No matching metric found');
+      return null;
+    }
+    
+    // Sort by score (highest first) and return the best match
+    matches.sort((a, b) => b.score - a.score);
+    const bestMatch = matches[0];
+    
+    console.log(`Found ${matches.length} potential matches. Best match: ${bestMatch.key} (score: ${bestMatch.score.toFixed(2)}, alias: "${bestMatch.alias}")`);
+    
+    return bestMatch.metric;
   }
 
   /**
@@ -154,6 +272,10 @@ class AnalyticsService {
         
         case 'Delivered_Shipments':
           result = await this.fetchDeliveredShipments(filters);
+          break;
+        
+        case 'Picked_Up_Orders':
+          result = await this.fetchPickedUpOrders(filters);
           break;
         
         default:
@@ -268,59 +390,111 @@ class AnalyticsService {
   }
 
   /**
-   * Process date filters from query
+   * Process date filters from query with improved natural language parsing
    */
   private processDateFilters(query: string, filters: Record<string, any> = {}): Record<string, any> {
     const processedFilters = { ...filters };
     const lowerQuery = query.toLowerCase();
     
+    // Format date as YYYY-MM-DD for API
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Check for "today" in query
-    if (lowerQuery.includes('today')) {
-      const today = new Date();
-      // Use local date format instead of ISO format to match API expectations
-      const todayStr = today.toLocaleDateString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric'
-      });
-      processedFilters.date_from = todayStr;
-      processedFilters.date_to = todayStr;
+    if (lowerQuery.match(/\btoday\b/)) {
+      processedFilters.date_from = formatDate(today);
+      processedFilters.date_to = formatDate(today);
+      return processedFilters;
     }
     
     // Check for "yesterday" in query
-    if (lowerQuery.includes('yesterday')) {
-      const yesterday = new Date();
+    if (lowerQuery.match(/\byesterday\b/)) {
+      const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      // Use local date format instead of ISO format to match API expectations
-      const yesterdayStr = yesterday.toLocaleDateString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric'
-      });
-      processedFilters.date_from = yesterdayStr;
-      processedFilters.date_to = yesterdayStr;
+      processedFilters.date_from = formatDate(yesterday);
+      processedFilters.date_to = formatDate(yesterday);
+      return processedFilters;
     }
     
     // Check for "this week" in query
-    if (lowerQuery.includes('this week')) {
-      const today = new Date();
+    if (lowerQuery.match(/\bthis\s+week\b/)) {
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      
-      processedFilters.date_from = startOfWeek.toISOString().split('T')[0];
-      processedFilters.date_to = endOfWeek.toISOString().split('T')[0];
+      const endOfWeek = new Date(today);
+      processedFilters.date_from = formatDate(startOfWeek);
+      processedFilters.date_to = formatDate(endOfWeek);
+      return processedFilters;
+    }
+    
+    // Check for "last week" in query
+    if (lowerQuery.match(/\blast\s+week\b/)) {
+      const startOfLastWeek = new Date(today);
+      startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+      const endOfLastWeek = new Date(startOfLastWeek);
+      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+      processedFilters.date_from = formatDate(startOfLastWeek);
+      processedFilters.date_to = formatDate(endOfLastWeek);
+      return processedFilters;
     }
     
     // Check for "this month" in query
-    if (lowerQuery.includes('this month')) {
-      const today = new Date();
+    if (lowerQuery.match(/\bthis\s+month\b/)) {
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
-      processedFilters.date_from = startOfMonth.toISOString().split('T')[0];
-      processedFilters.date_to = endOfMonth.toISOString().split('T')[0];
+      const endOfMonth = new Date(today);
+      processedFilters.date_from = formatDate(startOfMonth);
+      processedFilters.date_to = formatDate(endOfMonth);
+      return processedFilters;
+    }
+    
+    // Check for "last month" in query
+    if (lowerQuery.match(/\blast\s+month\b/)) {
+      const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      processedFilters.date_from = formatDate(startOfLastMonth);
+      processedFilters.date_to = formatDate(endOfLastMonth);
+      return processedFilters;
+    }
+    
+    // Check for "last 7 days" or "past 7 days"
+    if (lowerQuery.match(/\b(last|past)\s+7\s+days?\b/)) {
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 6); // Include today
+      processedFilters.date_from = formatDate(startDate);
+      processedFilters.date_to = formatDate(today);
+      return processedFilters;
+    }
+    
+    // Check for "last 30 days" or "past 30 days"
+    if (lowerQuery.match(/\b(last|past)\s+30\s+days?\b/)) {
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 29); // Include today
+      processedFilters.date_from = formatDate(startDate);
+      processedFilters.date_to = formatDate(today);
+      return processedFilters;
+    }
+    
+    // Check for "last 90 days" or "past 90 days"
+    if (lowerQuery.match(/\b(last|past)\s+90\s+days?\b/)) {
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 89); // Include today
+      processedFilters.date_from = formatDate(startDate);
+      processedFilters.date_to = formatDate(today);
+      return processedFilters;
+    }
+    
+    // Check for "this year"
+    if (lowerQuery.match(/\bthis\s+year\b/)) {
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      processedFilters.date_from = formatDate(startOfYear);
+      processedFilters.date_to = formatDate(today);
+      return processedFilters;
     }
     
     return processedFilters;
@@ -329,12 +503,42 @@ class AnalyticsService {
   /**
    * Get available metrics for suggestions
    */
-  getAvailableMetrics(): Array<{ name: string; aliases: string[]; description: string }> {
+  getAvailableMetrics(): Array<{ name: string; aliases: string[]; description: string; category: string }> {
     return Object.values(this.formulas.metrics).map(metric => ({
       name: metric.name,
       aliases: metric.aliases,
       description: metric.description,
+      category: metric.category || 'Other',
     }));
+  }
+
+  /**
+   * Get metrics grouped by category
+   */
+  getMetricsByCategory(): Record<string, Array<{ name: string; aliases: string[]; description: string; category: string }>> {
+    const metrics = this.getAvailableMetrics();
+    const grouped: Record<string, Array<{ name: string; aliases: string[]; description: string; category: string }>> = {};
+    
+    metrics.forEach(metric => {
+      const category = metric.category || 'Other';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(metric);
+    });
+    
+    return grouped;
+  }
+
+  /**
+   * Get all unique categories
+   */
+  getCategories(): string[] {
+    const categories = new Set<string>();
+    Object.values(this.formulas.metrics).forEach(metric => {
+      categories.add(metric.category || 'Other');
+    });
+    return Array.from(categories).sort();
   }
 
   /**
@@ -427,6 +631,7 @@ class AnalyticsService {
       'Wallet_Expense': 3250,
       'Total_Shipments': 1250,
       'Delivered_Shipments': 1103,
+      'Picked_Up_Orders': 1180,
     };
     
     return mockValues[dataPointKey] || 0;
@@ -633,6 +838,23 @@ class AnalyticsService {
     } catch (error) {
       console.error('Error fetching delivered shipments:', error);
       return this.getMockValue('Delivered_Shipments');
+    }
+  }
+
+  /**
+   * Fetch picked up orders using order service
+   */
+  private async fetchPickedUpOrders(filters: Record<string, any> = {}): Promise<number> {
+    try {
+      // For now, we'll use total orders as a proxy for picked up orders
+      // In a real implementation, you'd filter by status like "Picked Up", "In Transit", etc.
+      const stats = await orderService.getOrderStats(filters);
+      // Assuming picked up orders are orders that are not in "pending" or "cancelled" status
+      // This is a simplified implementation - adjust based on your actual order statuses
+      return stats.total_orders - (stats.pending_orders || 0);
+    } catch (error) {
+      console.error('Error fetching picked up orders:', error);
+      return this.getMockValue('Picked_Up_Orders');
     }
   }
 

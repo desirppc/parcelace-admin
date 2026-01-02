@@ -391,7 +391,7 @@ const CODRemittancePage = () => {
       const referenceIds = remittancesToUpdate.map(r => r.reference_id);
       
       // Use new endpoint without reference_id in path
-      const endpoint = 'api/cod-remittance/utr-update';
+      const endpoint = 'api/cod-remittances/utr-update';
       
       // Make direct fetch call to get full response including status field
       const url = getApiUrl(endpoint);
