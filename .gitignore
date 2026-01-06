@@ -33,3 +33,5 @@ backup_20250814_014458_complete/
 
 # Local Netlify folder
 .netlify
+.vercel
+.env*.local

@@ -127,138 +127,47 @@ const ViewShipment = () => {
     fetchShipmentData();
   }, [awb, toast]);
 
-  // Mock shipment data - used when API data is not available
-  const mockShipment = {
-    orderId: awb || 'SHIP-001',
-    orderType: 'Standard',
-    parcelType: 'COD',
-    status: 'In Transit',
-    trackingId: 'TRK789123456',
-    publicTrackingUrl: `http://localhost:8080/tracking/TRK789123456`,
-    createdAt: '2024-01-15T10:30:00Z',
-    estimatedDelivery: '2024-01-18T18:00:00Z',
-    isDelayed: false,
-    tags: [],
-    courierPartner: {
-      name: null,
-      logo: null
-    },
-    pickupWarehouse: {
-      name: null,
-      address: null,
-      city: null,
-      pin: null,
-      contact: null
-    },
-    customer: {
-      name: null,
-      phone: null,
-      email: null,
-      address: null,
-      landmark: null,
-      pin: null,
-      city: null,
-      state: null
-    },
-    dimensions: {
-      weight: 1500, // Weight in grams
-      length: 25,
-      width: 15,
-      height: 10,
-      volumetricWeight: calculateVolumetricWeight(25, 15, 10) // L×B×H/4000
-    },
-    products: [
-      {
-        id: '1',
-        name: 'Wireless Bluetooth Headphones',
-        quantity: 1,
-        price: 2999,
-        totalPrice: 2999,
-        sku: 'WH001',
-        taxRate: 18,
-        totalTax: 539.82,
-        hsnCode: '85183000',
-        storeOrderId: null,
-        image: '/placeholder.svg'
-      },
-      {
-        id: '2',
-        name: 'Phone Case',
-        quantity: 2,
-        price: 299,
-        totalPrice: 598,
-        sku: 'PC002',
-        taxRate: 18,
-        totalTax: 107.64,
-        hsnCode: '39269099',
-        storeOrderId: null,
-        image: '/placeholder.svg'
-      }
-    ],
-    charges: {
-      productTotal: 3597,
-      freight: 75,
-      shipping: 50,
-      cod: 25,
-      tax: 647.46,
-      discount: 100,
-      orderTotal: 3572,
-      totalCharges: 150,
-      collectableAmount: 4219.46
-    },
-    tracking: [
-      {
-        status: 'Order Placed',
-        timestamp: '2024-01-15T10:30:00Z',
-        location: 'Delhi Hub',
-        description: 'Order has been placed successfully',
-        isCompleted: true
-      },
-      {
-        status: 'Picked Up',
-        timestamp: '2024-01-15T16:45:00Z',
-        location: 'Delhi Hub',
-        description: 'Package picked up from seller',
-        isCompleted: true
-      },
-      {
-        status: 'In Transit',
-        timestamp: '2024-01-16T08:20:00Z',
-        location: 'Mumbai Hub',
-        description: 'Package is in transit to destination',
-        isCompleted: false,
-        isActive: true
-      },
-      {
-        status: 'Out for Delivery',
-        timestamp: null,
-        location: 'Local Hub',
-        description: 'Package will be out for delivery',
-        isCompleted: false,
-        isActive: false
-      },
-      {
-        status: 'Delivered',
-        timestamp: null,
-        location: 'Customer Address',
-        description: 'Package delivered successfully',
-        isCompleted: false,
-        isActive: false
-      }
-    ],
-    notifications: []
-  };
+  // Use API data only - no mock data
+  if (!shipmentData?.data) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <Button variant="outline" onClick={() => navigate('/dashboard/prepaid-shipments')}>
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Shipments
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Shipment Not Found</h1>
+              <p className="text-gray-600 mt-1">Shipment #{awb}</p>
+            </div>
+          </div>
+          <Card className="shadow-sm border-0 bg-white">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <div className="text-gray-500 text-6xl mb-4">📦</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No Shipment Data Available</h2>
+                <p className="text-gray-600 mb-6">Unable to load shipment information. Please try again later.</p>
+                <Button variant="outline" onClick={() => navigate('/dashboard/prepaid-shipments')}>
+                  Go Back
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
-  // Use API data if available, otherwise use mock data
-  const shipment = shipmentData?.data ? {
-    orderId: shipmentData.data.order_details?.awb || awb || 'SHIP-001',
-    orderType: shipmentData.data.order_details?.shipment_mod || 'Standard',
-    parcelType: shipmentData.data.order_details?.parcel_type || 'COD',
-    status: shipmentData.data.order_details?.shipment_status || 'In Transit',
-    trackingId: shipmentData.data.order_details?.awb || 'TRK789123456',
-    publicTrackingUrl: `http://localhost:8080/tracking/${shipmentData.data.order_details?.awb || 'TRK789123456'}`,
-    createdAt: shipmentData.data.order_details?.sync_date || '2024-01-15T10:30:00Z',
-    estimatedDelivery: '2024-01-18T18:00:00Z',
+  const shipment = {
+    orderId: shipmentData.data.order_details?.awb || awb || '',
+    orderType: shipmentData.data.order_details?.shipment_mod || '',
+    parcelType: shipmentData.data.order_details?.parcel_type || '',
+    status: shipmentData.data.order_details?.shipment_status || '',
+    trackingId: shipmentData.data.order_details?.awb || awb || '',
+    publicTrackingUrl: `http://localhost:8080/tracking/${shipmentData.data.order_details?.awb || awb || ''}`,
+    createdAt: shipmentData.data.order_details?.sync_date || '',
+    estimatedDelivery: shipmentData.data.order_details?.estimated_delivery_date || '',
     isDelayed: false,
     tags: [],
     courierPartner: {
@@ -289,14 +198,14 @@ const ViewShipment = () => {
       storeOrderId: shipmentData.data.customer_details?.store_order_id || null
     },
     dimensions: {
-      weight: parseFloat(shipmentData.data.order_details?.weight || '1500'), // Keep in grams
-      length: parseFloat(shipmentData.data.order_details?.length || '25'),
-      width: parseFloat(shipmentData.data.order_details?.width || '15'),
-      height: parseFloat(shipmentData.data.order_details?.height || '10'),
+      weight: parseFloat(shipmentData.data.order_details?.weight || '0'),
+      length: parseFloat(shipmentData.data.order_details?.length || '0'),
+      width: parseFloat(shipmentData.data.order_details?.width || '0'),
+      height: parseFloat(shipmentData.data.order_details?.height || '0'),
       volumetricWeight: calculateVolumetricWeight(
-        parseFloat(shipmentData.data.order_details?.length || '25'),
-        parseFloat(shipmentData.data.order_details?.width || '15'),
-        parseFloat(shipmentData.data.order_details?.height || '10')
+        parseFloat(shipmentData.data.order_details?.length || '0'),
+        parseFloat(shipmentData.data.order_details?.width || '0'),
+        parseFloat(shipmentData.data.order_details?.height || '0')
       )
     },
     products: shipmentData.data.product_details?.length > 0 ? shipmentData.data.product_details.map((product: any, index: number) => ({
@@ -311,28 +220,17 @@ const ViewShipment = () => {
       hsnCode: product.hsn_code || null,
       storeOrderId: product.store_order_id || null,
       image: '/placeholder.svg'
-    })) : [
-      {
-        id: '1',
-        name: 'Wireless Bluetooth Headphones',
-        quantity: 1,
-        price: 2999,
-        totalPrice: 2999,
-        taxRate: 18,
-        hsnCode: '85183000',
-        image: '/placeholder.svg'
-      }
-    ],
+    })) : [],
     charges: {
-      productTotal: shipmentData.data.order_details?.total || 3597,
-      freight: 75,
-      shipping: 50,
-      cod: 25,
-      tax: 647.46,
-      discount: 100,
-      orderTotal: shipmentData.data.order_details?.total || 3572,
-      totalCharges: 150,
-      collectableAmount: shipmentData.data.order_details?.total || 4219.46
+      productTotal: parseFloat(shipmentData.data.order_details?.total || '0'),
+      freight: parseFloat(shipmentData.data.order_details?.freight || '0'),
+      shipping: parseFloat(shipmentData.data.order_details?.shipping || '0'),
+      cod: parseFloat(shipmentData.data.order_details?.cod_charges || '0'),
+      tax: parseFloat(shipmentData.data.order_details?.total_tax || '0'),
+      discount: parseFloat(shipmentData.data.order_details?.total_discount || '0'),
+      orderTotal: parseFloat(shipmentData.data.order_details?.total || '0'),
+      totalCharges: parseFloat(shipmentData.data.order_details?.freight || '0') + parseFloat(shipmentData.data.order_details?.cod_charges || '0'),
+      collectableAmount: parseFloat(shipmentData.data.order_details?.collectable_amount || shipmentData.data.order_details?.total || '0')
     },
     tracking: shipmentData.data.trakings_details?.length > 0 ? shipmentData.data.trakings_details.map((tracking: any, index: number) => ({
       status: tracking.status || 'Status Update',
@@ -341,32 +239,9 @@ const ViewShipment = () => {
       description: tracking.instructions || 'Package status updated',
       isCompleted: index === 0,
       isActive: index === 0
-    })) : [
-      {
-        status: 'Order Placed',
-        timestamp: '2024-01-15T10:30:00Z',
-        location: 'Delhi Hub',
-        description: 'Order has been placed successfully',
-        isCompleted: true
-      },
-      {
-        status: 'Picked Up',
-        timestamp: '2024-01-15T16:45:00Z',
-        location: 'Delhi Hub',
-        description: 'Package picked up from seller',
-        isCompleted: true
-      },
-      {
-        status: 'In Transit',
-        timestamp: '2024-01-16T08:20:00Z',
-        location: 'Mumbai Hub',
-        description: 'Package is in transit to destination',
-        isCompleted: false,
-        isActive: true
-      }
-    ],
+    })) : [],
     notifications: []
-  } : mockShipment;
+  };
 
   const handleCopyTracking = () => {
     navigator.clipboard.writeText(shipment.trackingId);
@@ -513,7 +388,7 @@ const ViewShipment = () => {
                   </Badge>
                 )}
                 <span className="text-sm text-gray-600">
-                  Created {new Date(shipment.createdAt).toLocaleDateString()}
+                  {shipment.createdAt ? `Created ${new Date(shipment.createdAt).toLocaleDateString()}` : ''}
                 </span>
               </div>
             </div>
@@ -569,11 +444,11 @@ const ViewShipment = () => {
                     {shipment.isDelayed ? 'Delayed Delivery' : 'Estimated Delivery'}
                   </p>
                   <p className="text-lg font-bold">
-                    {new Date(shipment.estimatedDelivery).toLocaleDateString('en-US', {
+                    {shipment.estimatedDelivery ? new Date(shipment.estimatedDelivery).toLocaleDateString('en-US', {
                       weekday: 'long',
                       month: 'short',
                       day: 'numeric'
-                    })}
+                    }) : 'Not available'}
                   </p>
                 </div>
               </div>
@@ -796,7 +671,32 @@ const ViewShipment = () => {
                             {event.timestamp && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-2.5 w-2.5" />
-                                {new Date(event.timestamp).toLocaleDateString()}
+                                {(() => {
+                                  // If timestamp is already a formatted string (e.g., "05 Jan 2026 02:11 PM"), display it as-is
+                                  const timestampStr = String(event.timestamp);
+                                  // Check if it already contains time (AM/PM or 24-hour format)
+                                  if (timestampStr.includes('AM') || timestampStr.includes('PM') || timestampStr.match(/\d{1,2}:\d{2}/)) {
+                                    return timestampStr;
+                                  }
+                                  // Otherwise, parse it and show date + time
+                                  try {
+                                    const date = new Date(event.timestamp);
+                                    if (isNaN(date.getTime())) {
+                                      return timestampStr;
+                                    }
+                                    // Format as date + time
+                                    return date.toLocaleString('en-US', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    });
+                                  } catch {
+                                    return timestampStr;
+                                  }
+                                })()}
                               </span>
                             )}
                             <span className="flex items-center gap-1">

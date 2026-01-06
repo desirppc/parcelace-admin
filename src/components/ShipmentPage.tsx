@@ -139,7 +139,9 @@ interface ShipmentItem {
   courier_partner: {
     id: number;
     name: string;
+    display_name: string;
   };
+  pickup_id?: string | null;
   user?: {
     id: number;
     email: string;
@@ -191,7 +193,7 @@ const ShipmentPage = () => {
   const [showVendorSelectDialog, setShowVendorSelectDialog] = useState(false);
   const [showCourierPartnerSelectDialog, setShowCourierPartnerSelectDialog] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [courierPartners, setCourierPartners] = useState<{ id: number; name: string }[]>([]);
+  const [courierPartners, setCourierPartners] = useState<{ id: number; name: string; display_name?: string }[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [loadingCourierPartners, setLoadingCourierPartners] = useState(false);
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
@@ -512,20 +514,24 @@ const ShipmentPage = () => {
       
       // Extract courier partners from existing shipments
       if (shipments.length > 0) {
-        const uniquePartners = new Map<number, string>();
+        const uniquePartners = new Map<number, { name: string; display_name?: string }>();
         shipments.forEach(shipment => {
           if (shipment.courier_partner?.id && shipment.courier_partner?.name) {
             uniquePartners.set(
               shipment.courier_partner.id,
-              shipment.courier_partner.name
+              {
+                name: shipment.courier_partner.name,
+                display_name: shipment.courier_partner.display_name
+              }
             );
           }
         });
         
         if (uniquePartners.size > 0) {
-          const partnersArray = Array.from(uniquePartners.entries()).map(([id, name]) => ({
+          const partnersArray = Array.from(uniquePartners.entries()).map(([id, partner]) => ({
             id,
-            name
+            name: partner.name,
+            display_name: partner.display_name
           }));
           setCourierPartners(partnersArray);
         }
@@ -1291,7 +1297,7 @@ const ShipmentPage = () => {
       if (shipment) {
         // Populate form fields with shipment data
         setFeAWB(shipment.awb);
-        setFeCourierPartner(shipment.courier_partner?.name || '');
+        setFeCourierPartner(shipment.courier_partner?.display_name || shipment.courier_partner?.name || '');
         setFeWarehouseName(shipment.warehouse?.warehouse_name || '');
         setFeCity(shipment.warehouse?.city || shipment.city || '');
         setFeHubName(shipment.warehouse?.warehouse_name || '');
@@ -1998,7 +2004,7 @@ const ShipmentPage = () => {
                           }
                         }}
                       />
-                      <div className="text-sm font-medium">{partner.name}</div>
+                      <div className="text-sm font-medium">{partner.display_name || partner.name}</div>
                     </div>
                   );
                 })}
@@ -2012,7 +2018,7 @@ const ShipmentPage = () => {
                     const partner = courierPartners.find(p => p.id === id);
                     return (
                       <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                        {partner?.name || `ID: ${id}`}
+                        {partner?.display_name || partner?.name || `ID: ${id}`}
                         <X
                           className="w-3 h-3 cursor-pointer"
                           onClick={() => {
@@ -2279,7 +2285,10 @@ const ShipmentPage = () => {
                         {shipment.awb}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {capitalizeWords(shipment.courier_partner?.name || '')}
+                        {shipment.courier_partner?.display_name || capitalizeWords(shipment.courier_partner?.name || '')}
+                        {shipment.pickup_id && (
+                          <span className="ml-2 font-semibold">- PUR - {shipment.pickup_id}</span>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {formatDateTime(shipment.created_at || shipment.order_date)}
@@ -2461,7 +2470,7 @@ const ShipmentPage = () => {
                             onClick={() => {
                               setAwbNumber(shipment.awb);
                               setFeAWB(shipment.awb);
-                              setFeCourierPartner(shipment.courier_partner?.name || '');
+                              setFeCourierPartner(shipment.courier_partner?.display_name || shipment.courier_partner?.name || '');
                               setFeWarehouseName(shipment.warehouse?.warehouse_name || '');
                               setFeCity(shipment.warehouse?.city || shipment.city || '');
                               setFeHubName(shipment.warehouse?.warehouse_name || '');
