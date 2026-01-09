@@ -167,6 +167,9 @@ const API_CONFIG = {
     
     // Warehouse FE
     WAREHOUSE_FE: 'api/warehouse-fe',
+    
+    // Delivery Pincodes
+    DELIVERY_PINCODES_CREATE: 'api/delivery-pincodes/create',
   },
   METHODS: {
     GET: 'GET',

@@ -51,6 +51,8 @@ const CODRemittanceDetailsPage = lazy(() => import('./components/CODRemittanceDe
 const AddMoney = lazy(() => import('./components/AddMoney'));
 const FailedOrderImportPage = lazy(() => import('./components/FailedOrderImportPage'));
 const FailedOrdersDetailPage = lazy(() => import('./components/FailedOrdersDetailPage'));
+const AddPincode = lazy(() => import('./components/AddPincode'));
+const UpdateEway = lazy(() => import('./components/UpdateEway'));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -155,8 +157,8 @@ const App = () => {
               <Route path="/tracking-template" element={<Suspense fallback={<LoadingSpinner />}><TrackingTemplate /></Suspense>} />
               
               
-              <Route path="/orders" element={<Navigate to="/dashboard/orders" replace />} />
-              <Route path="/dashboard" element={<Navigate to="/dashboard/orders" replace />} />
+              <Route path="/orders" element={<Navigate to="/dashboard/prepaid-shipments" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/prepaid-shipments" replace />} />
               
               {/* Protected Routes - Require Authentication */}
               <Route element={<RouteGuard><OnboardingLayout /></RouteGuard>}>
@@ -185,6 +187,10 @@ const App = () => {
                 <Route path="/dashboard/finance/cod-remittance" element={<Suspense fallback={<LoadingSpinner />}><CODRemittancePage /></Suspense>} />
                 <Route path="/dashboard/finance/cod-remittance/:id" element={<Suspense fallback={<LoadingSpinner />}><CODRemittanceDetailsPage /></Suspense>} />
                 <Route path="/dashboard/finance/add-money" element={<Suspense fallback={<LoadingSpinner />}><AddMoney /></Suspense>} />
+                
+                {/* Tools */}
+                <Route path="/dashboard/tools/add-pincode" element={<Suspense fallback={<LoadingSpinner />}><AddPincode /></Suspense>} />
+                <Route path="/dashboard/tools/update-eway" element={<Suspense fallback={<LoadingSpinner />}><UpdateEway /></Suspense>} />
                 
                 {/* Order Management */}
                 <Route path="/dashboard/orders/add" element={<OnboardingRoute><Suspense fallback={<LoadingSpinner />}><AddOrder /></Suspense></OnboardingRoute>} />

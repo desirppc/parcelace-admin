@@ -38,7 +38,10 @@ import {
   User,
   Coins,
   PlusCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Wrench,
+  MapPin,
+  ReceiptText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -192,6 +195,25 @@ const OnboardingLayout = () => {
           route: '/dashboard/finance/add-money'
         }
       ]
+    },
+    {
+      id: 'tools',
+      title: 'Tools',
+      icon: Wrench,
+      subItems: [
+        {
+          id: 'add-pincode',
+          title: 'Add Pincode',
+          icon: MapPin,
+          route: '/dashboard/tools/add-pincode'
+        },
+        {
+          id: 'update-eway',
+          title: 'Update Eway',
+          icon: ReceiptText,
+          route: '/dashboard/tools/update-eway'
+        }
+      ]
     }
   ];
 
@@ -213,7 +235,9 @@ const OnboardingLayout = () => {
     'vendors': '/dashboard/vendors',
     'manage-cod-plan': '/dashboard/finance/manage-cod-plan',
     'cod-remittance': '/dashboard/finance/cod-remittance-summary',
-    'add-money': '/dashboard/finance/add-money'
+    'add-money': '/dashboard/finance/add-money',
+    'add-pincode': '/dashboard/tools/add-pincode',
+    'update-eway': '/dashboard/tools/update-eway'
   };
 
   const toggleMenu = (menuId: string) => {
@@ -333,6 +357,19 @@ const OnboardingLayout = () => {
       setExpandedMenus(prev => {
         if (!prev.includes('finance')) {
           return [...prev, 'finance'];
+        }
+        return prev;
+      });
+    }
+  }, [location.pathname]);
+
+  // Auto-expand tools menu when on tools pages
+  useEffect(() => {
+    const pathname = location.pathname;
+    if (pathname.includes('/dashboard/tools')) {
+      setExpandedMenus(prev => {
+        if (!prev.includes('tools')) {
+          return [...prev, 'tools'];
         }
         return prev;
       });
