@@ -53,6 +53,7 @@ const FailedOrderImportPage = lazy(() => import('./components/FailedOrderImportP
 const FailedOrdersDetailPage = lazy(() => import('./components/FailedOrdersDetailPage'));
 const AddPincode = lazy(() => import('./components/AddPincode'));
 const UpdateEway = lazy(() => import('./components/UpdateEway'));
+const BulkTrackingPage = lazy(() => import('./components/BulkTrackingPage'));
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -191,6 +192,7 @@ const App = () => {
                 {/* Tools */}
                 <Route path="/dashboard/tools/add-pincode" element={<Suspense fallback={<LoadingSpinner />}><AddPincode /></Suspense>} />
                 <Route path="/dashboard/tools/update-eway" element={<Suspense fallback={<LoadingSpinner />}><UpdateEway /></Suspense>} />
+                <Route path="/dashboard/tools/bulk-tracking" element={<Suspense fallback={<LoadingSpinner />}><BulkTrackingPage /></Suspense>} />
                 
                 {/* Order Management */}
                 <Route path="/dashboard/orders/add" element={<OnboardingRoute><Suspense fallback={<LoadingSpinner />}><AddOrder /></Suspense></OnboardingRoute>} />

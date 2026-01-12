@@ -212,6 +212,12 @@ const OnboardingLayout = () => {
           title: 'Update Eway',
           icon: ReceiptText,
           route: '/dashboard/tools/update-eway'
+        },
+        {
+          id: 'bulk-tracking',
+          title: 'Bulk Tracking',
+          icon: Search,
+          route: '/dashboard/tools/bulk-tracking'
         }
       ]
     }
@@ -237,7 +243,8 @@ const OnboardingLayout = () => {
     'cod-remittance': '/dashboard/finance/cod-remittance-summary',
     'add-money': '/dashboard/finance/add-money',
     'add-pincode': '/dashboard/tools/add-pincode',
-    'update-eway': '/dashboard/tools/update-eway'
+    'update-eway': '/dashboard/tools/update-eway',
+    'bulk-tracking': '/dashboard/tools/bulk-tracking'
   };
 
   const toggleMenu = (menuId: string) => {
