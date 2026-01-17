@@ -28,7 +28,9 @@ import {
   Share2,
   Link,
   AlertCircle,
-  LifeBuoy
+  LifeBuoy,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,6 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { shipmentService } from '@/services/shipmentService';
 
 const ViewShipment = () => {
   const { awb } = useParams<{ awb: string }>();
@@ -47,6 +50,8 @@ const ViewShipment = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [regeneratingPickup, setRegeneratingPickup] = useState(false);
+  const [downloadingLabel, setDownloadingLabel] = useState(false);
 
   // Helper function to calculate volumetric weight
   const calculateVolumetricWeight = (length: number, width: number, height: number) => {
@@ -126,6 +131,67 @@ const ViewShipment = () => {
 
     fetchShipmentData();
   }, [awb, toast]);
+
+  // Call tracking API once when page opens (using sessionStorage to prevent infinite loops)
+  useEffect(() => {
+    if (!awb) {
+      return;
+    }
+
+    // Check if we've already called the tracking API for this AWB in this session
+    const trackingApiKey = `tracking_api_called_${awb}`;
+    const hasCalledTracking = sessionStorage.getItem(trackingApiKey);
+    
+    if (hasCalledTracking) {
+      console.log('Tracking API already called for this AWB in this session, skipping...');
+      return;
+    }
+
+    const callTrackingAPI = async () => {
+      try {
+        const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        
+        if (!authToken) {
+          console.warn('No auth token found for tracking API call');
+          return;
+        }
+
+        // Mark as called immediately to prevent duplicate calls
+        sessionStorage.setItem(trackingApiKey, 'true');
+        
+        const trackingUrl = `https://parcelace.in/api/shipment-tracking/${awb}`;
+        console.log('Calling tracking API:', trackingUrl);
+        
+        const response = await fetch(trackingUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        const data = await response.json();
+        console.log('Tracking API response:', data);
+        
+        // Reload the page after successful API call (only once per session)
+        if (response.ok) {
+          // Use a flag to prevent reload loop - check if we're already reloading
+          const reloadKey = `tracking_reload_${awb}`;
+          if (!sessionStorage.getItem(reloadKey)) {
+            sessionStorage.setItem(reloadKey, 'true');
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }
+        }
+      } catch (error) {
+        console.error('Error calling tracking API:', error);
+        // Keep the flag set even on error to prevent retries
+      }
+    };
+
+    callTrackingAPI();
+  }, [awb]);
 
   // Use API data only - no mock data
   if (!shipmentData?.data) {
@@ -255,8 +321,109 @@ const ViewShipment = () => {
     navigate('/dashboard/prepaid-shipments');
   };
 
-  const handleDownloadInvoice = () => {
-    console.log('Download invoice');
+  const handleDownloadInvoice = async () => {
+    if (!awb) {
+      toast({
+        title: "Error",
+        description: "AWB number is required to download invoice.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await shipmentService.downloadInvoice([awb]);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Invoice downloaded successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to download invoice",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Download invoice error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download invoice",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegeneratePickup = async () => {
+    if (!awb) {
+      toast({
+        title: "Invalid AWB",
+        description: "AWB number is required to regenerate pickup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRegeneratingPickup(true);
+    
+    try {
+      const result = await shipmentService.regeneratePickup(awb);
+      
+      toast({
+        title: result.success ? "Pickup Request" : "Pickup Request Failed",
+        description: result.message || "Pickup request processed",
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error('Regenerate pickup error:', error);
+      toast({
+        title: "Pickup Request Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingPickup(false);
+    }
+  };
+
+  const handleDownloadShippingLabel = async () => {
+    if (!awb) {
+      toast({
+        title: "No AWB Selected",
+        description: "AWB number is required to download shipping label.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDownloadingLabel(true);
+    
+    try {
+      const result = await shipmentService.downloadShippingLabels([awb]);
+      
+      if (result.success) {
+        toast({
+          title: "Downloading Labels",
+          description: "Shipping label download started",
+        });
+      } else {
+        toast({
+          title: "Download Failed",
+          description: result.error || "Failed to download shipping labels. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Download shipping label error:', error);
+      toast({
+        title: "Download Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingLabel(false);
+    }
   };
 
   const handleTrackOrder = () => {
@@ -421,6 +588,32 @@ const ViewShipment = () => {
                 </DialogContent>
               </Dialog>
 
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRegeneratePickup}
+                disabled={regeneratingPickup}
+              >
+                {regeneratingPickup ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                )}
+                Regenerate Pickup
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownloadShippingLabel}
+                disabled={downloadingLabel}
+              >
+                {downloadingLabel ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1" />
+                )}
+                Download Label
+              </Button>
               <Button variant="outline" size="sm" onClick={handleRaiseTicket}>
                 <LifeBuoy className="h-4 w-4 mr-1" />
                 Raise Ticket

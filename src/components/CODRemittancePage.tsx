@@ -142,7 +142,8 @@ const CODRemittancePage = () => {
   const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const pageSizeOptions = [10, 50, 100, 250, 300];
+  const [isServerSidePagination, setIsServerSidePagination] = useState(false);
+  const pageSizeOptions = [50, 100, 150, 200];
 
 
   const { toast } = useToast();
@@ -160,10 +161,20 @@ const CODRemittancePage = () => {
     setError(null);
 
     try {
-      // Build endpoint with user_id query parameter if provided
+      // Build endpoint with query parameters
       let endpoint = 'api/cod-remittance';
+      const queryParams = new URLSearchParams();
+      
       if (userId) {
-        endpoint = `${endpoint}?user_id=${userId}`;
+        queryParams.append('user_id', userId);
+      }
+      
+      // Add pagination parameters for server-side pagination
+      queryParams.append('page', currentPage.toString());
+      queryParams.append('per_page', pageSize.toString());
+      
+      if (queryParams.toString()) {
+        endpoint = `${endpoint}?${queryParams.toString()}`;
       }
       
       const response = await apiRequest(endpoint, 'GET');
@@ -252,13 +263,17 @@ const CODRemittancePage = () => {
           setTotalPages(paginationData.last_page || 1);
           setTotalItems(paginationData.total || remittancesList.length);
           setCurrentPage(paginationData.current_page || 1);
+          setIsServerSidePagination(true); // API provides pagination data
         } else if (data && typeof data === 'object' && !Array.isArray(data) && 'last_page' in data) {
           const legacyData = data as CODRemittanceResponse;
           setTotalPages(legacyData.last_page || 1);
           setTotalItems(legacyData.total || remittancesList.length);
+          setIsServerSidePagination(true); // API provides pagination data
         } else {
+          // No pagination data from API, use client-side pagination
           setTotalPages(Math.ceil(remittancesList.length / pageSize));
           setTotalItems(remittancesList.length);
+          setIsServerSidePagination(false);
         }
 
         toast({
@@ -450,16 +465,17 @@ const CODRemittancePage = () => {
 
   useEffect(() => {
     fetchCODRemittances();
-  }, [userId]);
+  }, [userId, currentPage, pageSize]);
 
   // Filter remittances based on search, status, and date
   useEffect(() => {
     if (!remittances || remittances.length === 0) {
       setFilteredRemittances([]);
-      setTotalPages(1);
-      setTotalItems(0);
       return;
     }
+
+    // Check if we have active filters
+    const hasActiveFilters = searchTerm || statusFilter !== 'all' || dateRange?.from;
 
     let filtered = [...remittances];
 
@@ -494,16 +510,34 @@ const CODRemittancePage = () => {
     }
 
     setFilteredRemittances(filtered);
-    setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
-    setTotalItems(filtered.length);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, statusFilter, dateRange, remittances, pageSize]);
+    
+    // If filters are active, use client-side pagination on filtered results
+    // Otherwise, if using server-side pagination, don't overwrite API pagination data
+    if (hasActiveFilters) {
+      setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
+      setTotalItems(filtered.length);
+      setCurrentPage(1); // Reset to first page when filters change
+      setIsServerSidePagination(false); // Switch to client-side when filtering
+    } else if (!isServerSidePagination) {
+      // No filters and not using server-side pagination, recalculate based on all data
+      setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
+      setTotalItems(filtered.length);
+    }
+    // If no filters and using server-side pagination, keep API pagination data (don't update)
+  }, [searchTerm, statusFilter, dateRange, remittances, pageSize, isServerSidePagination]);
 
   // Get paginated remittances
   const getPaginatedRemittances = () => {
     if (!filteredRemittances || filteredRemittances.length === 0) {
       return [];
     }
+    
+    // If using server-side pagination and no filters, return all items from API (already paginated)
+    if (isServerSidePagination && !searchTerm && statusFilter === 'all' && !dateRange?.from) {
+      return filteredRemittances;
+    }
+    
+    // Otherwise, apply client-side pagination (for filtered results or when not using server-side pagination)
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return filteredRemittances.slice(startIndex, endIndex);
@@ -877,9 +911,33 @@ const CODRemittancePage = () => {
 
           {/* Pagination */}
           <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredRemittances.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
-              {Math.min(currentPage * pageSize, filteredRemittances.length)} of {totalItems} entries
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="w-[80px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizeOptions.map(size => (
+                      <SelectItem key={size} value={size.toString()}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">entries</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {isServerSidePagination && !searchTerm && statusFilter === 'all' && !dateRange?.from ? (
+                  // Server-side pagination: show based on API pagination
+                  <>Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} entries</>
+                ) : (
+                  // Client-side pagination: show based on filtered results
+                  <>Showing {filteredRemittances.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
+                  {Math.min(currentPage * pageSize, filteredRemittances.length)} of {totalItems} entries</>
+                )}
+              </div>
             </div>
             <Pagination>
               <PaginationContent>

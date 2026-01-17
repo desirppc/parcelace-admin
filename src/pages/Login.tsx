@@ -96,7 +96,7 @@ const Login = () => {
         description: "Welcome to the admin dashboard!",
       });
       
-      navigate('/dashboard/orders');
+      navigate('/dashboard/prepaid-shipments');
       setIsLoading(false);
       return;
     }
@@ -134,7 +134,7 @@ const Login = () => {
         description: "Welcome to the demo!",
       });
       
-      navigate('/dashboard/orders');
+      navigate('/dashboard/prepaid-shipments');
       setIsLoading(false);
       return;
     }
@@ -246,7 +246,7 @@ const Login = () => {
         
         // Always redirect to dashboard after successful login - no onboarding required
         console.log('✅ User login successful, navigating to dashboard');
-        navigate('/dashboard/orders');
+        navigate('/dashboard/prepaid-shipments');
         } else {
           toast({
             title: "Login Failed",

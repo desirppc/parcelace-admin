@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 const GmailPage = () => {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [isOAuthConfigured, setIsOAuthConfigured] = useState(true);
   const [connections, setConnections] = useState<GmailConnection[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | undefined>(undefined);
   const [companyName, setCompanyName] = useState<string>('');
@@ -36,20 +37,13 @@ const GmailPage = () => {
     const init = async () => {
       try {
         const initialized = await googleOAuth.initialize();
+        setIsOAuthConfigured(initialized);
         if (!initialized) {
-          toast({
-            title: "Configuration Error",
-            description: "Google OAuth is not configured. Please set VITE_GOOGLE_CLIENT_ID in environment variables.",
-            variant: "destructive",
-          });
+          console.warn('Google OAuth is not configured. Please set VITE_GOOGLE_CLIENT_ID in environment variables.');
         }
       } catch (error) {
         console.error('Error initializing Google OAuth:', error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize Google OAuth",
-          variant: "destructive",
-        });
+        setIsOAuthConfigured(false);
       } finally {
         setInitializing(false);
       }
@@ -249,7 +243,36 @@ const GmailPage = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
-        {loading && connections.length === 0 ? (
+        {!isOAuthConfigured && !initializing ? (
+          // Configuration Error State
+          <div className="flex items-center justify-center h-full">
+            <Card className="w-full max-w-md">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                  <Mail className="w-8 h-8 text-yellow-600" />
+                </div>
+                <CardTitle className="text-2xl">Configuration Required</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Google OAuth is not configured. Please set up your Google Client ID to use Gmail integration.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-2 text-sm text-yellow-800">
+                  <p className="font-semibold">To configure Google OAuth:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li>Get your Client ID from <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                    <li>Create a <code className="bg-yellow-100 px-1 rounded">.env</code> file in the project root</li>
+                    <li>Add: <code className="bg-yellow-100 px-1 rounded">VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com</code></li>
+                    <li>Restart your development server</li>
+                  </ol>
+                </div>
+                <div className="text-xs text-gray-500 text-center">
+                  See <code className="bg-gray-100 px-1 rounded">env.example</code> for reference
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : loading && connections.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -287,7 +310,7 @@ const GmailPage = () => {
                 </div>
                 <Button
                   onClick={() => setConnectDialogOpen(true)}
-                  disabled={loading || initializing}
+                  disabled={loading || initializing || !isOAuthConfigured}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-12 text-base"
                   size="lg"
                 >
@@ -315,7 +338,7 @@ const GmailPage = () => {
               </h2>
               <Button
                 onClick={() => setConnectDialogOpen(true)}
-                disabled={loading || initializing}
+                disabled={loading || initializing || !isOAuthConfigured}
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               >
                 <Mail className="w-4 h-4 mr-2" />
@@ -633,7 +656,7 @@ const GmailPage = () => {
             </Button>
             <Button
               onClick={handleConnectGmail}
-              disabled={loading || !companyName.trim() || initializing}
+              disabled={loading || !companyName.trim() || initializing || !isOAuthConfigured}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
             >
               {loading ? (

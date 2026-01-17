@@ -70,7 +70,7 @@ const LoginScreen = ({ onNavigateToSignUp, onNavigateToForgotPassword, onNavigat
         setUser(data.data);
         
         // Always redirect to dashboard after successful login - no onboarding required
-        window.location.href = '/dashboard/orders';
+        window.location.href = '/dashboard/prepaid-shipments';
       } else {
         toast({
           title: 'Error',

@@ -42,7 +42,7 @@ const Index = () => {
         setIsRedirecting(true);
         
         // Always redirect to dashboard after login - no onboarding required
-        navigate('/dashboard/orders', { replace: true });
+        navigate('/dashboard/prepaid-shipments', { replace: true });
       }
     }
   }, [isAuthenticated, user, loading, navigate, isRedirecting]);

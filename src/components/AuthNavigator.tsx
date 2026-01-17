@@ -70,7 +70,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
 
   const handleMobileOTPSuccess = () => {
     // After mobile OTP verification, always redirect to dashboard
-    navigate('/dashboard/orders');
+    navigate('/dashboard/prepaid-shipments');
   };
 
   const handleSignUpSuccess = (phone?: string, token?: string) => {
@@ -83,7 +83,7 @@ const AuthNavigator = ({ initialScreen = 'login' }: AuthNavigatorProps) => {
 
   const handleNavigateToOnboarding = () => {
     // After successful login, navigate to dashboard (onboarding is handled separately if needed)
-    navigate('/dashboard/orders');
+    navigate('/dashboard/prepaid-shipments');
   };
 
   switch (currentScreen) {
